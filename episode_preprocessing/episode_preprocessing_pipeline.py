@@ -1,235 +1,564 @@
 import datetime
+import io
+import wave
 
+import librosa
+import numpy as np
 import pandas as pd
-import pydub
+import soundfile as sf
+import spacy
+import webrtcvad
 import whisper
+from pydub import AudioSegment
+from tqdm import tqdm
 
 
-def load_audio_file(file_path) -> pydub.AudioSegment:
+"""
+Pipeline functions are main components of this pipeline.
+
+They are ment to be used outside of this module,
+and when used in order, provide the video to sentences pipeline.
+"""
+
+def load_audio_from_video(file_path: str, target_sample_rate: int) -> np.array:
     """
-    Function that loads audio from file path.
+    A function that loads audio data from video file.
+    Used by providing the path to the episode and desired sample rate.
+    The function assumes the audio is multi-channel and
+    automatically converts it to mono, but can also handle mono input.
 
     Input:
-        file_path: file path to the file containing audio
+        file_path (str): file path to the video
+        target_sample_rate (int): the sample rate the audio file will be converted to
 
     Output:
-        audio: pydub.AudioSegment object with audio
+        audio (np.array): mono audio file with specified sample rate represented as np.array
     """
-    audio = pydub.AudioSegment.from_file(file_path)
+    # load audio from video file
+    audio = AudioSegment.from_file(file_path)
+
+    # export the audio to in-memory object
+    wav_file = io.BytesIO()
+    audio.export(wav_file, format="wav")
+
+    # load the audio and downsample it to target sample rate
+    audio, _ = librosa.load(wav_file, sr=target_sample_rate)
+
+    # convert the audio to mono
+    audio = librosa.to_mono(audio)
 
     return audio
 
 
-def get_segments(
-    audio_segment: pydub.AudioSegment,
-    min_silence_len: int = 1000,
-    silence_threshold: int = -16,
-    keep_silence=100,
-) -> list[pydub.AudioSegment]:
+def get_segments_for_vad(
+    audio: np.array, sample_rate: int, segment_seconds_length: float
+) -> list[np.array]:
     """
-    Function that splits pydub.AudioSegment into list of pydub.AudioSegment
-    objects based on detected silence.
+    A function that adapts the audio file so that it is compatible with
+    webrtcvad.Vad object. The sample rate must be 8kHz, 16kHz, or 32kHz, and
+    the segment length must be 10ms, 20ms, or 30ms. It returns a list of
+    audio segments of the chosen length.
 
     Input:
-        audio_segment: a pydub.AudioSegment object.
-        min_silence_len: min time of silence (in ms) to split the audio. default: 1000
-        silence_threshold: threshold in dB to treat the audio as silence. default: -16
-        keep_silence: (in ms or True/False) margin of silence to keep
-            (if True, all silence is kept, if False, none is). default: 100
+        audio (np.array): audio file obtained from load_audio_from_video function
+        sample_rate (int): sample rate of the audio file
+        segment_seconds_length (float): segment length in seconds
+
+    Output:
+        segments (list[np.array]): list of cutouts from the audio file
     """
-    segments = pydub.silence.split_on_silence(
-        audio_segment, min_silence_len, silence_threshold, keep_silence
-    )
+
+    # get segment length in frame number
+    segment_frames_length = int(segment_seconds_length * sample_rate)
+
+    # get number of segments in the audio
+    num_segments = len(audio) // segment_frames_length
+
+    # split audio into list of segments
+    segments = [
+        audio[i * segment_frames_length : (i + 1) * segment_frames_length]
+        for i in range(num_segments)
+    ]
 
     return segments
 
 
-def transcribe_translate_segments(
-    segments: list[pydub.AudioSegment],
-    transcription_model_type: str = "base",
+def get_vad_per_segment(
+    segments: list[np.array],
+    vad_aggressiveness: int,
+    sample_rate: int,
+    segment_frames_length: int,
+) -> np.array:
+    """
+    A function that decides whether an audio file preciously cut to segments using
+    get_segments_for_vad function contains speech or not based on voice
+    activation detection. VAD aggressiveness, is adjustable (int values from 0 to 3),
+    and on top of that, audio sample rate and segment length in frames is required.
+
+    Input:
+        segments (list[np.array]): list with cut audio obtained from
+            get_segments_for_vad function
+        vad_aggressiveness (int): how aggressive should the function be
+            when filtering out non-speech
+        sample_rate (int): sample rate of the audio file
+        segment_frames_length: segment length measured by number of frames
+
+    Output:
+        segments_is_speech (np.array): array with bool values representing
+            detected speech for a given segment. True means that the segment
+            contains speech
+    """
+
+    # instantiate VAD with aggressiveness from 0 to 3
+    vad = webrtcvad.Vad(vad_aggressiveness)
+
+
+    segments_is_speech = []
+    for segment in tqdm(segments):
+        # prepare an in-memory location for segments
+        segment_file = io.BytesIO()
+        # write the segments to in-memory location
+        sf.write(segment_file, segment, sample_rate, format="wav", subtype="PCM_16")
+
+        # prepare the BytesIO object for opening with wave library
+        segment_file.seek(0)
+        # open the segment with wave library
+        segment_bytes_file = wave.open(segment_file, mode="rb")
+
+        # get bytes data from the segment
+        segment_bytes = segment_bytes_file.readframes(segment_frames_length)
+        # detect speech in segment (outputs bool values)
+        is_speech = vad.is_speech(segment_bytes, sample_rate)
+        segments_is_speech.append(is_speech)
+
+    # get np.array with speech bool values
+    segments_is_speech = np.array(segments_is_speech)
+    return segments_is_speech
+
+
+def get_frame_segments_from_vad_output(
+    speech_array: np.array,
+    sample_rate: int,
+    min_fragment_length_seconds: int,
+    segment_seconds_length: float,
+    full_audio_length_frames: int,
+) -> list[tuple[int, int]]:
+    """
+    A function that connects the small segments (10/20/30ms) into larger (5-6 min)
+    fragments based on the results from get_vad_per_segment function.
+    It combines small segments until a specified threshold is reached,
+    and the start and end in frames is saved. The function returns
+    (start, end) pairs in a list.
+
+    Input:
+        speech_array (np.array): np.array with bool values obtained from
+            get_vad_per_segment functionfull_audio_length_frames
+        sample_rate (int): sample rate of the audio file
+        min_fragment_length_seconds (int): min amount of seconds per fragment
+            generated from 10/20/30ms segments
+        segment_seconds_length (float): length of one segment in seconds
+        full_audio_length_frames (int): the total number of frames in
+            the entire audio file
+
+    Output:
+        cut_fragments_frames (list[tuple[int, int]]): list of
+            (start, end) frame number pairs
+    """
+
+    # np.array with segment numbers for segment where we can cut the audio
+    # this returns a tuple for each dimention (here it's 1, so we can just unpack it)
+    # speech_array == 0 is a working substitute of speech_array is False
+    cutable_segments = np.where(speech_array == 0)[0]
+
+    # a target so we have an amount of frames to aim for
+    fragment_min_length_frame = get_target_length_frames(
+        min_fragment_length_seconds,
+        sample_rate
+    )
+
+    # frame number from which the fragment will start
+    fragment_start_frame = 0
+    # start and end of each fragment in frames
+    cut_fragments_frames = []
+
+    for segment_number in cutable_segments:
+        # get end of the segment in frames
+        segment_end_frame = segment_number_to_frames(
+            segment_number, sample_rate, segment_seconds_length
+        )
+
+        # if the total time (in frames) from start is long enough:
+        if segment_end_frame - fragment_start_frame >= fragment_min_length_frame:
+            # start a bit earlier and end a bit later if possible
+            adjusted_fragment_start_frame = adjust_fragment_start_frame(
+                fragment_start_frame, sample_rate
+            )
+            adjusted_segment_end_frame = adjust_fragment_end_frame(
+                segment_end_frame, sample_rate, full_audio_length_frames
+            )
+
+            # append the (start, end) pair to a list
+            cut_fragments_frames.append(
+                (adjusted_fragment_start_frame, adjusted_segment_end_frame)
+            )
+
+            # update the start to be the end of the previous fragment
+            fragment_start_frame = segment_end_frame
+
+    # adjust the start frame for the last fragment
+    adjusted_fragment_start_frame = adjust_fragment_start_frame(fragment_start_frame, sample_rate)
+
+    # append last fragment's (start, end) pair to the list
+    cut_fragments_frames.append((adjusted_fragment_start_frame, full_audio_length_frames))
+
+    return cut_fragments_frames
+
+
+def transcribe_translate_fragments(
+    audio: np.array,
+    cut_fragments_frames: list[tuple[int, int]],
+    sample_rate: int,
     use_fp16: bool = True,
+    transcription_model_size: str = "base",
+    episode_value=datetime.datetime.now().date()
+) -> pd.DataFrame:
+    """
+    A function that transcribes and translates the audio fragments using openai-whisper
+    model, and returns a pandas.DataFrame with English sentences (one sentence per row).
+    The size of the model can be adjusted.
+
+    Input:
+        audio (np.array): full audio file loaded with load_audio_from_video function
+        cut_audio_frames (list[tuple[int, int]]): list of
+            (start, end) frame number pairs
+        sample_rate (int): sample rate of the audio file
+        use_fp16 (bool): Whether to use FP16 format for model prediction,
+            needs to be False for CPU. Defaults to True.
+        transcription_model_type: size of whisper model used for
+            transcription and translation,
+            see: https://pypi.org/project/openai-whisper/. default: "base"
+        episode_value (Any): value assigned to each row for this episode,
+            default: current date in YYYY-MM-DD format (e.g. 2024-05-16)
+    """
+
+    # load the whisper model of choice
+    transcription_model = whisper.load_model(transcription_model_size)
+
+    transcriptions = []
+
+    # trancribe and translate all episode fragments
+    for index, (start, end) in enumerate(tqdm(cut_fragments_frames), start=1):
+
+        # transcribe and translate
+        fragment_text = transcription_model.transcribe(
+            audio[start:end], fp16=use_fp16, language="en"
+        )
+
+        # add additional information to the transcript text
+        transcriptions.append((index, start, end, fragment_text["text"]))
+
+    # create a dataframe from the transcripts
+    data = pd.DataFrame(transcriptions)
+
+    # clean the dataframe
+    data = clean_transcript_df(data, sample_rate, episode_value)
+
+    return data
+
+
+def save_data(
+        df: pd.DataFrame,
+        output_path: str = "output.csv",
+    ) -> None:
+
+    """
+    A function that abstracts pd.DataFrame's saving funcitons with
+    an option to chose json or scv format. If output path is not provided,
+    the default path is "output.csv" in the current directory.
+
+    Input:
+        df (pd.DataFrame): dataframe to save
+        output_format (str): file path to the saved file,
+            default: "output.csv"
+    
+    Output: None
+    """
+    format = output_path.split(".")[1]
+
+    if format == "json":
+        df.to_json(output_path, index=False)
+    else:
+        df.to_csv(output_path, index=False)
+
+
+"""
+Utils functions that are called from the above functions.
+Utils functions are not ment to be used as a standalone,
+and are an abstraction over some more complex parts of above pipeline functions.
+"""
+
+def segment_number_to_frames(
+    segment_number: int, sample_rate: int, segment_seconds_length: float
+) -> int:
+    """
+    A function that converts segment number to the number of
+    frames from the start of the audio file using segment number,
+    audio sample rate, and segment length in seconds
+
+    Input:
+        segment_number (int): number of the segment from the np.array
+            obtained from get_vad_per_segment function
+        sample_rate (int): sample rate of the audio file
+        segment_seconds_length (float): length of the audio segment in seconds
+
+    Output:
+        frames (int): the number of frames from the start of the audio
+        file that corresponds to the segment number
+    """
+    return int(sample_rate * segment_seconds_length * segment_number)
+
+
+def get_target_length_frames(min_length_seconds, sample_rate):
+    # TODO
+    return min_length_seconds * sample_rate
+
+
+def adjust_fragment_start_frame(start_fragment_frame: int, sample_rate: int) -> int:
+    """
+    A function that moves the start of the larger fragment (a couple of minutes)
+    to start 0.125 seconds earlier if the new start does not go below 0.
+
+    Input:
+        start_fragment_frame (int): the frame number that corresponds to start of
+            the segment with no speech detected
+        sample_rate (int): sample rate of the audio file
+
+    Output:
+        start_fragment_frame (int): adjusted (if possible) start_fragment_frame value
+    """
+    if start_fragment_frame - int(0.125 * sample_rate) >= 0:
+        start_fragment_frame = start_fragment_frame - int(0.125 * sample_rate)
+
+    return start_fragment_frame
+
+
+def adjust_fragment_end_frame(
+    end_fragment_frame: int, sample_rate: int, full_audio_length_frames: int
+) -> int:
+    """
+    A function that moves the end of the larger fragment (a couple of minutes)
+    to end 0.125 seconds later if the new end does not go over
+    the full audio duration. Used by get_frame_segments_from_vad_output function.
+
+    Input:
+        end_fragment_frame (int): the frame number that corresponds to start of
+            the last used in this fragment segment with no speech detected
+        sample_rate (int): sample rate of the audio file
+
+    Output:
+        end_fragment_frame (int): adjusted (if possible) end_fragment_frame value
+    """
+    if end_fragment_frame + int(0.125 * sample_rate) <= full_audio_length_frames:
+        end_fragment_frame = end_fragment_frame + int(0.125 * sample_rate)
+
+    return end_fragment_frame
+
+
+def clean_transcript_df(
+    df: pd.DataFrame,
+    sample_rate: int,
     episode_value=datetime.datetime.now().date(),
 ) -> pd.DataFrame:
     """
-    Function that transcribes and translates a pydub.AudioSegment
-    using whisper model of the chosen size.
+    A function that cleans the output of the transcribe_translate_fragments function.
+    It adds a column to identify the episode later
+    (current date in YYYY-MM-DD format by deafut). This can be changed by specifying
+    the episode_value argument in the transcribe_translate_fragments function.
+    Additionaly, this function renames columns, and splits transcription for an episode
+    fragment into separate sentences.
 
     Input:
-        segments: list of pydub.AudioSegment objects returned by get_segments function
-        transcription_model_type: size of whisper model used for
-            transcription and translation,
-            see: https://pypi.org/project/openai-whisper/. default: base
-        fp16 (bool): Whether to use FP16 format for model prediction,
-            needs to be False for CPU. Defaults to True.
-        episode_value: a value assigned to the whole episode in the pandas.DataFrame,
-            default: current date (YYYY-MM-DD)
+        df (pd.DataFrame): a dataframe returned by transcribe_translate_fragments function
+        sample_rate (int): sample rate of the audio file
+        episode_value (Any): value assigned to each row for this episode,
+            default: current date in YYYY-MM-DD format (e.g. 2024-05-16)
+    
     Output:
-        transcripts: pandas.DataFrame with transcription in english,
-            numbered segments, and date
+        df (pd.DataFrame): a cleaned dataframe with one sentence in each row
     """
 
-    # load the whisper model for transcription
-    transcription_model = whisper.load_model(transcription_model_type)
+    # insert a column with episode_value for each row
+    df.insert(loc=0, column="episode", value=episode_value)
+    df.columns = [
+        "episode",
+        "segment",
+        "segment_start_seconds",
+        "segment_end_seconds",
+        "sentence"
+    ]
 
-    # get numbered segment transcriptions and translations
-    transcripts = map(
-        lambda x: (
-            x[0],
-            transcription_model.transcribe(x[1], fp16=use_fp16, language="en"),
-        ),
-        enumerate(segments, start=1),
+    nlp = spacy.load("en_core_web_md")
+
+    # disable all pipeline components and add sentencizer to it
+    nlp.add_pipe("sentencizer", "sentence_splitter", first=True)
+    nlp.disable_pipes("tagger", "parser", "ner", "lemmatizer")
+
+    # get list of sentences instead of the whole doc for each fragment
+    results = []
+
+    for doc in tqdm(nlp.pipe(df["sentence"])):
+        sent_list = doc.sents
+        sent_list = list(map(str, sent_list))
+        results.append(sent_list)
+
+    # overwrite the column with sentence lists
+    df = df.assign(
+        sentence=pd.Series(results),
+        segment_start_seconds = (df["segment_start_seconds"] / sample_rate).round(2),
+        segment_end_seconds = (df["segment_end_seconds"] / sample_rate).round(2)
     )
 
-    transcripts = pd.DataFrame(transcripts, columns=["segment_number", "transcription"])
-    transcripts.insert(loc=0, column="date", value=episode_value)
-
-    return transcripts
-
-
-def split_into_sentences(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Function that splits text segments into separate rows.
-
-    Input:
-        df: pandas.DataFrame with segment level text in each row
-
-    Output: df: pandas.DataFrame with sentence level text in each row
-    """
-
-    # TODO: need to split sentences first to get a list
-    """
-    to check: spacy sentencizer pipeline component
-
-
-    import spacy
-    nlp = spacy.load('en')
-
-    text = '''Your text here'''
-    tokens = nlp(text)
-
-    for sent in tokens.sents:
-        print(sent.string.strip())
-    """
-
-    df = (
-        df.explode(column="transcription", ignore_index=False)
-        .reset_index(drop=True)
-        .rename(columns={"transcription": "sentence"})
-    )
+    # split the list into separate rows and reset the index
+    df = df.explode(column="sentence", ignore_index=False)\
+        .reset_index(drop=True)\
+        .drop_duplicates(subset="sentence")
 
     return df
-
-
-def export_csv(df: pd.DataFrame, format: str = "csv", output_path=None) -> None:
-    """
-    Function that saves a pandas.DataFrame. Both csv and json formats are available
-    to chose as well as a default output file path.
-
-    Input:
-        df: pandas.DataFrame to be saved
-        format: format of saved data, csv or json, default: csv
-        output_path: file path to save the data, default: None
-            (saved in current directory as output.<chosen extension>)
-    """
-    if output_path is None:
-        out_path = f"output.{format}"
-
-    if format == "json":
-        df.to_json(out_path, index=False)
-    else:
-        df.to_csv(out_path, index=False)
 
 
 if __name__ == "__main__":
     import argparse
 
-    # instantiate argument parser
-    parser = argparse.ArgumentParser(
-        description="episode processing pipeline functionalities"
-    )
+    parser = argparse.ArgumentParser()
 
-    # add arguments
-    parser.add_argument("episode_path", help="file path to episode file")
     parser.add_argument(
-        "output_path",
-        help="path to save output csv file ending in file name .csv",
+        "--input_path",
+        required=True,
+        type=str,
+        help="string, file path to the audio file"
+    )
+    parser.add_argument(
+        "--output_path",
+        required=False,
+        type=str,
         default="output.csv",
+        help="string, file path to saved pipeline output (default: output.csv)"
     )
     parser.add_argument(
-        "min_silence_len",
-        help="min time of silence (in ms) to split the audio. default: 1000",
-        default=1000,
-    )
-    parser.add_argument(
-        "silence_thresh",
-        help="threshold in dB to treat the audio as silence. default: -16",
-        default=-16,
-    )
-    parser.add_argument(
-        "keep_silence",
+        "--target_sr",
+        required=False,
+        type=int,
+        default=32_000,
         help="""
-        (in ms or True/False) margin of silence to keep (if True, all silence is kept,
-        if False, none is). default: 100",
-        default=100,
-        """,
+        int, chosen audio file sample rate,
+        pipeline handles 8000/16000/32000 (default: 32000)
+        """
     )
     parser.add_argument(
-        "transcription_model_type",
+        "--segment_length",
+        required=False,
+        type=float,
+        default=0.03,
         help="""
-        size of whisper model used for transcription and translation
-        (see: https://pypi.org/project/openai-whisper/), default: base
-        """,
-        default="base",
+        float, length of a single segment for vad analysis in seconds,
+        pipeline handles 0.01/0.02/0.03 (default: 0.03)
+        """
     )
     parser.add_argument(
-        "fp16",
-        help="""
-        (bool): Whether to use FP16 format for model prediction,
-        needs to be False for CPU. Defaults to True.",
-        default=True
-        """,
+        "--min_fragment_len",
+        required=False,
+        type=int,
+        default=300,
+        help="int, minimal length of the fragment in seconds (default: 300)"
     )
     parser.add_argument(
-        "episode_value",
+        "--vad_aggressiveness",
+        required=False,
+        type=int,
+        default=0,
         help="""
-        a value assigned to the whole episode in the pandas.DataFrame,
-        default: current date (YYYY-MM-DD)",
-        default=datetime.datetime.now().date()
-        """,
+        int, aggressiveness parameter of vad object,
+        defines how strict speech isolation is on a scale from 0 to 3 (default: 0)
+        """
     )
     parser.add_argument(
-        "output_format",
+        "--use_fp16",
+        type=bool,
+        required=False,
+        default=True,
         help="""
-        format in which the data will be saved, only "csv" or "json" are valid formats,
-        default: csv'
-        """,
-        default="csv",
+        bool, whether to use FP16 format for model prediction,
+        needs to be False for CPU (default: True)
+        """
+    )
+    parser.add_argument(
+        "--transcript_model_size",
+        required=False,
+        type=str,
+        default="large",
+        help="""
+        string, size of whisper model used for transcription and translation,
+        see: https://pypi.org/project/openai-whisper/. default: large
+        """
     )
 
-    # get args values
     args = parser.parse_args()
 
-    # load audio and get segments
-    audio_file = load_audio_file(args["episode_path"])
-    segments = get_segments(
-        audio_file,
-        min_silence_len=args["min_silence_len"],
-        silence_threshold=args["silence_thresh"],
-        keep_silence=args["keep_silence"],
+    # get segment length in frames
+    segment_frames_length = segment_number_to_frames(
+        1,
+        sample_rate=args.target_sr,
+        segment_seconds_length=args.segment_length
+    )
+    
+    # load audio file and set sample rate to the chosen value
+    print("loading audio file")
+    audio = load_audio_from_video(
+        file_path=args.input_path,
+        target_sample_rate=args.target_sr
+    )
+    
+    # get full audio length in frames
+    full_audio_length_frames = len(audio)
+
+    # get segments for vad analysis
+    print("splitting into segments")
+    segments = get_segments_for_vad(
+        audio=audio,
+        sample_rate=args.target_sr,
+        segment_seconds_length=args.segment_length
     )
 
-    del audio_file
-
-    # get transcription + translations
-    transcript_df = transcribe_translate_segments(
-        segments,
-        transcription_model_type=args["transcription_model_type"],
-        fp16=args["fp16"],
-        episode_value=args["episode_value"],
+    # get vad output per segment
+    print("getting vad per segment")
+    speech_array = get_vad_per_segment(
+        segments=segments,
+        vad_aggressiveness=args.vad_aggressiveness,
+        sample_rate=args.target_sr,
+        segment_frames_length=segment_frames_length
     )
 
-    del segments
-
-    # split segments into sentences and save to csv
-    transcript_df = split_into_sentences(transcript_df)
-    export_csv(transcript_df, args["output_format"], output_path=args["output_path"])
+    # get fragment sizes of chosen length
+    print("getting frame segments from vad output")
+    cut_fragments_frames = get_frame_segments_from_vad_output(
+        speech_array=speech_array,
+        sample_rate=args.target_sr,
+        min_fragment_length_seconds=args.min_fragment_len,
+        segment_seconds_length=args.segment_length,
+        full_audio_length_frames=full_audio_length_frames
+    )
+    
+    # transcribe and translate fragments to get sentences in df
+    print("transcribing and translating")
+    data_df = transcribe_translate_fragments(
+        audio=audio,
+        cut_fragments_frames=cut_fragments_frames,
+        sample_rate=args.target_sr,
+        use_fp16=args.use_fp16,
+        transcription_model_size=args.transcript_model_size
+    )
+    
+    # save the data to chosen place with chosen format
+    print("saving to file")
+    save_data(data_df, args.output_path)
+    print("done")
