@@ -12,6 +12,16 @@ import whisper
 from pydub import AudioSegment
 from tqdm import tqdm
 
+import logging
+      
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Create a file handler
+file_handler = logging.FileHandler('logfile.log')
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+logging.getLogger('').addHandler(file_handler)
 
 """
 Pipeline functions are main components of this pipeline.
@@ -510,19 +520,19 @@ if __name__ == "__main__":
         sample_rate=args.target_sr,
         segment_seconds_length=args.segment_length
     )
-    
+
     # load audio file and set sample rate to the chosen value
-    print("loading audio file")
+    logging.info("loading audio file")
     audio = load_audio_from_video(
         file_path=args.input_path,
         target_sample_rate=args.target_sr
     )
-    
+
     # get full audio length in frames
     full_audio_length_frames = len(audio)
 
     # get segments for vad analysis
-    print("splitting into segments")
+    logging.info("splitting into segments")
     segments = get_segments_for_vad(
         audio=audio,
         sample_rate=args.target_sr,
@@ -530,7 +540,7 @@ if __name__ == "__main__":
     )
 
     # get vad output per segment
-    print("getting vad per segment")
+    logging.info("getting vad per segment")
     speech_array = get_vad_per_segment(
         segments=segments,
         vad_aggressiveness=args.vad_aggressiveness,
@@ -538,8 +548,12 @@ if __name__ == "__main__":
         segment_frames_length=segment_frames_length
     )
 
+    # Check if there are no speech segments
+    if not any(speech_array):
+        logging.warning("No speech segments found in the audio.")
+
     # get fragment sizes of chosen length
-    print("getting frame segments from vad output")
+    logging.info("getting frame segments from vad output")
     cut_fragments_frames = get_frame_segments_from_vad_output(
         speech_array=speech_array,
         sample_rate=args.target_sr,
@@ -547,9 +561,9 @@ if __name__ == "__main__":
         segment_seconds_length=args.segment_length,
         full_audio_length_frames=full_audio_length_frames
     )
-    
+
     # transcribe and translate fragments to get sentences in df
-    print("transcribing and translating")
+    logging.info("transcribing and translating")
     data_df = transcribe_translate_fragments(
         audio=audio,
         cut_fragments_frames=cut_fragments_frames,
@@ -557,8 +571,12 @@ if __name__ == "__main__":
         use_fp16=args.use_fp16,
         transcription_model_size=args.transcript_model_size
     )
-    
+
+    # Check if there is no data to save
+    if data_df.empty:
+        logging.warning("No data to save.")
+
     # save the data to chosen place with chosen format
-    print("saving to file")
+    logging.info("saving to file")
     save_data(data_df, args.output_path)
-    print("done")
+    logging.info("done")
