@@ -1,22 +1,22 @@
 import logging
 
 # Configure logging to save logs to a file as well as print them to the console
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s - %(levelname)s - %(message)s',
-                    handlers=[
-                        logging.FileHandler("episode_confidence.log"),
-                        logging.StreamHandler()
-                    ])
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("episode_confidence.log"), logging.StreamHandler()],
+)
+
 
 def calculate_episode_confidence(highest_probabilities: list[float]) -> float:
     """
     Calculate the overall confidence score for the episode
     by averaging the highest probabilities for each sentence.
-    
+
     Parameters:
     scores (List[float]): A list of the highest probabilities
     for each sentence in an episode.
-    
+
     Returns:
     float: The overall confidence score, calculated as
     the average of the highest probabilities across all sentences.
