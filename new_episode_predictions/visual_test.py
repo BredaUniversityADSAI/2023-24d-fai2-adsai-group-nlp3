@@ -1,8 +1,6 @@
 import unittest
 from unittest.mock import patch
 
-import matplotlib.pyplot as plt
-
 from visual import plot_emotion_distribution
 
 class TestPlotEmotionDistribution(unittest.TestCase):
@@ -18,8 +16,10 @@ class TestPlotEmotionDistribution(unittest.TestCase):
         """
         Test that 'plot_emotion_distribution' handles an empty list input correctly.
 
-        An empty list should trigger a warning log and prevent any plot from being displayed.
-        This test ensures that the function logs the appropriate warning and that no plot is shown.
+        An empty list should trigger a warning log
+        and prevent any plot from being displayed.
+        This test ensures that the function logs the appropriate warning
+        and that no plot is shown.
         """
         with self.assertLogs(level='WARNING') as log:
             plot_emotion_distribution([])
@@ -33,8 +33,9 @@ class TestPlotEmotionDistribution(unittest.TestCase):
         """
         Test that 'plot_emotion_distribution' handles a single emotion correctly.
 
-        This test provides a list of identical emotion strings to see if the function can correctly
-        generate a plot with a single category. The matplotlib show function being called is checked
+        This test provides a list of identical emotion strings
+        to see if the function can correctly generate a plot with a single category.
+        The matplotlib show function being called is checked
         to ensure that a plot is attempted.
         """
         predictions = ['happiness'] * 5
@@ -47,9 +48,12 @@ class TestPlotEmotionDistribution(unittest.TestCase):
         """
         Test that 'plot_emotion_distribution' correctly plots multiple different emotions.
 
-        This test uses a list of various emotions to verify if the function can handle and
-        correctly plot a pie chart with multiple categories. The test ensures that matplotlib's
-        show function is called, indicating that the function operates correctly across diverse inputs.
+        This test uses a list of various emotions to verify
+        if the function can handle
+        and correctly plot a pie chart with multiple categories.
+        The test ensures that matplotlib's
+        show function is called,
+        indicating that the function operates correctly across diverse inputs.
         """
         predictions = ['happiness', 'sadness', 'anger', 'happiness', 'sadness']
         plot_emotion_distribution(predictions)
