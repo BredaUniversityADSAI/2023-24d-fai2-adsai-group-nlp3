@@ -30,26 +30,27 @@ logging.getLogger("").addHandler(file_handler)
 Pipeline functions are main components of this pipeline.
 
 They are ment to be used outside of this module,
-and when used in order, provide the video to sentences pipeline.
+and when used in order, provide the video or audio to sentences pipeline.
 """
 
 
-def load_audio_from_video(file_path: str, target_sample_rate: int) -> np.array:
+def load_audio(file_path: str, target_sample_rate: int) -> np.array:
     """
-    A function that loads audio data from video file.
+    A function that loads audio data from video file 
+    or directly loads audio from input.
     Used by providing the path to the episode and desired sample rate.
     The function assumes the audio is multi-channel and
     automatically converts it to mono, but can also handle mono input.
 
     Input:
-        file_path (str): file path to the video
+        file_path (str): file path to the video or audio
         target_sample_rate (int): the sample rate the audio file will be converted to
 
     Output:
         audio (np.array): mono audio file with specified sample rate
             represented as np.array
     """
-    # load audio from video file
+    # load audio from the file
     audio = AudioSegment.from_file(file_path)
 
     # export the audio to in-memory object
@@ -75,7 +76,7 @@ def get_segments_for_vad(
     audio segments of the chosen length.
 
     Input:
-        audio (np.array): audio file obtained from load_audio_from_video function
+        audio (np.array): audio file obtained from load_audio function
         sample_rate (int): sample rate of the audio file
         segment_seconds_length (float): segment length in seconds
 
@@ -245,7 +246,7 @@ def transcribe_translate_fragments(
     (one sentence per row). The size of the model can be adjusted.
 
     Input:
-        audio (np.array): full audio file loaded with load_audio_from_video function
+        audio (np.array): full audio file loaded with load_audio function
         cut_audio_frames (list[tuple[int, int]]): list of
             (start, end) frame number pairs
         sample_rate (int): sample rate of the audio file
@@ -530,7 +531,7 @@ if __name__ == "__main__":
 
     # load audio file and set sample rate to the chosen value
     logging.info("loading audio file")
-    audio = load_audio_from_video(
+    audio = load_audio(
         file_path=args.input_path, target_sample_rate=args.target_sr
     )
 

@@ -5,7 +5,7 @@ import os
 
 # Loading main functions
 from episode_preprocessing_pipeline import (
-    load_audio_from_video,
+    load_audio,
     get_segments_for_vad,
     get_vad_per_segment,
     get_frame_segments_from_vad_output,
@@ -24,13 +24,13 @@ from episode_preprocessing_pipeline import (
 
 @pytest.fixture
 def sample_file_path():
-    return "trimmed_ER22_AFL01_MXF.mov"
+    return "ER22_AFL01_audio.mp3"
 
 class TestMain:
     @pytest.mark.parametrize("sample_rate", [32000])
-    def test_load_audio_from_video(self, sample_file_path, sample_rate):
+    def test_load_audio(self, sample_file_path, sample_rate):
         # Call the function to load audio
-        audio = load_audio_from_video(sample_file_path, sample_rate)
+        audio = load_audio(sample_file_path, sample_rate)
         
         # Assertions
         # Check if output is numpy array
@@ -44,7 +44,7 @@ class TestMain:
     def test_get_segments_for_vad(self, sample_file_path, sample_rate, 
                                   segment_seconds_length):
         # Call the function to load audio
-        audio = load_audio_from_video(sample_file_path, sample_rate)
+        audio = load_audio(sample_file_path, sample_rate)
         # Call the function to get segments
         segments = get_segments_for_vad(audio, sample_rate, segment_seconds_length)
         
@@ -64,7 +64,7 @@ class TestMain:
     def test_get_vad_per_segment(self, sample_file_path, sample_rate,
                                  vad_aggressiveness, segment_seconds_length):
         # Call the function to load audio
-        audio = load_audio_from_video(sample_file_path, sample_rate)
+        audio = load_audio(sample_file_path, sample_rate)
         # Call the function to get segments
         segments = get_segments_for_vad(audio, sample_rate, segment_seconds_length)
         # Converting segment number to the number of frames
@@ -88,7 +88,7 @@ class TestMain:
                                                 segment_seconds_length, 
                                                 min_fragment_len):
         # Call the function to load audio
-        audio = load_audio_from_video(sample_file_path, sample_rate)
+        audio = load_audio(sample_file_path, sample_rate)
         # Call the function to get segments
         segments = get_segments_for_vad(audio, sample_rate, segment_seconds_length)
         # Converting segment number to the number of frames
@@ -126,7 +126,7 @@ class TestMain:
                                                     transcript_model_size, 
                                                     output_path):
         # Call the function to load audio
-        audio = load_audio_from_video(sample_file_path, sample_rate)
+        audio = load_audio(sample_file_path, sample_rate)
         # Call the function to get segments
         segments = get_segments_for_vad(audio, sample_rate, segment_seconds_length)
         # Converting segment number to the number of frames
@@ -174,7 +174,7 @@ class TestMain:
         # Check if the output file exists
         assert os.path.exists(output_path)
         # Clean up the test output files
-        os.remove(output_path)
+        #  os.remove(output_path)
 
 class TestUtils:
     @pytest.mark.parametrize("segment_number, sample_rate, segment_seconds_length",
