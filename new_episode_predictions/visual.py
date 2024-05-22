@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO,
                         logging.StreamHandler()
                     ])
 
-def plot_emotion_distribution(predictions: list[str]) -> None:
+def plot_emotion_distribution(predicted_emotions: list[str]) -> None:
     """
     Plot a pie chart of the overall emotion distribution based on a list of predicted
     emotions for each sentence in an episode.
@@ -28,7 +28,7 @@ def plot_emotion_distribution(predictions: list[str]) -> None:
     logging.info("Starting to plot emotion distribution.")
     
     # Count each predicted emotion
-    emotion_counts = Counter(predictions)
+    emotion_counts = Counter(predicted_emotions)
     if not emotion_counts:
         logging.warning("No emotions to plot, the input list is empty.")
         return
