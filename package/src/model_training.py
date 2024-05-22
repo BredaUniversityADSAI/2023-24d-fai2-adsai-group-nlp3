@@ -1,17 +1,16 @@
-import numpy as np
-import pandas as pd
 import argparse
-from transformers import (RobertaTokenizer,
-                          TFRobertaForSequenceClassification,
-                          RobertaConfig
-                        )
+
+# import numpy as np
+import pandas as pd
+
+# from transformers import (RobertaConfig, RobertaTokenizer,
+#                           TFRobertaForSequenceClassification)
 
 
 def load_data(
-        file_path: str,
-        dataset: str,
-
-    ) -> tuple[pd.DataFrame, int]:
+    file_path: str,
+    dataset: str,
+) -> tuple[pd.DataFrame, int]:
     """
     I figured this is a good way to return the number of classes,
     may be worth to go one step further and just return a dict with the classes
@@ -19,7 +18,7 @@ def load_data(
 
 
     probably some way to chose train/evaluate data
-    probably some way to filter training data 
+    probably some way to filter training data
         (no idea how we are saving this, so TBD tomorrow I guess)
 
     file_path (string): file path to the datasets
@@ -49,10 +48,7 @@ def preprocess_data(sentence_df, tokenizer):
     pass
 
 
-def predict(
-        model,
-        sentences: pd.DataFrame
-    ):
+def predict(model, sentences: pd.DataFrame):
     """
     Probably returns either pd.DataFrame or np.array
     Someone also has the predict func so check if it's done
@@ -61,12 +57,9 @@ def predict(
     return model.predict(sentences)
 
 
-def evaluate(
-        eval_data: pd.DataFrame,
-        model
-    ):
-    prepared_sentences = preprocess_data(eval_data["sentence"])
-    preds = predict(model, prepared_sentences)
+def evaluate(eval_data: pd.DataFrame, model):
+    # prepared_sentences = preprocess_data(eval_data["sentence"])
+    # preds = predict(model, prepared_sentences)
     # get preds in a reasonable format
 
     # sklearn eval funcs should be good
@@ -80,10 +73,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--hi",
-        required=False,
-        default="Lorem Ipsum",
-        help="placeholder argument"
+        "--hi", required=False, default="Lorem Ipsum", help="placeholder argument"
     )
 
     args = parser.parse_args()
