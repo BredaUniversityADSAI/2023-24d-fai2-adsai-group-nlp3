@@ -10,15 +10,16 @@ logging.basicConfig(level=logging.DEBUG,
 
 def calculate_episode_confidence(highest_probabilities: list[float]) -> float:
     """
-    Calculate the overall confidence score for the episode by averaging the highest probabilities 
-    for each sentence.
+    Calculate the overall confidence score for the episode
+    by averaging the highest probabilities for each sentence.
     
     Parameters:
-    scores (List[float]): A list of the highest probabilities for each sentence in an episode.
+    scores (List[float]): A list of the highest probabilities
+    for each sentence in an episode.
     
     Returns:
-    float: The overall confidence score, calculated as the average of the highest probabilities 
-    across all sentences.
+    float: The overall confidence score, calculated as
+    the average of the highest probabilities across all sentences.
     """
     if not highest_probabilities:
         logging.warning("Received an empty list of probabilities.")
