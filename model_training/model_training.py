@@ -1,12 +1,13 @@
 import numpy as np
 import pandas as pd
 import argparse
+import tensorflow as tf
 from transformers import (
     RobertaConfig, 
     TFRobertaForSequenceClassification, 
     RobertaTokenizer
     )
-from tensorflow import tf
+
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import (
@@ -37,8 +38,11 @@ def load_data(
     dataset (string): type of dataset to load (train or eval)
     """
 
+    print(f"Loading data from {file_path}...")
     df = pd.read_csv(file_path)
     num_classes = 6
+
+    print(f"Loaded {dataset} dataset successfully.")
 
     return (df, num_classes)
 
@@ -64,6 +68,8 @@ def get_model(
     model = TFRobertaForSequenceClassification(config)
     model.load_weights(weights_path)
     tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
+
+    print("Model loaded successfully.")
     
     return model, tokenizer
 
@@ -143,6 +149,8 @@ def preprocess_data(
     validation_dataset = validation_dataset.batch(BATCH_SIZE)
     validation_dataset = validation_dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
+    print("Data pre-processed successfully.")
+
     return training_dataset, validation_dataset, encoder.classes_, tokenizer
 
 
@@ -198,6 +206,8 @@ def predict(
 
     predicted_emotions = label_encoder.inverse_transform(predicted_classes)
 
+    print("Predictions made successfully.")
+
     return predicted_emotions, highest_probabilities
 
 
@@ -234,12 +244,16 @@ def evaluate(
     report = classification_report(true_labels, predicted_emotions)
     print(report)
 
+    print("Evaluation complete.")
+
     return predicted_emotions, highest_probabilities, accuracy, report
 
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
+
+    print("Loading data...")
 
     parser.add_argument(
         "--config_path",
@@ -255,6 +269,6 @@ if __name__ == "__main__":
         help="Path to the model weights file."
     )
 
-    args = parser.parse_args()
+    print("Data loaded successfully.")
 
-    train_data, num_classes = load_data(args.train_data, "train")
+    args = parser.parse_args()
