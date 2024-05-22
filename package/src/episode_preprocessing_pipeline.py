@@ -49,6 +49,9 @@ def load_audio_from_video(file_path: str, target_sample_rate: int) -> np.array:
         audio (np.array): mono audio file with specified sample rate
             represented as np.array
     """
+
+    logging.info("loading audio file")
+
     # load audio from video file
     audio = AudioSegment.from_file(file_path)
 
@@ -82,6 +85,8 @@ def get_segments_for_vad(
     Output:
         segments (list[np.array]): list of cutouts from the audio file
     """
+
+    logging.info("splitting into segments")
 
     # get segment length in frame number
     segment_frames_length = int(segment_seconds_length * sample_rate)
@@ -124,6 +129,8 @@ def get_vad_per_segment(
             contains speech
     """
 
+    logging.info("getting vad per segment")
+
     # instantiate VAD with aggressiveness from 0 to 3
     vad = webrtcvad.Vad(vad_aggressiveness)
 
@@ -147,6 +154,11 @@ def get_vad_per_segment(
 
     # get np.array with speech bool values
     segments_is_speech = np.array(segments_is_speech)
+
+    # Check if there are no speech segments
+    if not any(segments_is_speech):
+        logging.warning("No speech segments found in the audio.")
+
     return segments_is_speech
 
 
@@ -178,6 +190,8 @@ def get_frame_segments_from_vad_output(
         cut_fragments_frames (list[tuple[int, int]]): list of
             (start, end) frame number pairs
     """
+
+    logging.info("getting frame segments from vad output")
 
     # np.array with segment numbers for segment where we can cut the audio
     # this returns a tuple for each dimention (here it's 1, so we can just unpack it)
@@ -258,6 +272,8 @@ def transcribe_translate_fragments(
             default: current date in YYYY-MM-DD format (e.g. 2024-05-16)
     """
 
+    logging.info("transcribing and translating")
+
     # load the whisper model of choice
     transcription_model = whisper.load_model(transcription_model_size)
 
@@ -298,12 +314,21 @@ def save_data(
 
     Output: None
     """
+
+    # Check if there is no data to save
+    if data_df.empty:
+        logging.warning("No data to save.")
+
+    logging.info("saving to file")
+
     format = output_path.split(".")[1]
 
     if format == "json":
         df.to_json(output_path, index=False)
     else:
         df.to_csv(output_path, index=False)
+
+    logging.info("done")
 
 
 """
@@ -438,8 +463,8 @@ def clean_transcript_df(
     # split the list into separate rows and reset the index
     df = (
         df.explode(column="sentence", ignore_index=False)
-        .reset_index(drop=True)
         .drop_duplicates(subset="sentence")
+        .reset_index(drop=True)
     )
 
     return df
@@ -529,7 +554,6 @@ if __name__ == "__main__":
     )
 
     # load audio file and set sample rate to the chosen value
-    logging.info("loading audio file")
     audio = load_audio_from_video(
         file_path=args.input_path, target_sample_rate=args.target_sr
     )
@@ -538,7 +562,6 @@ if __name__ == "__main__":
     full_audio_length_frames = len(audio)
 
     # get segments for vad analysis
-    logging.info("splitting into segments")
     segments = get_segments_for_vad(
         audio=audio,
         sample_rate=args.target_sr,
@@ -546,7 +569,6 @@ if __name__ == "__main__":
     )
 
     # get vad output per segment
-    logging.info("getting vad per segment")
     speech_array = get_vad_per_segment(
         segments=segments,
         vad_aggressiveness=args.vad_aggressiveness,
@@ -554,12 +576,7 @@ if __name__ == "__main__":
         segment_frames_length=segment_frames_length,
     )
 
-    # Check if there are no speech segments
-    if not any(speech_array):
-        logging.warning("No speech segments found in the audio.")
-
     # get fragment sizes of chosen length
-    logging.info("getting frame segments from vad output")
     cut_fragments_frames = get_frame_segments_from_vad_output(
         speech_array=speech_array,
         sample_rate=args.target_sr,
@@ -569,7 +586,6 @@ if __name__ == "__main__":
     )
 
     # transcribe and translate fragments to get sentences in df
-    logging.info("transcribing and translating")
     data_df = transcribe_translate_fragments(
         audio=audio,
         cut_fragments_frames=cut_fragments_frames,
@@ -578,11 +594,5 @@ if __name__ == "__main__":
         transcription_model_size=args.transcript_model_size,
     )
 
-    # Check if there is no data to save
-    if data_df.empty:
-        logging.warning("No data to save.")
-
     # save the data to chosen place with chosen format
-    logging.info("saving to file")
     save_data(data_df, args.output_path)
-    logging.info("done")
