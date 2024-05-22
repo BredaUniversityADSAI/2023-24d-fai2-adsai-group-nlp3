@@ -24,9 +24,12 @@ def test_load_audio_from_video(sample_file_path, sample_rate):
     audio = load_audio_from_video(sample_file_path, sample_rate)
     
     # Assertions
-    assert isinstance(audio, np.ndarray)  # Check if output is numpy array
-    assert audio.ndim == 1  # Check if output is mono
-    assert len(audio) > 0  # Check if audio data is loaded
+    # Check if output is numpy array
+    assert isinstance(audio, np.ndarray)
+    # Check if output is mono
+    assert audio.ndim == 1
+    # Check if audio data is loaded
+    assert len(audio) > 0
     
 
 @pytest.mark.parametrize("sample_rate, segment_seconds_length", [
@@ -39,16 +42,22 @@ def test_get_segments_for_vad(sample_file_path, sample_rate, segment_seconds_len
     segments = get_segments_for_vad(audio, sample_rate, segment_seconds_length)
     
     # Assertions
-    assert isinstance(segments, list)  # Check if output is a list
-    assert all(isinstance(segment, np.ndarray) for segment in segments)  # Check if segments are numpy arrays
-    assert len(segments) > 0  # Check if segments are generated
-    assert all(len(segment) == int(sample_rate * segment_seconds_length) for segment in segments)  # Check segment length
+    # Check if output is a list
+    assert isinstance(segments, list)
+    # Check if segments are numpy arrays
+    assert all(isinstance(segment, np.ndarray) for segment in segments)
+    # Check if segments are generated
+    assert len(segments) > 0
+    # Check segment length
+    assert all(len(segment) == int(sample_rate * segment_seconds_length)
+               for segment in segments)
 
 
 @pytest.mark.parametrize("sample_rate, vad_aggressiveness, segment_seconds_length", [
     (32000, 0, 0.03), 
 ])
-def test_get_vad_per_segment(sample_file_path, sample_rate, vad_aggressiveness, segment_seconds_length):
+def test_get_vad_per_segment(sample_file_path, sample_rate, 
+                            vad_aggressiveness, segment_seconds_length):
     # Call the function to load audio
     audio = load_audio_from_video(sample_file_path, sample_rate)
     # Call the function to get segments
@@ -56,18 +65,25 @@ def test_get_vad_per_segment(sample_file_path, sample_rate, vad_aggressiveness, 
     # Converting segment number to the number of frames
     segment_frames_length = int(segment_seconds_length * sample_rate)
     # Call the function to get VAD results
-    segments_is_speech = get_vad_per_segment(segments, vad_aggressiveness, sample_rate, segment_frames_length)
+    segments_is_speech = get_vad_per_segment(segments, vad_aggressiveness,
+                                            sample_rate, segment_frames_length)
 
     # Assertions
-    assert isinstance(segments_is_speech, np.ndarray) # Check if output is numpy array
-    assert segments_is_speech.dtype == bool # Check if output is bool
-    assert len(segments_is_speech) == len(segments) # Output array should have the same length as input segments
+    # Check if output is numpy array
+    assert isinstance(segments_is_speech, np.ndarray)
+    # Check if output is bool
+    assert segments_is_speech.dtype == bool 
+    # Output array should have the same length as input segments
+    assert len(segments_is_speech) == len(segments) 
     
 
-@pytest.mark.parametrize("sample_rate, vad_aggressiveness, segment_seconds_length, min_fragment_len", [
+@pytest.mark.parametrize("sample_rate, vad_aggressiveness, \
+                         segment_seconds_length, min_fragment_len", [
     (32000, 0, 0.03, 300),  
 ])
-def test_get_frame_segments_from_vad_output(sample_file_path, sample_rate, vad_aggressiveness, segment_seconds_length, min_fragment_len):
+def test_get_frame_segments_from_vad_output(sample_file_path, sample_rate, 
+                                            vad_aggressiveness, segment_seconds_length,
+                                            min_fragment_len):
     # Call the function to load audio
     audio = load_audio_from_video(sample_file_path, sample_rate)
     # Call the function to get segments
@@ -75,7 +91,8 @@ def test_get_frame_segments_from_vad_output(sample_file_path, sample_rate, vad_a
     # Converting segment number to the number of frames
     segment_frames_length = int(segment_seconds_length * sample_rate)
     # Call the function to get VAD results
-    speech_array = get_vad_per_segment(segments, vad_aggressiveness, sample_rate, segment_frames_length)
+    speech_array = get_vad_per_segment(segments, vad_aggressiveness, 
+                                       sample_rate, segment_frames_length)
     # get full audio length in frames
     full_audio_length_frames = len(audio)
 
@@ -88,15 +105,24 @@ def test_get_frame_segments_from_vad_output(sample_file_path, sample_rate, vad_a
     )
 
     # Assertions
-    assert isinstance(result, list)  # Check if the result is a list
-    assert all(isinstance(segment, tuple) for segment in result)  # Check if all elements are tuples
-    assert all(len(segment) == 2 for segment in result)  # Check if all tuples have length 2
+    # Check if the result is a list
+    assert isinstance(result, list)
+    # Check if all elements are tuples
+    assert all(isinstance(segment, tuple) for segment in result)
+    # Check if all tuples have length 2
+    assert all(len(segment) == 2 for segment in result)
 
 
-@pytest.mark.parametrize("sample_rate, vad_aggressiveness, segment_seconds_length, min_fragment_len, use_fp16, transcript_model_size, output_path", [
+@pytest.mark.parametrize(
+        "sample_rate, vad_aggressiveness, segment_seconds_length, min_fragment_len,\
+        use_fp16, transcript_model_size, output_path", [
     (32000, 0, 0.03, 300, True, "tiny", "output.csv"),  
 ])
-def test_transcribe_translate_fragments_and_save(sample_file_path, sample_rate, vad_aggressiveness, segment_seconds_length, min_fragment_len, use_fp16, transcript_model_size, output_path):
+def test_transcribe_translate_fragments_and_save(sample_file_path, sample_rate,
+                                                  vad_aggressiveness, 
+                                                  segment_seconds_length, 
+                                                  min_fragment_len, use_fp16,
+                                                  transcript_model_size, output_path):
     # Call the function to load audio
     audio = load_audio_from_video(sample_file_path, sample_rate)
     # Call the function to get segments
@@ -104,7 +130,8 @@ def test_transcribe_translate_fragments_and_save(sample_file_path, sample_rate, 
     # Converting segment number to the number of frames
     segment_frames_length = int(segment_seconds_length * sample_rate)
     # Call the function to get VAD results
-    speech_array = get_vad_per_segment(segments, vad_aggressiveness, sample_rate, segment_frames_length)
+    speech_array = get_vad_per_segment(segments, vad_aggressiveness, sample_rate, 
+                                       segment_frames_length)
     # get full audio length in frames
     full_audio_length_frames = len(audio)
 
@@ -133,9 +160,12 @@ def test_transcribe_translate_fragments_and_save(sample_file_path, sample_rate, 
     ]
 
     # Assertions
-    assert isinstance(result, pd.DataFrame)  # Check if the result is a DataFrame
-    assert result.shape[1] == len(expected_columns)  # Check if the number of columns matches
-    assert all(col in result.columns for col in expected_columns)  # Check if all expected columns are present
+    # Check if the result is a DataFrame
+    assert isinstance(result, pd.DataFrame)
+    # Check if the number of columns matches
+    assert result.shape[1] == len(expected_columns)
+    # Check if all expected columns are present
+    assert all(col in result.columns for col in expected_columns)
 
     # Save the result DataFrame using save_data
     save_data(result, output_path)
