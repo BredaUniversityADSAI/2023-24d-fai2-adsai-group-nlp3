@@ -19,7 +19,7 @@ def load_data(
 
     probably some way to chose train/evaluate data
     probably some way to filter training data
-        (no idea how we are saving this, so TBD tomorrow I guess)
+    (no idea how we are saving this, so TBD tomorrow I guess)
 
     file_path (string): file path to the datasets
     dataset (string): type of dataset to load (train or eval)

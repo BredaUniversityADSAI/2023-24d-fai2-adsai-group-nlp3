@@ -1,0 +1,31 @@
+.. _installation:
+
+Installation
+============
+
+To install this project, follow these steps:
+
+1. Create a virtual environment (optional but recommended):
+
+   .. code-block:: shell
+
+       python -m venv venv
+       source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+
+2. Install the package using pip:
+
+   .. code-block:: shell
+
+       pip install your_project_name
+
+3. Install additional dependencies (if any):
+
+   .. code-block:: shell
+
+       pip install -r requirements.txt
+
+4. Verify the installation:
+
+   .. code-block:: shell
+
+       your_project_command --version
