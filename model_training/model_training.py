@@ -3,6 +3,7 @@ import pandas as pd
 import argparse
 import tensorflow as tf
 import os
+import argparse
 
 from transformers import (
     RobertaConfig, 
@@ -287,7 +288,6 @@ def evaluate(
     return predicted_emotions, highest_probabilities, accuracy, report
 
 if __name__ == "__main__":
-    import argparse
 
     parser = argparse.ArgumentParser()
 
