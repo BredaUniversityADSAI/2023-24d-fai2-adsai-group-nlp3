@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import argparse
 import tensorflow as tf
+import os
+
 from transformers import (
     RobertaConfig, 
     TFRobertaForSequenceClassification, 
@@ -36,20 +38,19 @@ def load_data(
 
     file_path (string): file path to the datasets
     dataset (string): type of dataset to load (train or eval)
+
+    Author: 
+        Max Meiners (214936)
     """
 
-    print(f"Loading data from {file_path}...")
     df = pd.read_csv(file_path)
     num_classes = 6
-
-    print(f"Loaded {dataset} dataset successfully.")
 
     return (df, num_classes)
 
 
 def get_model(
-        config_path: str,
-        weights_path: str, 
+        model_path: str,
         num_classes: int):
     """
     Create and return a RoBERTa model with the specified number of output classes.
@@ -62,14 +63,24 @@ def get_model(
     Output:
         model: RoBERTa model with the specified number of output classes.
         tokenizer: Tokenizer used to tokenize the input data.
+
+    Author: 
+        Max Meiners (214936)
     """
-    config = RobertaConfig.from_json_file(config_path)
+
+    config_path = os.path.join(model_path, 'config.json')
+    weights_path = os.path.join(model_path, 'tf_model.h5')
+
+    print(f"Loading model configuration from {config_path}...")
+
+    config = RobertaConfig.from_pretrained(config_path)
     config.num_labels = num_classes
-    model = TFRobertaForSequenceClassification(config)
+    model = TFRobertaForSequenceClassification.from_pretrained("roberta-base", config=config)
+
+    print(f"Loading model weights from {weights_path}...")
     model.load_weights(weights_path)
     tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
-
-    print("Model loaded successfully.")
+    print("Model and tokenizer loaded.")
     
     return model, tokenizer
 
@@ -89,6 +100,9 @@ def preprocess_data(
         validation_dataset: Validation dataset for the model.
         encoder.classes_: Encoded classes for the model.
         tokenizer: Tokenizer used to tokenize the input data.
+
+    Author: 
+        Max Meiners (214936)
     """
 
     text_data = df['sentence'].values
@@ -114,43 +128,48 @@ def preprocess_data(
     token_ids = tf.concat(token_ids, axis=0)
     mask_values = tf.concat(mask_values, axis=0)
 
+    token_ids_array = token_ids.numpy() if isinstance(token_ids, tf.Tensor) else token_ids
+    mask_values_array = mask_values.numpy() if isinstance(mask_values, tf.Tensor) else mask_values
+
     encoder = LabelEncoder()
     transformed_labels = encoder.fit_transform(emotional_labels)
-    transformed_labels = tf.convert_to_tensor(transformed_labels)
+    transformed_labels_array = transformed_labels
 
     X_train_split, X_val_split, y_train_split, y_val_split = train_test_split(
-        token_ids, 
-        transformed_labels, 
+        token_ids_array, 
+        transformed_labels_array, 
         test_size=TEST_SIZE, 
         random_state=RANDOM_STATE, 
-        stratify=transformed_labels)
+        stratify=transformed_labels_array
+    )
     training_masks, validation_masks = train_test_split(
-        mask_values, 
+        mask_values_array, 
         test_size=TEST_SIZE, 
         random_state=RANDOM_STATE, 
-        stratify=transformed_labels)
+        stratify=transformed_labels_array
+    )
 
-    # Constructing TensorFlow datasets for training
-    training_dataset = tf.data.Dataset.from_tensor_slices(({
-        "input_ids": X_train_split, 
-        "attention_mask": training_masks
-        }, y_train_split))
-    
-    training_dataset = training_dataset.shuffle(len(X_train_split))
-    training_dataset = training_dataset.batch(BATCH_SIZE)
-    training_dataset = training_dataset.prefetch(tf.data.experimental.AUTOTUNE)
+    # Reformatting numpy arrays back to TensorFlow tensors for model input
+    X_train_tensors = tf.convert_to_tensor(X_train_split)
+    X_val_tensors = tf.convert_to_tensor(X_val_split)
+    y_train_tensors = tf.convert_to_tensor(y_train_split)
+    y_val_tensors = tf.convert_to_tensor(y_val_split)
+    training_masks_tensors = tf.convert_to_tensor(training_masks)
+    validation_masks_tensors = tf.convert_to_tensor(validation_masks)
 
-    # Constructing TensorFlow datasets for validation
-    validation_dataset = tf.data.Dataset.from_tensor_slices(({
-        "input_ids": X_val_split, 
-        "attention_mask": validation_masks
-        }, y_val_split))
-    
-    validation_dataset = validation_dataset.batch(BATCH_SIZE)
-    validation_dataset = validation_dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
-    print("Data pre-processed successfully.")
+    # Constructing TensorFlow datasets for training and validation
+    training_dataset = tf.data.Dataset.from_tensor_slices(
+        ({"input_ids": X_train_tensors, "attention_mask": training_masks_tensors}, y_train_tensors)
+    )
+    training_dataset = training_dataset.shuffle(len(X_train_tensors)).batch(BATCH_SIZE).prefetch(tf.data.experimental.AUTOTUNE)
 
+    validation_dataset = tf.data.Dataset.from_tensor_slices(
+        ({"input_ids": X_val_tensors, "attention_mask": validation_masks_tensors}, y_val_tensors)
+    )
+    validation_dataset = validation_dataset.batch(BATCH_SIZE).prefetch(tf.data.experimental.AUTOTUNE)
+
+    print("Data preprocessing complete.")
     return training_dataset, validation_dataset, encoder.classes_, tokenizer
 
 
@@ -158,7 +177,8 @@ def predict(
         model, sentences: 
         pd.DataFrame, 
         tokenizer, 
-        label_encoder):
+        label_encoder,
+        batch_size=BATCH_SIZE):
     """
     A function that takes a pre-trained model, a DataFrame of sentences, a tokenizer,
     and a label encoder to predict the emotion labels for the input sentences.
@@ -173,6 +193,9 @@ def predict(
     Output:
         predicted_emotions: List of predicted emotion labels for the input sentences.
         highest_probabilities: List of highest probabilities for each predicted emotion.
+
+    Author: 
+        Max Meiners (214936)
     """
 
     token_ids = []
@@ -188,27 +211,37 @@ def predict(
             return_attention_mask=True,
             return_tensors='tf',
         )
-
         token_ids.append(tokenized_result['input_ids'])
         mask_values.append(tokenized_result['attention_mask'])
 
     token_ids = tf.concat(token_ids, axis=0)
     mask_values = tf.concat(mask_values, axis=0)
 
-    inputs = {'input_ids': token_ids, 
-              'attention_mask': mask_values}
-    outputs = model(inputs)
-    logits = outputs.logits
+    inputs = {'input_ids': token_ids, 'attention_mask': mask_values}
+    num_samples = token_ids.shape[0]
 
-    probabilities = tf.nn.softmax(logits, axis=-1).numpy()
-    predicted_classes = np.argmax(probabilities, axis=1)
-    highest_probabilities = np.max(probabilities, axis=1)
+    all_predicted_classes = []
+    all_highest_probabilities = []
 
-    predicted_emotions = label_encoder.inverse_transform(predicted_classes)
+    for start_idx in range(0, num_samples, batch_size):
+        end_idx = min(start_idx + batch_size, num_samples)
+        batch_inputs = {
+            'input_ids': inputs['input_ids'][start_idx:end_idx],
+            'attention_mask': inputs['attention_mask'][start_idx:end_idx]
+        }
+        outputs = model(batch_inputs)
+        logits = outputs.logits
 
-    print("Predictions made successfully.")
+        probabilities = tf.nn.softmax(logits, axis=-1).numpy()
+        predicted_classes = np.argmax(probabilities, axis=1)
+        highest_probabilities = np.max(probabilities, axis=1)
 
-    return predicted_emotions, highest_probabilities
+        all_predicted_classes.extend(predicted_classes)
+        all_highest_probabilities.extend(highest_probabilities)
+
+    predicted_emotions = label_encoder.inverse_transform(all_predicted_classes)
+
+    return predicted_emotions, all_highest_probabilities
 
 
 def evaluate(
@@ -229,6 +262,9 @@ def evaluate(
         highest_probabilities: List of highest probabilities for each predicted emotion.
         accuracy: Accuracy score of the model.
         report: Classification report of the model's performance.
+
+    Author: 
+        Max Meiners (214936)
     """
 
     prepared_sentences = eval_data[["sentence"]]
@@ -244,8 +280,6 @@ def evaluate(
     report = classification_report(true_labels, predicted_emotions)
     print(report)
 
-    print("Evaluation complete.")
-
     return predicted_emotions, highest_probabilities, accuracy, report
 
 if __name__ == "__main__":
@@ -253,22 +287,52 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    print("Loading data...")
+    print("Loading data(1)...")
 
     parser.add_argument(
-        "--config_path",
+        "--model_path",
         required=True,
         type=str,
-        help="Path to the model configuration file."
+        help="Path to the model configuration and weights file."
     )
 
     parser.add_argument(
-        "--weights_path",
+        "--train_data",
         required=True,
         type=str,
-        help="Path to the model weights file."
+        help="Path to the training data CSV file."
+    )
+
+    parser.add_argument(
+        "--eval_data",
+        required=True,
+        type=str,
+        help="Path to the evaluation data CSV file."
     )
 
     print("Data loaded successfully.")
 
     args = parser.parse_args()
+
+    print("Loading data(2)...")
+    train_data = pd.read_csv(args.train_data)
+    print("Data loaded.")
+
+    print("Preparing model...")
+    num_classes = len(train_data['emotion'].unique())
+    model, tokenizer = get_model(args.model_path, num_classes)
+    print("Model prepared.")
+
+    print("Preprocessing training data...")
+    training_dataset, validation_dataset, class_names, tokenizer = preprocess_data(train_data, tokenizer)
+    print("Training data preprocessed.")
+
+    print("Loading evaluation data...")
+    eval_data = pd.read_csv(args.eval_data)
+    print("Evaluation data loaded.")
+
+    print("Starting evaluation...")
+    label_encoder = LabelEncoder()
+    label_encoder.fit(class_names)
+    evaluate(eval_data, model, tokenizer, label_encoder)
+    print("Evaluation complete.")
