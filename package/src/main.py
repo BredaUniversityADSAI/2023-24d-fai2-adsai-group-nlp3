@@ -30,8 +30,12 @@ import episode_preprocessing_pipeline
 import pandas as pd
 
 """
+command line args:
+
+task (mandatory, positional)
 input_path
 output_path
+save (data from preprocessing)
 target_sr
 segment_length
 min_fragment_len
@@ -41,17 +45,20 @@ transcript_model_size
 """
 
 
-"""
-switch-like:
-    - episode_preprocessing
-    - add_data
-    - train_model
-    - predict_on_new_episode (preprocessing -> pred -> post-pred)
-
-"""
-
 
 def get_args() -> argparse.Namespace:
+    """
+    A function that groups all positional and optional arguments from command line,
+    and returns an argparse.Namespace object.
+    A way to group all of user input in one abstraction.
+    Also handles ArgumentParser.
+
+    Input: None
+
+    Output:
+        args (argparse.Namespace): object holding all of arguments
+            used later in other functions
+    """
     parser = argparse.ArgumentParser(
         prog="app_name",
         description="""
@@ -64,8 +71,14 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "task",
         type=str,
-        choices=["preprocess", "train", "add"],
-        help="task that has to be performed.",
+        choices=["preprocess", "train", "predict", "add"],
+        help="""
+        string, task that has to be performed (preprocess/train/predict/add).
+        preprocess: from video/audio to sentences,
+        train: get new model from exisitng data,
+        predict: get emotions from new episode,
+        add: add prepared data to database
+        """
     )
     parser.add_argument(
         "--input_path",
@@ -161,6 +174,18 @@ def get_args() -> argparse.Namespace:
 
 
 def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
+    """
+    Function that follows the episode_preprocessing_pipeline module.
+    It uses module's functions to get the final output: pd.DataFrame with sentences.
+
+    Input:
+        args (argparse.Namespace): Namespace object returned by get_args function.
+            holds the information about positional and optional arguments
+            from command line
+        
+    Output (pd.DataFrame): result of episode_preprocessing_pipeline.
+        pd.DataFrame with sentences from the audio/video.
+    """
     # get segment length in frames
     segment_frames_length = episode_preprocessing_pipeline.segment_number_to_frames(
         1, sample_rate=args.target_sr, segment_seconds_length=args.segment_length
@@ -216,6 +241,24 @@ def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
+    # get arguments from argparser
     args = get_args()
-    print(args)
-    data_df = episode_preprocessing(args)
+    print(args.task)
+
+    # handle data adding
+    if args.task == "add":
+        pass
+
+    # handle episode preprocessing
+    if args.task in ["preprocess", "predict"]:
+        data_df = episode_preprocessing(args)
+
+    # handle predicting
+    if args.task == "predict":
+        pass
+    
+    # handle training
+    if args.task == "train":
+        pass
+
+
