@@ -105,6 +105,9 @@ def preprocess_data(
         Max Meiners (214936)
     """
 
+    if isinstance(df, str):
+        df = pd.read_csv(df)
+
     text_data = df['sentence'].values
     emotional_labels = df['emotion'].values
 
@@ -174,8 +177,8 @@ def preprocess_data(
 
 
 def predict(
-        model, sentences: 
-        pd.DataFrame, 
+        model, 
+        sentences: list, 
         tokenizer, 
         label_encoder,
         batch_size=BATCH_SIZE):
@@ -201,7 +204,7 @@ def predict(
     token_ids = []
     mask_values = []
 
-    for text_piece in sentences['sentence']:
+    for text_piece in sentences:
         tokenized_result = tokenizer.encode_plus(
             text_piece,
             add_special_tokens=True,
@@ -211,6 +214,7 @@ def predict(
             return_attention_mask=True,
             return_tensors='tf',
         )
+
         token_ids.append(tokenized_result['input_ids'])
         mask_values.append(tokenized_result['attention_mask'])
 

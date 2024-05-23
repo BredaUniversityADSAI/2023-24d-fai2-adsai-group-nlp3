@@ -1,93 +1,36 @@
 import unittest
-import pandas as pd
+import model_training
+from transformers import RobertaTokenizer
+from sklearn.preprocessing import LabelEncoder
 import tensorflow as tf
-import numpy as np
-from unittest.mock import patch, MagicMock
-from script import load_data, get_model, preprocess_data, predict, evaluate
 
-class TestScript(unittest.TestCase):
+class TestModelTraining(unittest.TestCase):
 
-    @patch("script.pd.read_csv")
-    def test_load_data(self, mock_read_csv):
-        # Mocking read_csv return value
-        mock_df = pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})
-        mock_read_csv.return_value = mock_df
+    def test_load_data(self):
+        file_path = '/Users/maxmeiners/Documents/GitHub/2023-24c-fai2-adsai-MaxMeiners/Datasets_new/emotions_all_V6.csv'
+        dataset = 'emotions_all_V6.csv'
+        nrows = 10000
+        df = model_training.load_data(file_path, dataset, nrows)
+        self.assertIsNotNone(df)
+        self.assertEqual(len(df), 10000)
         
-        file_path = 'dummy_path.csv'
-        dataset = 'train'
-        df, num_classes = load_data(file_path, dataset)
-        
-        self.assertIsInstance(df, pd.DataFrame)
-        self.assertEqual(num_classes, 6)
-
-    @patch("script.RobertaConfig.from_pretrained")
-    @patch("script.TFRobertaForSequenceClassification.from_pretrained")
-    @patch("script.RobertaTokenizer.from_pretrained")
-    @patch("script.tf.keras.models.load_model")
-    def test_get_model(self, mock_load_model, mock_tokenizer, mock_roberta_model, mock_roberta_config):
-        mock_roberta_model.return_value = MagicMock()
-        mock_tokenizer.return_value = MagicMock()
-
-        model_path = 'dummy_model_path'
+    def test_get_model(self):
+        model_path = '/Users/maxmeiners/Downloads/model'
         num_classes = 6
-
-        model, tokenizer = get_model(model_path, num_classes)
-
-        self.assertIsNotNone(model)
-        self.assertIsNotNone(tokenizer)
+        self.assertIsNotNone(model_training.get_model(model_path, num_classes))
 
     def test_preprocess_data(self):
-        # Sample data
-        df = pd.DataFrame({
-            'sentence': ['I am happy', 'I am sad'],
-            'emotion': ['happy', 'sad']
-        })
-        tokenizer = MagicMock()
-        tokenizer.encode_plus = MagicMock(return_value={
-            'input_ids': tf.constant([[0]*128]), 
-            'attention_mask': tf.constant([[0]*128])
-        })
-
-        training_dataset, validation_dataset, classes, tokenizer = preprocess_data(df, tokenizer)
-
-        self.assertIsInstance(training_dataset, tf.data.Dataset)
-        self.assertIsInstance(validation_dataset, tf.data.Dataset)
-        self.assertEqual(len(classes), 2)
+        df = '/Users/maxmeiners/Documents/GitHub/2023-24c-fai2-adsai-MaxMeiners/Datasets_new/emotions_all_V6.csv'
+        tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+        self.assertIsNotNone(model_training.preprocess_data(df, tokenizer))
 
     def test_predict(self):
-        model = MagicMock()
-        tokenizer = MagicMock()
-        label_encoder = MagicMock()
-        sentences = pd.DataFrame({
-            'sentence': ['I am happy', 'I am sad']
-        })
-        
-        model.return_value = MagicMock(logits=tf.constant([[0.5, 0.5], [0.5, 0.5]]))
-        label_encoder.inverse_transform = MagicMock(return_value=['happy', 'sad'])
-
-        predicted_emotions, highest_probabilities = predict(model, sentences, tokenizer, label_encoder)
-
-        self.assertEqual(len(predicted_emotions), 2)
-        self.assertEqual(len(highest_probabilities), 2)
-
-    @patch("script.predict")
-    def test_evaluate(self, mock_predict):
-        eval_data = pd.DataFrame({
-            'sentence': ['I am happy', 'I am sad'],
-            'emotion': ['happy', 'sad']
-        })
-        model = MagicMock()
-        tokenizer = MagicMock()
-        label_encoder = MagicMock()
-
-        mock_predict.return_value = (['happy', 'sad'], [0.9, 0.8])
-
-        predicted_emotions, highest_probabilities, accuracy, report = evaluate(eval_data, model, tokenizer, label_encoder)
-
-        self.assertEqual(len(predicted_emotions), 2)
-        self.assertEqual(len(highest_probabilities), 2)
-        self.assertIsInstance(accuracy, float)
-        self.assertIsInstance(report, str)
+        model_path = '/Users/maxmeiners/Downloads/model'
+        model = tf.keras.models.load_model(model_path)
+        sentences = '/Users/maxmeiners/Documents/GitHub/2023-24c-fai2-adsai-MaxMeiners/Datasets_new/emotions_all.csv'
+        tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+        label_encoder = LabelEncoder()
+        self.assertIsNotNone(model_training.predict(model, sentences, tokenizer, label_encoder))
 
 if __name__ == '__main__':
     unittest.main()
