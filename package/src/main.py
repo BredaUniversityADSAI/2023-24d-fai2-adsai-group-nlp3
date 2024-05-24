@@ -177,6 +177,9 @@ def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
     """
     Function that follows the episode_preprocessing_pipeline module.
     It uses module's functions to get the final output: pd.DataFrame with sentences.
+    For more information on the functions used here, see the
+    episode_preprocessing_pipeline module, and check the docstrings
+    for separate functions.
 
     Input:
         args (argparse.Namespace): Namespace object returned by get_args function.
@@ -260,5 +263,3 @@ if __name__ == "__main__":
     # handle training
     if args.task == "train":
         pass
-
-
