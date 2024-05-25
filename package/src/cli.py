@@ -1,7 +1,3 @@
-# import argparse
-
-# import episode_preprocessing_pipeline
-# import model_training
 """
 requirements:
 
@@ -30,8 +26,16 @@ new_episode_results (visual.py):
 
 import argparse
 
-import episode_preprocessing_pipeline
+import episode_preprocessing_pipeline as epp
+import model_training as mt
+import model_output_information as moi
+
 import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import (
+    classification_report, 
+    accuracy_score
+    )
 
 """
 command line args:
@@ -72,6 +76,8 @@ def get_args() -> argparse.Namespace:
         """,
     )
 
+
+    # episode_preprocessing args
     parser.add_argument(
         "task",
         type=str,
@@ -172,6 +178,28 @@ def get_args() -> argparse.Namespace:
         """,
     )
 
+    # model_training args
+    parser.add_argument(
+    "--model_path",
+    required=True,
+    type=str,
+    help="Path to the model configuration and weights file."
+    )
+
+    parser.add_argument(
+        "--train_data",
+        required=True,
+        type=str,
+        help="Path to the training data CSV file."
+    )
+
+    parser.add_argument(
+        "--eval_data",
+        required=True,
+        type=str,
+        help="Path to the evaluation data CSV file."
+    )
+
     args = parser.parse_args()
 
     return args
@@ -194,12 +222,12 @@ def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
         pd.DataFrame with sentences from the audio/video.
     """
     # get segment length in frames
-    segment_frames_length = episode_preprocessing_pipeline.segment_number_to_frames(
+    segment_frames_length = epp.segment_number_to_frames(
         1, sample_rate=args.target_sr, segment_seconds_length=args.segment_length
     )
 
     # load audio file and set sample rate to the chosen value
-    audio = episode_preprocessing_pipeline.load_audio_from_video(
+    audio = epp.load_audio_from_video(
         file_path=args.input_path, target_sample_rate=args.target_sr
     )
 
@@ -207,14 +235,14 @@ def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
     full_audio_length_frames = len(audio)
 
     # get segments for vad analysis
-    segments = episode_preprocessing_pipeline.get_segments_for_vad(
+    segments = epp.get_segments_for_vad(
         audio=audio,
         sample_rate=args.target_sr,
         segment_seconds_length=args.segment_length,
     )
 
     # get vad output per segment
-    speech_array = episode_preprocessing_pipeline.get_vad_per_segment(
+    speech_array = epp.get_vad_per_segment(
         segments=segments,
         vad_aggressiveness=args.vad_aggressiveness,
         sample_rate=args.target_sr,
@@ -223,7 +251,7 @@ def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
 
     # get fragment sizes of chosen length
     cut_fragments_frames = (
-        episode_preprocessing_pipeline.get_frame_segments_from_vad_output(
+        epp.get_frame_segments_from_vad_output(
             speech_array=speech_array,
             sample_rate=args.target_sr,
             min_fragment_length_seconds=args.min_fragment_len,
@@ -233,7 +261,7 @@ def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
     )
 
     # transcribe and translate fragments to get sentences in df
-    data_df = episode_preprocessing_pipeline.transcribe_translate_fragments(
+    data_df = epp.transcribe_translate_fragments(
         audio=audio,
         cut_fragments_frames=cut_fragments_frames,
         sample_rate=args.target_sr,
@@ -242,12 +270,58 @@ def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
     )
 
     if args.save:
-        episode_preprocessing_pipeline.save_data(data_df, args.output_path)
+        epp.save_data(data_df, args.output_path)
 
     return data_df
 
 
-if __name__ == "__main__":
+def model_training(args):
+    # TODO
+    # need training function
+    print("Loading data(2)...")
+    train_data = pd.read_csv(args.train_data)
+    print("Data loaded.")
+
+    print("Preparing model...")
+    num_classes = len(train_data['emotion'].unique())
+    model, tokenizer = mt.get_model(args.model_path, num_classes)
+    print("Model prepared.")
+
+    print("Preprocessing training data...")
+    training_dataset, validation_dataset, class_names, tokenizer = mt.preprocess_data(train_data, tokenizer)
+    print("Training data preprocessed.")
+
+    print("Loading evaluation data...")
+    eval_data = pd.read_csv(args.eval_data)
+    print("Evaluation data loaded.")
+
+    print("Starting evaluation...")
+    label_encoder = LabelEncoder()
+    label_encoder.fit(class_names)
+    mt.evaluate(eval_data, model, tokenizer, label_encoder)
+    print("Evaluation complete.")
+
+
+def model_output_information(predicted_emotions, confidence_scores):
+    moi.plot_emotion_distribution(predicted_emotions)
+    moi.calculate_episode_confidence(confidence_scores)
+
+
+def main(args):
+    """
+    A function that handles the correct execution of different modules given
+    the command line arguments specified by the user. It calls the higher level
+    functions named after modules depending on the specified task (see: --help)
+
+    Input:
+        args (argparse.Namespace): Namespace object returned by get_args function.
+            holds the information about positional and optional arguments
+            from command line
+
+    Output:
+        None: the inputs and outputs are defined in other functions and this only
+            serves as a way of groupping them, and handling the common logic
+    """
     # get arguments from argparser
     args = get_args()
     print(args.task)
@@ -262,8 +336,17 @@ if __name__ == "__main__":
 
     # handle predicting
     if args.task == "predict":
-        pass
+        # TODO
+        # preds = mt.predict() ?
+        # model_output_information()
+        print("work in progress")
     
     # handle training
     if args.task == "train":
+        # TODO
+        # model_training(args)
         pass
+
+
+if __name__ == "__main__":
+    main()
