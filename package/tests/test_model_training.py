@@ -1,9 +1,8 @@
+import model_training
 import pandas as pd
 import pytest
 from sklearn.preprocessing import LabelEncoder
 from transformers import RobertaTokenizer, TFRobertaForSequenceClassification
-
-import model_training
 
 
 class TestModelTraining:
