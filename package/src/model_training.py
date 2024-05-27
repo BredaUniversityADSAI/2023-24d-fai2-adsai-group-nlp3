@@ -10,9 +10,7 @@ from transformers import (
     RobertaTokenizer
     )
 
-from tensorflow.keras.losses import SparseCategoricalCrossentropy
 from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.optimizers import Adam
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
@@ -33,7 +31,8 @@ def load_data(
         file_path: str, 
         dataset: str) -> tuple[pd.DataFrame, dict[int, str]]:
     """
-    Load the dataset from a CSV file and return the DataFrame and a dictionary with the classes.
+    Load the dataset from a CSV file and return 
+    the DataFrame and a dictionary with the classes.
 
     Input:
         file_path (str): File path to the dataset CSV file.
@@ -84,7 +83,9 @@ def get_model(
 
     config = RobertaConfig.from_pretrained(config_path)
     config.num_labels = num_classes
-    model = TFRobertaForSequenceClassification.from_pretrained("roberta-base", config=config)
+    model = TFRobertaForSequenceClassification.from_pretrained(
+        "roberta-base", 
+        config=config)
 
     print(f"Loading model weights from {weights_path}...")
     model.load_weights(weights_path)
@@ -99,7 +100,8 @@ def tokenize_text_data(
         tokenizer, 
         max_length=MAX_LENGTH):
     """
-    Tokenizes the input text data using the provided tokenizer and returns the token IDs and mask values.
+    Tokenizes the input text data using the provided 
+    tokenizer and returns the token IDs and mask values.
     
     Input:
         text_data: List of text data to be tokenized.
@@ -134,15 +136,20 @@ def tokenize_text_data(
     token_ids = tf.concat(token_ids, axis=0)
     mask_values = tf.concat(mask_values, axis=0)
 
-    token_ids_array = token_ids.numpy() if isinstance(token_ids, tf.Tensor) else token_ids
-    mask_values_array = mask_values.numpy() if isinstance(mask_values, tf.Tensor) else mask_values
+    token_ids_array = token_ids.numpy() if isinstance(
+        token_ids, 
+        tf.Tensor) else token_ids
+    mask_values_array = mask_values.numpy() if isinstance(
+        mask_values, 
+        tf.Tensor) else mask_values
 
     return token_ids_array, mask_values_array
 
 
 def encode_labels(emotional_labels):
     """
-    Encodes the emotional labels using a LabelEncoder and returns the transformed labels and the encoder.
+    Encodes the emotional labels using a LabelEncoder 
+    and returns the transformed labels and the encoder.
 
     Input:
         emotional_labels: List of emotional labels to be encoded.
@@ -211,14 +218,19 @@ def create_tf_datasets(
 
     # Constructing TensorFlow datasets for training and validation
     training_dataset = tf.data.Dataset.from_tensor_slices(
-        ({"input_ids": X_train_tensors, "attention_mask": training_masks_tensors}, y_train_tensors)
+        ({"input_ids": X_train_tensors, "attention_mask": training_masks_tensors}, 
+         y_train_tensors)
     )
-    training_dataset = training_dataset.shuffle(len(X_train_tensors)).batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+    training_dataset = training_dataset.shuffle(len(X_train_tensors))\
+        .batch(batch_size)\
+        .prefetch(tf.data.experimental.AUTOTUNE)
 
     validation_dataset = tf.data.Dataset.from_tensor_slices(
-        ({"input_ids": X_val_tensors, "attention_mask": validation_masks_tensors}, y_val_tensors)
+        ({"input_ids": X_val_tensors, "attention_mask": validation_masks_tensors},
+         y_val_tensors)
     )
-    validation_dataset = validation_dataset.batch(batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+    validation_dataset = validation_dataset.batch(batch_size)\
+        .prefetch(tf.data.experimental.AUTOTUNE)
 
     return training_dataset, validation_dataset
 
@@ -309,7 +321,8 @@ def tokenize_sentences(
         tokenizer, 
         max_length=MAX_LENGTH):
     """
-    Tokenizes the input sentences using the provided tokenizer and returns the token IDs and mask values.
+    Tokenizes the input sentences using the provided 
+    tokenizer and returns the token IDs and mask values.
 
     Input:
         sentences: List of sentences to be tokenized.
@@ -353,7 +366,8 @@ def batch_predict_and_decode(
         label_encoder, 
         batch_size=BATCH_SIZE):
     """
-    Predicts the emotion labels for the input data and returns the predicted labels and the highest probabilities.
+    Predicts the emotion labels for the input data and 
+    returns the predicted labels and the highest probabilities.
 
     Input:
         model: Model used for prediction.
@@ -529,7 +543,8 @@ if __name__ == "__main__":
     print("Model prepared.")
 
     print("Preprocessing training data...")
-    training_dataset, validation_dataset, class_names, tokenizer = preprocess_data(train_data, tokenizer)
+    training_dataset, validation_dataset, class_names, tokenizer = preprocess_data(
+        train_data, tokenizer)
     print("Training data preprocessed.")
 
     print("Loading evaluation data...")
