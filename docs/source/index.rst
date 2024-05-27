@@ -16,14 +16,12 @@ Bla bla bla
    installation
 
 
-Development
-===========
-
 .. toctree::
    :maxdepth: 3
    :caption: Source Code
 
    edp
+   model_training
 
 Indices and tables
 ==================
