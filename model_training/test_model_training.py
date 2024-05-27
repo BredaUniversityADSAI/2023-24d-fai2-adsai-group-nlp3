@@ -8,7 +8,7 @@ import pandas as pd
 class TestModelTraining(unittest.TestCase):
 
     def test_load_data(self):
-        file_path = '/Users/maxmeiners/Documents/GitHub/2023-24c-fai2-adsai-MaxMeiners/Datasets_new/emotions_all_V6.csv'
+        file_path = '/Users/maxmeiners/Downloads/model/test_emotions'
         dataset = 'emotions_all_V6.csv'
         self.assertIsNotNone(model_training.load_data(file_path, dataset))
 
@@ -18,7 +18,8 @@ class TestModelTraining(unittest.TestCase):
         self.assertIsNotNone(model_training.get_model(model_path, num_classes))
 
     def test_preprocess_data(self):
-        df = '/Users/maxmeiners/Documents/GitHub/2023-24c-fai2-adsai-MaxMeiners/Datasets_new/emotions_all_V6.csv'
+        file_path = '/Users/maxmeiners/Downloads/model/test_emotions'
+        df = pd.read_csv(file_path)
         tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
         self.assertIsNotNone(model_training.preprocess_data(df, tokenizer))
 
@@ -26,7 +27,7 @@ class TestModelTraining(unittest.TestCase):
         model_path = '/Users/maxmeiners/Downloads/model'
         model = TFRobertaForSequenceClassification.from_pretrained(model_path)
 
-        sentences = '/Users/maxmeiners/Documents/GitHub/2023-24c-fai2-adsai-MaxMeiners/Datasets_new/emotions_all.csv'
+        sentences = '/Users/maxmeiners/Downloads/model/test_emotions_eval'
         tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
         
         # Load the data and fit the LabelEncoder
@@ -36,14 +37,15 @@ class TestModelTraining(unittest.TestCase):
         self.assertIsNotNone(model_training.predict(model, sentences, tokenizer, label_encoder))
 
     def test_evaluate(self):
-        eval_data = '/Users/maxmeiners/Documents/GitHub/2023-24c-fai2-adsai-MaxMeiners/Datasets_new/emotions_all.csv'
+        eval_data_path = '/Users/maxmeiners/Downloads/model/test_emotions_eval'
+        eval_data = pd.read_csv(eval_data_path)
 
         model_path = '/Users/maxmeiners/Downloads/model'
         model = TFRobertaForSequenceClassification.from_pretrained(model_path)
-
-        tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
         
+        tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
         label_encoder = LabelEncoder()
+        label_encoder.fit(eval_data['emotion'].values)
         self.assertIsNotNone(model_training.evaluate(eval_data, model, tokenizer, label_encoder))
 
 if __name__ == '__main__':
