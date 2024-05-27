@@ -1,4 +1,4 @@
-import unittest
+import pytest
 import model_training
 from transformers import RobertaTokenizer, TFRobertaForSequenceClassification
 from sklearn.preprocessing import LabelEncoder
@@ -49,4 +49,4 @@ class TestModelTraining(unittest.TestCase):
         self.assertIsNotNone(model_training.evaluate(eval_data, model, tokenizer, label_encoder))
 
 if __name__ == '__main__':
-    unittest.main()
+    pytest.main()
