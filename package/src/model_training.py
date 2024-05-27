@@ -27,6 +27,7 @@ RANDOM_STATE = 42
 LEARNING_RATE = 1e-5
 EPOCHS = 3
 
+
 def load_data(
         file_path: str, 
         dataset: str) -> tuple[pd.DataFrame, dict[int, str]]:
@@ -501,6 +502,7 @@ def evaluate(
     print(report)
 
     return predicted_emotions, highest_probabilities, accuracy, report
+
 
 if __name__ == "__main__":
 

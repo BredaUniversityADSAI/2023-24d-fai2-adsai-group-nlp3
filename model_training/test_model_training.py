@@ -2,8 +2,8 @@ import pytest
 import model_training
 from transformers import RobertaTokenizer, TFRobertaForSequenceClassification
 from sklearn.preprocessing import LabelEncoder
-import tensorflow as tf
 import pandas as pd
+
 
 class TestModelTraining:
 
@@ -61,6 +61,7 @@ class TestModelTraining:
             model, 
             tokenizer, 
             label_encoder))
+
 
 if __name__ == '__main__':
     pytest.main()
