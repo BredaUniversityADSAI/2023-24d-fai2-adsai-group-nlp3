@@ -292,10 +292,12 @@ def model_training(args):
     and fits the data into the model.
 
     Input:
-        args ():
+        args (argparse.Namespace): Namespace object returned by get_args function.
+            holds the information about positional and optional arguments
+            from command line
 
     Output:
-        model: a trained roBERTa transformer model 
+        model: a trained roBERTa transformer model
     """
     data, labels_dict = mt.load_data(args.input_path, "train")
     label_encoder = LabelEncoder()
@@ -314,6 +316,25 @@ def model_training(args):
 
 
 def evaluate_model(args, model, tokenizer, label_encoder):
+    """
+    A function that evaluates newly trained model returned by the
+    model_training function. Returns predicted emotions, and confidence scores
+    for each sentence, and total accuracy with the full report as a general statistic.
+
+    Input:
+        args (argparse.Namespace): Namespace object returned by get_args function.
+            holds the information about positional and optional arguments
+            from command line
+        model: the model trained with model_training function
+        tokenizer: tokenizer used to preprocess data for the model
+        label_encoder: label encoder used for encoding labels during training
+
+    Output:
+        predicted_emotions: emotion predicted for each sentence
+        confidence_scores: confidence for the most probable emotion for each sentence
+        total_accuracy: aggregated accuracy score for the model
+        report: TODO
+    """
     print("entered evaluation")
     eval_data, _ = mt.load_data(args.eval_path, "eval")
 
@@ -327,7 +348,10 @@ def evaluate_model(args, model, tokenizer, label_encoder):
     return predicted_emotions, confidence_scores, total_accuracy, report
 
 
-def predict(args, data_df):
+def predict(args, data_df: pd.DataFrame):
+    """
+    # TODO: docstring + types
+    """
     classes = TEMP_EMOTIONS_LABELS
 
     label_encoder = LabelEncoder()
@@ -344,7 +368,13 @@ def predict(args, data_df):
     return predicted_emotions, highest_probabilities
 
 
-def model_output_information(predicted_emotions, confidence_scores):
+def model_output_information(
+        predicted_emotions: list[str],
+        confidence_scores: list[float]
+    ) -> None:
+    """
+    TODO: docstring + types
+    """
     moi.plot_emotion_distribution(predicted_emotions)
     moi.calculate_episode_confidence(confidence_scores)
 
