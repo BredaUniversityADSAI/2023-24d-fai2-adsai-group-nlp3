@@ -53,6 +53,16 @@ transcript_model_size
 """
 
 
+TEMP_EMOTIONS_LABELS = {
+    0: "Anger",
+    1: "Disgust",
+    2: "Fear",
+    3: "Happiness",
+    4: "Sadness",
+    5: "Surprise"
+}
+
+
 
 def get_args() -> argparse.Namespace:
     """
@@ -181,21 +191,21 @@ def get_args() -> argparse.Namespace:
     # model_training args
     parser.add_argument(
     "--model_path",
-    required=True,
+    required=False,
     type=str,
     help="Path to the model configuration and weights file."
     )
 
     parser.add_argument(
         "--train_data",
-        required=True,
+        required=False,
         type=str,
         help="Path to the training data CSV file."
     )
 
     parser.add_argument(
         "--eval_data",
-        required=True,
+        required=False,
         type=str,
         help="Path to the evaluation data CSV file."
     )
@@ -227,7 +237,7 @@ def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
     )
 
     # load audio file and set sample rate to the chosen value
-    audio = epp.load_audio_from_video(
+    audio = epp.load_audio(
         file_path=args.input_path, target_sample_rate=args.target_sr
     )
 
@@ -276,30 +286,62 @@ def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
 
 
 def model_training(args):
-    # TODO
-    # need training function
-    print("Loading data(2)...")
-    train_data = pd.read_csv(args.train_data)
-    print("Data loaded.")
+    """
+    A function that follows parts of the model_training module that only train models.
+    It loads and pre-processes the data for model training, creates a new model,
+    and fits the data into the model.
 
-    print("Preparing model...")
-    num_classes = len(train_data['emotion'].unique())
-    model, tokenizer = mt.get_model(args.model_path, num_classes)
-    print("Model prepared.")
+    Input:
+        args ():
 
-    print("Preprocessing training data...")
-    training_dataset, validation_dataset, class_names, tokenizer = mt.preprocess_data(train_data, tokenizer)
-    print("Training data preprocessed.")
-
-    print("Loading evaluation data...")
-    eval_data = pd.read_csv(args.eval_data)
-    print("Evaluation data loaded.")
-
-    print("Starting evaluation...")
+    Output:
+        model: a trained roBERTa transformer model 
+    """
+    data, labels_dict = mt.load_data(args.input_path, "train")
     label_encoder = LabelEncoder()
-    label_encoder.fit(class_names)
-    mt.evaluate(eval_data, model, tokenizer, label_encoder)
-    print("Evaluation complete.")
+    label_encoder.fit(list(labels_dict.values()))
+
+    training_dataset, validation_dataset, num_classes, tokenizer = mt.preprocess_data(
+        data,
+        tokenizer
+    )
+
+    model, tokenizer = mt.get_model(args.model_path, num_classes)
+
+    model = mt.train_model(model, training_dataset, validation_dataset)
+
+    return model, tokenizer, label_encoder
+
+
+def evaluate_model(args, model, tokenizer, label_encoder):
+    print("entered evaluation")
+    eval_data, _ = mt.load_data(args.eval_path, "eval")
+
+    predicted_emotions, confidence_scores, total_accuracy, report = mt.evaluate(
+        eval_data,
+        model,
+        tokenizer,
+        label_encoder
+    )
+
+    return predicted_emotions, confidence_scores, total_accuracy, report
+
+
+def predict(args, data_df):
+    classes = TEMP_EMOTIONS_LABELS
+
+    label_encoder = LabelEncoder()
+    label_encoder.fit(list(classes.values()))
+
+    model, tokenizer = mt.get_model(args.model_path, len(classes))
+    predicted_emotions, highest_probabilities = mt.predict(
+        model,
+        data_df["sentence"].to_list(),
+        tokenizer,
+        label_encoder
+    )
+
+    return predicted_emotions, highest_probabilities
 
 
 def model_output_information(predicted_emotions, confidence_scores):
@@ -307,7 +349,7 @@ def model_output_information(predicted_emotions, confidence_scores):
     moi.calculate_episode_confidence(confidence_scores)
 
 
-def main(args):
+def main():
     """
     A function that handles the correct execution of different modules given
     the command line arguments specified by the user. It calls the higher level
@@ -336,16 +378,24 @@ def main(args):
 
     # handle predicting
     if args.task == "predict":
-        # TODO
-        # preds = mt.predict() ?
-        # model_output_information()
-        print("work in progress")
+        predicted_emotions, highest_probabilities = predict(args, data_df)
+
+        total_confidence = moi.calculate_episode_confidence(highest_probabilities)
+        print(f"total confidence: {total_confidence}")
+        moi.plot_emotion_distribution(predicted_emotions)
     
     # handle training
     if args.task == "train":
-        # TODO
-        # model_training(args)
-        pass
+        model, tokenizer, label_encoder = model_training(args)
+        predicted_emotions, confidence_scores, total_accuracy, report = evaluate_model(
+            args,
+            model,
+            tokenizer,
+            label_encoder
+        )
+
+        # a way to calm down pre-commits
+        (confidence_scores, total_accuracy, report)
 
 
 if __name__ == "__main__":
