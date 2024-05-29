@@ -1,7 +1,7 @@
-from setuptools import find_packages, setup
+from setuptools import setup
 
 setup(
-    name="package_name",  # This is the name of your package
+    name="e3k",  # This is the name of your package
     version="0.1.0",
     author="""
     Kornelia Flizik, Juraj Kret, Max Meiners, Panna Pfandler, Wojciech Stachowiak
@@ -15,8 +15,8 @@ setup(
     url="""
     https://github.com/BredaUniversityADSAI/2023-24d-fai2-adsai-group-nlp3/tree/main
     """,
-    packages=find_packages(where="src"),  # Specify the src directory
-    package_dir={"": "src"},  # Tell setuptools to look in src for packages
+    # packages=find_packages(where="src"),  # Specify the src directory
+    # package_dir={"": "src"},  # Tell setuptools to look in src for packages
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
@@ -37,12 +37,13 @@ setup(
         "transformers",
         "tensorflow == 2.10",
         "matplotlib",
-        "sklearn",
+        "scikit-learn",
     ],
-    package_data={},
+    package_data={"": ["LICENSE", "README.md"]},
+    include_package_data=True,
     entry_points={
         "console_scripts": [
-            "package_name=package_name.cli:main",  # Command-line entry point
+            "e3k=e3k.cli:main",  # Command-line entry point
         ],
     },
 )

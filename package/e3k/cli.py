@@ -1,33 +1,9 @@
-"""
-requirements:
-    - datetime
-    - io
-    - logging
-    - wave
-    - librosa
-    - numpy
-    - pandas
-    - soundfile
-    - spacy
-    - webrtcvad
-    - whisper
-    - openai-whisper
-    - pydub
-    - tqdm
-    - argparse
-    - transformers
-    - tensorflow
-    - collections
-    - matplotlib
-    - sklearn
-"""
-
 import argparse
 import logging
 
-import episode_preprocessing_pipeline as epp
-import model_output_information as moi
-import model_training as mt
+import e3k.episode_preprocessing_pipeline as epp
+import e3k.model_output_information as moi
+import e3k.model_training as mt
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 
@@ -89,6 +65,8 @@ def get_args() -> argparse.Namespace:
     Output:
         args (argparse.Namespace): object holding all of arguments
             used later in other functions
+
+    Author - Wojciech Stachowiak
     """
     parser = argparse.ArgumentParser(
         prog="app_name",
@@ -107,7 +85,7 @@ def get_args() -> argparse.Namespace:
         help="""
         string, task that has to be performed (preprocess/train/predict/add).
         preprocess: from video/audio to sentences,
-        train: get new model from exisitng data,
+        train: get new model from existing data,
         predict: get emotions from new episode,
         add: add prepared data to database
         """,
@@ -242,6 +220,8 @@ def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
 
     Output (pd.DataFrame): result of episode_preprocessing_pipeline.
         pd.DataFrame with sentences from the audio/video.
+
+    Author - Wojciech Stachowiak
     """
     # get segment length in frames
     segment_frames_length = epp.segment_number_to_frames(
@@ -306,6 +286,8 @@ def model_training(args):
 
     Output:
         model: a trained roBERTa transformer model
+
+    Author - Wojciech Stachowiak
     """
     data, labels_dict = mt.load_data(args.input_path, "train")
     label_encoder = LabelEncoder()
@@ -343,6 +325,8 @@ def evaluate_model(args, model, tokenizer, label_encoder):
         confidence_scores: confidence for the most probable emotion for each sentence
         total_accuracy: aggregated accuracy score for the model
         report: text report showing the main classification metrics
+
+    Author - Wojciech Stachowiak
     """
     print("entered evaluation")
     eval_data, _ = mt.load_data(args.eval_path, "eval")
@@ -372,6 +356,8 @@ def predict(
             each sentence
         highest_probabilities (list[float]): model's confidence for
             the most probable emotion in each sentence
+
+    Author - Wojciech Stachowiak
     """
     classes = TEMP_EMOTIONS_LABELS
 
@@ -400,6 +386,8 @@ def model_output_information(
         probable emotion in each sentence
 
     Output: None
+
+    Author - Wojciech Stachowiak
     """
     moi.plot_emotion_distribution(predicted_emotions)
     moi.calculate_episode_confidence(confidence_scores)
@@ -419,6 +407,8 @@ def main():
     Output:
         None: the inputs and outputs are defined in other functions and this only
             serves as a way of grouping them, and handling the common logic
+
+    Author - Wojciech Stachowiak
     """
     # get arguments from argparser
     args = get_args()

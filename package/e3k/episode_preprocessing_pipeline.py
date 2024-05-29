@@ -74,6 +74,8 @@ def get_segments_for_vad(
 
     Output:
         segments (list[np.array]): list of cutouts from the audio file
+
+    Author - Wojciech Stachowiak
     """
 
     epp_logger.info("splitting into segments")
@@ -117,6 +119,8 @@ def get_vad_per_segment(
         segments_is_speech (np.array): array with bool values representing
             detected speech for a given segment. True means that the segment
             contains speech
+
+    Author - Wojciech Stachowiak
     """
 
     epp_logger.info("getting vad per segment")
@@ -168,7 +172,7 @@ def get_frame_segments_from_vad_output(
 
     Input:
         speech_array (np.array): np.array with bool values obtained from
-            get_vad_per_segment functionfull_audio_length_frames
+            get_vad_per_segment function
         sample_rate (int): sample rate of the audio file
         min_fragment_length_seconds (int): min amount of seconds per fragment
             generated from 10/20/30ms segments
@@ -179,12 +183,14 @@ def get_frame_segments_from_vad_output(
     Output:
         cut_fragments_frames (list[tuple[int, int]]): list of
             (start, end) frame number pairs
+
+    Author - Wojciech Stachowiak
     """
 
     epp_logger.info("getting frame segments from vad output")
 
     # np.array with segment numbers for segment where we can cut the audio
-    # this returns a tuple for each dimention (here it's 1, so we can just unpack it)
+    # this returns a tuple for each dimension (here it's 1, so we can just unpack it)
     # speech_array == 0 is a working substitute of speech_array is False
     cutable_segments = np.where(speech_array == 0)[0]
 
@@ -260,6 +266,12 @@ def transcribe_translate_fragments(
             see: https://pypi.org/project/openai-whisper/. default: "base"
         episode_value (Any): value assigned to each row for this episode,
             default: current date in YYYY-MM-DD format (e.g. 2024-05-16)
+
+    Output:
+        data (pd.DataFrame): dataframe with english sentences assigned to
+            the episode value and segment number
+
+    Author - Wojciech Stachowiak
     """
 
     epp_logger.info("transcribing and translating")
@@ -269,7 +281,7 @@ def transcribe_translate_fragments(
 
     transcriptions = []
 
-    # trancribe and translate all episode fragments
+    # transcribe and translate all episode fragments
     for index, (start, end) in enumerate(tqdm(cut_fragments_frames), start=1):
         # transcribe and translate
         fragment_text = transcription_model.transcribe(
@@ -303,6 +315,8 @@ def save_data(
             default: "output.csv"
 
     Output: None
+
+    Author - Wojciech Stachowiak
     """
 
     # Check if there is no data to save
@@ -345,12 +359,27 @@ def segment_number_to_frames(
     Output:
         frames (int): the number of frames from the start of the audio
         file that corresponds to the segment number
+
+    Author - Wojciech Stachowiak
     """
     return int(sample_rate * segment_seconds_length * segment_number)
 
 
-def get_target_length_frames(min_length_seconds, sample_rate):
-    # TODO
+def get_target_length_frames(min_length_seconds: int, sample_rate: int) -> int:
+    """
+    A function that converts duration in seconds into number of frames
+    representing this duration given the audio sample rate.
+
+    Input:
+        min_length_seconds (int): number of seconds
+        sample_rate (int): sample rate of the audio file
+
+    Output:
+        target_length_frames (int): the number of frames that correspond
+        to the number of seconds
+
+    Author - Wojciech Stachowiak
+    """
     return min_length_seconds * sample_rate
 
 
@@ -366,6 +395,8 @@ def adjust_fragment_start_frame(start_fragment_frame: int, sample_rate: int) -> 
 
     Output:
         start_fragment_frame (int): adjusted (if possible) start_fragment_frame value
+
+    Author - Wojciech Stachowiak
     """
     if start_fragment_frame - int(0.125 * sample_rate) >= 0:
         start_fragment_frame = start_fragment_frame - int(0.125 * sample_rate)
@@ -388,6 +419,8 @@ def adjust_fragment_end_frame(
 
     Output:
         end_fragment_frame (int): adjusted (if possible) end_fragment_frame value
+
+    Author - Wojciech Stachowiak
     """
     if end_fragment_frame + int(0.125 * sample_rate) <= full_audio_length_frames:
         end_fragment_frame = end_fragment_frame + int(0.125 * sample_rate)
@@ -403,9 +436,9 @@ def clean_transcript_df(
     """
     A function that cleans the output of the transcribe_translate_fragments function.
     It adds a column to identify the episode later
-    (current date in YYYY-MM-DD format by deafut). This can be changed by specifying
+    (current date in YYYY-MM-DD format by default). This can be changed by specifying
     the episode_value argument in the transcribe_translate_fragments function.
-    Additionaly, this function renames columns, and splits transcription for an episode
+    Additionally, this function renames columns, and splits transcription for an episode
     fragment into separate sentences.
 
     Input:
@@ -417,6 +450,8 @@ def clean_transcript_df(
 
     Output:
         df (pd.DataFrame): a cleaned dataframe with one sentence in each row
+
+    Author - Wojciech Stachowiak
     """
 
     # insert a column with episode_value for each row
