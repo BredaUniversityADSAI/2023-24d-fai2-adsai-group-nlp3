@@ -4,17 +4,7 @@ from collections import Counter
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Configure logging to save logs to separate files as well as print them to the console
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("combined_logs.log"),  # Combined logs file
-        logging.FileHandler("emotion_distribution.log"),  # Emotion distribution logs file
-        logging.FileHandler("episode_confidence.log"),  # Episode confidence logs file
-        logging.StreamHandler(),
-    ],
-)
+moi_logger = logging.getLogger("main.model_output_information")
 
 
 def plot_emotion_distribution(predicted_emotions: list[str]) -> None:
@@ -31,12 +21,12 @@ def plot_emotion_distribution(predicted_emotions: list[str]) -> None:
     overall emotion distribution in the episode and does not return any value.
     Author - Panna Pfandler
     """
-    logging.info("Starting to plot emotion distribution.")
+    moi_logger.info("Starting to plot emotion distribution.")
 
     # Count each predicted emotion
     emotion_counts = Counter(predicted_emotions)
     if not emotion_counts:
-        logging.warning("No emotions to plot, the input list is empty.")
+        moi_logger.warning("No emotions to plot, the input list is empty.")
         return
 
     # Identify the most dominant emotion
@@ -77,7 +67,7 @@ def plot_emotion_distribution(predicted_emotions: list[str]) -> None:
     plt.title("Overall Emotion Distribution in the Episode")
     plt.show()
 
-    logging.info("Successfully plotted the emotion distribution.")
+    moi_logger.info("Successfully plotted the emotion distribution.")
 
 
 def calculate_episode_confidence(scores: list[float]) -> float:
@@ -95,10 +85,9 @@ def calculate_episode_confidence(scores: list[float]) -> float:
     Author - Panna Pfandler
     """
     if not scores:
-        logging.warning("Received an empty list of scores.")
+        moi_logger.warning("Received an empty list of scores.")
         return 0.0
 
     average_score = sum(scores) / len(scores)
-    logging.info(f"Calculated average score: {average_score}")
+    moi_logger.info(f"Calculated average score: {average_score}")
     return average_score
-

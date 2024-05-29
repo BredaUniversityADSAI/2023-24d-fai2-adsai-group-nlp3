@@ -13,18 +13,7 @@ import whisper
 from pydub import AudioSegment
 from tqdm import tqdm
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-
-# Create a file handler
-file_handler = logging.FileHandler("logfile.log")
-file_handler.setLevel(logging.INFO)
-file_handler.setFormatter(
-    logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-)
-logging.getLogger("").addHandler(file_handler)
+epp_logger = logging.getLogger("main.episode_preprocessing_pipeline")
 
 """
 Pipeline functions are main components of this pipeline.
@@ -36,7 +25,7 @@ and when used in order, provide the video or audio to sentences pipeline.
 
 def load_audio(file_path: str, target_sample_rate: int) -> np.array:
     """
-    A function that loads audio data from video file 
+    A function that loads audio data from video file
     or directly loads audio from input.
     Used by providing the path to the episode and desired sample rate.
     The function assumes the audio is multi-channel and
@@ -51,7 +40,7 @@ def load_audio(file_path: str, target_sample_rate: int) -> np.array:
             represented as np.array
     """
 
-    logging.info("loading audio file")
+    epp_logger.info("loading audio file")
 
     # load audio from the file
     audio = AudioSegment.from_file(file_path)
@@ -87,7 +76,7 @@ def get_segments_for_vad(
         segments (list[np.array]): list of cutouts from the audio file
     """
 
-    logging.info("splitting into segments")
+    epp_logger.info("splitting into segments")
 
     # get segment length in frame number
     segment_frames_length = int(segment_seconds_length * sample_rate)
@@ -130,7 +119,7 @@ def get_vad_per_segment(
             contains speech
     """
 
-    logging.info("getting vad per segment")
+    epp_logger.info("getting vad per segment")
 
     # instantiate VAD with aggressiveness from 0 to 3
     vad = webrtcvad.Vad(vad_aggressiveness)
@@ -158,7 +147,7 @@ def get_vad_per_segment(
 
     # Check if there are no speech segments
     if not any(segments_is_speech):
-        logging.warning("No speech segments found in the audio.")
+        epp_logger.warning("No speech segments found in the audio.")
 
     return segments_is_speech
 
@@ -192,7 +181,7 @@ def get_frame_segments_from_vad_output(
             (start, end) frame number pairs
     """
 
-    logging.info("getting frame segments from vad output")
+    epp_logger.info("getting frame segments from vad output")
 
     # np.array with segment numbers for segment where we can cut the audio
     # this returns a tuple for each dimention (here it's 1, so we can just unpack it)
@@ -273,7 +262,7 @@ def transcribe_translate_fragments(
             default: current date in YYYY-MM-DD format (e.g. 2024-05-16)
     """
 
-    logging.info("transcribing and translating")
+    epp_logger.info("transcribing and translating")
 
     # load the whisper model of choice
     transcription_model = whisper.load_model(transcription_model_size)
@@ -318,9 +307,9 @@ def save_data(
 
     # Check if there is no data to save
     if df.empty:
-        logging.warning("No data to save.")
+        epp_logger.warning("No data to save.")
 
-    logging.info("saving to file")
+    epp_logger.info("saving to file")
 
     format = output_path.split(".")[1]
 
@@ -329,7 +318,7 @@ def save_data(
     else:
         df.to_csv(output_path, index=False)
 
-    logging.info("done")
+    epp_logger.info("done")
 
 
 """
@@ -555,9 +544,7 @@ if __name__ == "__main__":
     )
 
     # load audio file and set sample rate to the chosen value
-    audio = load_audio(
-        file_path=args.input_path, target_sample_rate=args.target_sr
-    )
+    audio = load_audio(file_path=args.input_path, target_sample_rate=args.target_sr)
 
     # get full audio length in frames
     full_audio_length_frames = len(audio)

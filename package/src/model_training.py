@@ -1,4 +1,5 @@
 import argparse
+import logging
 import os
 
 import numpy as np
@@ -18,6 +19,8 @@ TEST_SIZE = 0.2
 RANDOM_STATE = 42
 LEARNING_RATE = 1e-5
 EPOCHS = 3
+
+mt_logger = logging.getLogger("main.model_training")
 
 
 def load_data(file_path: str, dataset: str) -> tuple[pd.DataFrame, dict[int, str]]:
@@ -68,7 +71,7 @@ def get_model(model_path: str, num_classes: int):
     config_path = os.path.join(model_path, "config.json")
     weights_path = os.path.join(model_path, "tf_model.h5")
 
-    print(f"Loading model configuration from {config_path}...")
+    mt_logger.info(f"loading model configuration")
 
     config = RobertaConfig.from_pretrained(config_path)
     config.num_labels = num_classes
@@ -76,10 +79,10 @@ def get_model(model_path: str, num_classes: int):
         "roberta-base", config=config
     )
 
-    print(f"Loading model weights from {weights_path}...")
+    mt_logger.info("loading model weights")
     model.load_weights(weights_path)
     tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
-    print("Model and tokenizer loaded.")
+    mt_logger.info("model and tokenizer loaded")
 
     return model, tokenizer
 
@@ -258,7 +261,7 @@ def preprocess_data(df: pd.DataFrame, tokenizer):
         token_ids, mask_values, transformed_labels
     )
 
-    print("Data preprocessing complete.")
+    mt_logger.info("data preprocessing complete")
     return training_dataset, validation_dataset, encoder.classes_, tokenizer
 
 
@@ -460,7 +463,7 @@ def evaluate(eval_data: pd.DataFrame, model, tokenizer, label_encoder):
 
     # Calculate accuracy
     accuracy = accuracy_score(true_labels, predicted_emotions)
-    print(f"Accuracy: {accuracy}")
+    mt_logger.info(f"model accuracy: {accuracy}")
 
     # Generate classification report
     report = classification_report(true_labels, predicted_emotions)

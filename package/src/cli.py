@@ -1,7 +1,5 @@
 """
 requirements:
-
-episode_preprocessing_pipeline:
     - datetime
     - io
     - logging
@@ -13,29 +11,25 @@ episode_preprocessing_pipeline:
     - spacy
     - webrtcvad
     - whisper
+    - openai-whisper
     - pydub
     - tqdm
     - argparse
-
-new_episode_results (visual.py):
+    - transformers
+    - tensorflow
     - collections
     - matplotlib
-
+    - sklearn
 """
 
-
 import argparse
+import logging
 
 import episode_preprocessing_pipeline as epp
-import model_training as mt
 import model_output_information as moi
-
+import model_training as mt
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import (
-    classification_report, 
-    accuracy_score
-    )
 
 """
 command line args:
@@ -43,6 +37,9 @@ command line args:
 task (mandatory, positional)
 input_path
 output_path
+model_path
+train_data
+eval_data
 save (data from preprocessing)
 target_sr
 segment_length
@@ -53,15 +50,31 @@ transcript_model_size
 """
 
 
+logger = logging.getLogger("main")
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+# logger.setLevel(logging.INFO)
+file_handler = logging.FileHandler("logs.log")
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(formatter)
+
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.INFO)
+stream_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
+
+
 TEMP_EMOTIONS_LABELS = {
     0: "Anger",
     1: "Disgust",
     2: "Fear",
     3: "Happiness",
     4: "Sadness",
-    5: "Surprise"
+    5: "Surprise",
 }
-
 
 
 def get_args() -> argparse.Namespace:
@@ -86,7 +99,6 @@ def get_args() -> argparse.Namespace:
         """,
     )
 
-
     # episode_preprocessing args
     parser.add_argument(
         "task",
@@ -98,7 +110,7 @@ def get_args() -> argparse.Namespace:
         train: get new model from exisitng data,
         predict: get emotions from new episode,
         add: add prepared data to database
-        """
+        """,
     )
     parser.add_argument(
         "--input_path",
@@ -190,24 +202,24 @@ def get_args() -> argparse.Namespace:
 
     # model_training args
     parser.add_argument(
-    "--model_path",
-    required=False,
-    type=str,
-    help="Path to the model configuration and weights file."
+        "--model_path",
+        required=False,
+        type=str,
+        help="Path to the model configuration and weights file.",
     )
 
     parser.add_argument(
         "--train_data",
         required=False,
         type=str,
-        help="Path to the training data CSV file."
+        help="Path to the training data CSV file.",
     )
 
     parser.add_argument(
         "--eval_data",
         required=False,
         type=str,
-        help="Path to the evaluation data CSV file."
+        help="Path to the evaluation data CSV file.",
     )
 
     args = parser.parse_args()
@@ -227,7 +239,7 @@ def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
         args (argparse.Namespace): Namespace object returned by get_args function.
             holds the information about positional and optional arguments
             from command line
-        
+
     Output (pd.DataFrame): result of episode_preprocessing_pipeline.
         pd.DataFrame with sentences from the audio/video.
     """
@@ -237,9 +249,7 @@ def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
     )
 
     # load audio file and set sample rate to the chosen value
-    audio = epp.load_audio(
-        file_path=args.input_path, target_sample_rate=args.target_sr
-    )
+    audio = epp.load_audio(file_path=args.input_path, target_sample_rate=args.target_sr)
 
     # get full audio length in frames
     full_audio_length_frames = len(audio)
@@ -260,14 +270,12 @@ def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
     )
 
     # get fragment sizes of chosen length
-    cut_fragments_frames = (
-        epp.get_frame_segments_from_vad_output(
-            speech_array=speech_array,
-            sample_rate=args.target_sr,
-            min_fragment_length_seconds=args.min_fragment_len,
-            segment_seconds_length=args.segment_length,
-            full_audio_length_frames=full_audio_length_frames,
-        )
+    cut_fragments_frames = epp.get_frame_segments_from_vad_output(
+        speech_array=speech_array,
+        sample_rate=args.target_sr,
+        min_fragment_length_seconds=args.min_fragment_len,
+        segment_seconds_length=args.segment_length,
+        full_audio_length_frames=full_audio_length_frames,
     )
 
     # transcribe and translate fragments to get sentences in df
@@ -303,12 +311,13 @@ def model_training(args):
     label_encoder = LabelEncoder()
     label_encoder.fit(list(labels_dict.values()))
 
-    training_dataset, validation_dataset, num_classes, tokenizer = mt.preprocess_data(
-        data,
-        tokenizer
-    )
+    num_classes = len(TEMP_EMOTIONS_LABELS)
 
     model, tokenizer = mt.get_model(args.model_path, num_classes)
+
+    training_dataset, validation_dataset, num_classes, tokenizer = mt.preprocess_data(
+        data, tokenizer
+    )
 
     model = mt.train_model(model, training_dataset, validation_dataset)
 
@@ -333,24 +342,36 @@ def evaluate_model(args, model, tokenizer, label_encoder):
         predicted_emotions: emotion predicted for each sentence
         confidence_scores: confidence for the most probable emotion for each sentence
         total_accuracy: aggregated accuracy score for the model
-        report: TODO
+        report: text report showing the main classification metrics
     """
     print("entered evaluation")
     eval_data, _ = mt.load_data(args.eval_path, "eval")
 
     predicted_emotions, confidence_scores, total_accuracy, report = mt.evaluate(
-        eval_data,
-        model,
-        tokenizer,
-        label_encoder
+        eval_data, model, tokenizer, label_encoder
     )
 
     return predicted_emotions, confidence_scores, total_accuracy, report
 
 
-def predict(args, data_df: pd.DataFrame):
+def predict(
+    args: argparse.Namespace, data_df: pd.DataFrame
+) -> tuple[list[str], list[float]]:
     """
-    # TODO: docstring + types
+    A function that returns model predictions given a model_path command line argument,
+    and dataframe with column named "sentence"
+
+    Input:
+        args (argparse.Namespace): Namespace object returned by get_args function.
+            holds the information about positional and optional arguments
+            from command line
+        data_df (pd.DataFrame): dataframe with sentences in a column
+
+    Output:
+        predicted_emotions (list[str]): text representation of predicted emotion for
+            each sentence
+        highest_probabilities (list[float]): model's confidence for
+            the most probable emotion in each sentence
     """
     classes = TEMP_EMOTIONS_LABELS
 
@@ -359,21 +380,26 @@ def predict(args, data_df: pd.DataFrame):
 
     model, tokenizer = mt.get_model(args.model_path, len(classes))
     predicted_emotions, highest_probabilities = mt.predict(
-        model,
-        data_df["sentence"].to_list(),
-        tokenizer,
-        label_encoder
+        model, data_df["sentence"].to_list(), tokenizer, label_encoder
     )
 
     return predicted_emotions, highest_probabilities
 
 
 def model_output_information(
-        predicted_emotions: list[str],
-        confidence_scores: list[float]
-    ) -> None:
+    predicted_emotions: list[str], confidence_scores: list[float]
+) -> None:
     """
-    TODO: docstring + types
+    A function that aggregates prediction results into a total confidence score,
+    and a pie chart with predicted emotions distribution.
+
+    Input:
+        predicted_emotions (list[str]): text representation of predicted emotion
+            for each sentence
+        highest_probabilities (list[float]): model's confidence for the most
+        probable emotion in each sentence
+
+    Output: None
     """
     moi.plot_emotion_distribution(predicted_emotions)
     moi.calculate_episode_confidence(confidence_scores)
@@ -392,36 +418,40 @@ def main():
 
     Output:
         None: the inputs and outputs are defined in other functions and this only
-            serves as a way of groupping them, and handling the common logic
+            serves as a way of grouping them, and handling the common logic
     """
     # get arguments from argparser
     args = get_args()
-    print(args.task)
+    logger.info("got command line arguments")
 
     # handle data adding
     if args.task == "add":
+        logger.info("entered task: add")
+
         pass
 
     # handle episode preprocessing
     if args.task in ["preprocess", "predict"]:
+        logger.info("entered task: preprocess")
+
         data_df = episode_preprocessing(args)
 
     # handle predicting
     if args.task == "predict":
+        logger.info("entered task: predict")
+
         predicted_emotions, highest_probabilities = predict(args, data_df)
 
-        total_confidence = moi.calculate_episode_confidence(highest_probabilities)
-        print(f"total confidence: {total_confidence}")
+        _ = moi.calculate_episode_confidence(highest_probabilities)
         moi.plot_emotion_distribution(predicted_emotions)
-    
+
     # handle training
     if args.task == "train":
+        logger.info("entered task: train")
+
         model, tokenizer, label_encoder = model_training(args)
         predicted_emotions, confidence_scores, total_accuracy, report = evaluate_model(
-            args,
-            model,
-            tokenizer,
-            label_encoder
+            args, model, tokenizer, label_encoder
         )
 
         # a way to calm down pre-commits
