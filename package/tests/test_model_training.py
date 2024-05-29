@@ -22,6 +22,19 @@ class TestModelTraining:
         tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
         self.assertIsNotNone(model_training.preprocess_data(df, tokenizer))
 
+    def test_train_model(self):
+        train_data_path = "/Users/maxmeiners/Downloads/model/test_emotions"
+        train_data = pd.read_csv(train_data_path)
+        model_path = "/Users/maxmeiners/Downloads/model"
+        tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
+        num_classes = 6
+        self.assertIsNotNone(
+            model_training.train_model(train_data, 
+                                       model_path, 
+                                       tokenizer, 
+                                       num_classes)
+        )
+
     def test_predict(self):
         model_path = "/Users/maxmeiners/Downloads/model"
         model = TFRobertaForSequenceClassification.from_pretrained(model_path)
