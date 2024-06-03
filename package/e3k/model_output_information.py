@@ -84,7 +84,7 @@ def calculate_episode_confidence(scores: list[float]) -> float:
     the highest probabilities across all sentences.
     Author - Panna Pfandler
     """
-    if not scores:
+    if len(scores) == 0:
         moi_logger.warning("Received an empty list of scores.")
         return 0.0
 

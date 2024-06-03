@@ -1,30 +1,14 @@
 import argparse
 import logging
 
-import e3k.episode_preprocessing_pipeline as epp
-import e3k.model_output_information as moi
-import e3k.model_training as mt
+import episode_preprocessing_pipeline as epp
+import model_output_information as moi
+import model_training as mt
 import pandas as pd
+from tensorflow import config as tf_config
+from transformers import TFRobertaForSequenceClassification
 
-"""
-command line args:
-
-task (mandatory, positional)
-input_path
-output_path
-model_path
-train_data
-eval_data
-save (data from preprocessing)
-target_sr
-segment_length
-min_fragment_len
-vad_aggressiveness
-use_fp16
-transcript_model_size
-"""
-
-
+# setting up logger
 logger = logging.getLogger("main")
 logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -40,6 +24,20 @@ stream_handler.setFormatter(formatter)
 
 logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
+
+# checking for available GPU
+detected_gpu = len(tf_config.list_physical_devices("GPU")) > 0
+if not detected_gpu:
+    logger.warning(
+        """
+        No GPU detected, using CPU instead.
+        Preprocessing from audio/video will take significantly longer,
+        and training and predicting may not be a feasible task.
+        Consider switching to a GPU device.
+        """
+    )
+else:
+    logger.info("GPU detected")
 
 
 def get_args() -> argparse.Namespace:
@@ -66,17 +64,26 @@ def get_args() -> argparse.Namespace:
         """,
     )
 
+    # general args
+    parser.add_argument(
+        "--cloud",
+        type=bool,
+        choices=[True, False],
+        help="""
+        bool, used to run either cloud flow, or the local flow.
+        """,
+    )
+
     # episode_preprocessing args
     parser.add_argument(
         "task",
         type=str,
-        choices=["preprocess", "train", "predict", "add"],
+        choices=["preprocess", "train", "predict"],
         help="""
-        string, task that has to be performed (preprocess/train/predict/add).
+        string, task that has to be performed (preprocess/train/predict).
         preprocess: from video/audio to sentences,
         train: get new model from existing data,
-        predict: get emotions from new episode,
-        add: add prepared data to database
+        predict: get emotions from new episode
         """,
     )
     parser.add_argument(
@@ -169,24 +176,58 @@ def get_args() -> argparse.Namespace:
 
     # model_training args
     parser.add_argument(
-        "--model_path",
-        required=False,
-        type=str,
-        help="Path to the model configuration and weights file.",
-    )
-
-    parser.add_argument(
         "--train_data",
         required=False,
         type=str,
         help="Path to the training data CSV file.",
     )
-
+    parser.add_argument(
+        "--model_path",
+        required=False,
+        type=str,
+        help="Path to the model configuration and weights file.",
+    )
+    parser.add_argument(
+        "--val_size",
+        required=False,
+        type=float,
+        help="size of the validation data for model training",
+    )
+    parser.add_argument(
+        "--batch_size",
+        required=False,
+        type=int,
+        help="number of examples in one training batch",
+    )
+    parser.add_argument(
+        "--epochs",
+        required=False,
+        type=int,
+        help="number of training epochs",
+    )
+    parser.add_argument(
+        "--learning_rate",
+        required=False,
+        type=float,
+        help="learning rate for the optimizer",
+    )
+    parser.add_argument(
+        "--early_stopping_patience",
+        required=False,
+        type=int,
+        help="patience parameter in the early stopping callback",
+    )
     parser.add_argument(
         "--eval_data",
         required=False,
         type=str,
         help="Path to the evaluation data CSV file.",
+    )
+    parser.add_argument(
+        "--model_save_path",
+        required=False,
+        type=str,
+        help="path to the directory where the trained model will be saved",
     )
 
     args = parser.parse_args()
@@ -248,11 +289,12 @@ def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
     )
 
     # transcribe and translate fragments to get sentences in df
+    use_fp16 = args.use_fp16 == "True"
     data_df = epp.transcribe_translate_fragments(
         audio=audio,
         cut_fragments_frames=cut_fragments_frames,
         sample_rate=args.target_sr,
-        use_fp16=args.use_fp16,
+        use_fp16=use_fp16,
         transcription_model_size=args.transcript_model_size,
     )
 
@@ -262,7 +304,11 @@ def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
     return data_df
 
 
-def model_training(args):
+def model_training(
+    args: argparse.Namespace,
+) -> tuple[
+    TFRobertaForSequenceClassification, tuple[list[str], list[float], float, str]
+]:
     """
     A function that follows parts of the model_training module that only train models.
     It loads and pre-processes the data for model training, creates a new model,
@@ -275,10 +321,12 @@ def model_training(args):
 
     Output:
         model: a trained roBERTa transformer model
+        metrics (tuple[]): tuple with evaluation metrics
+        (predicted_emotions, confidence_scores, total_accuracy, classification_report)
 
     Author - Wojciech Stachowiak
     """
-    data, label_decoder_data = mt.load_data(args.input_path)
+    data, label_decoder_data = mt.load_data(args.train_data)
 
     tokenizer = mt.get_tokenizer()
 
@@ -286,9 +334,7 @@ def model_training(args):
         label_decoder = label_decoder_data
         model, _ = mt.get_model(args.model_path, num_classes=len(label_decoder))
     else:
-        model, label_decoder = mt.get_model(
-            args.model_path, num_classes=args.num_classes
-        )
+        model, label_decoder = mt.get_model(args.model_path)
 
     train_set, val_set = mt.get_train_val_data(data, val_size=args.val_size)
 
@@ -318,7 +364,11 @@ def model_training(args):
         model, tokenizer, label_decoder, eval_path=args.eval_data, max_length=128
     )
 
+    metrics = (predicted_emotions, highest_probabilities, accuracy, report)
+
     mt.save_model(model, label_decoder, model_path=args.model_save_path)
+
+    return model, metrics
 
 
 def predict(
@@ -342,6 +392,7 @@ def predict(
 
     Author - Wojciech Stachowiak
     """
+
     tokenizer = mt.get_tokenizer()
 
     model, label_decoder = mt.get_model(args.model_path, num_classes=0)
@@ -394,6 +445,12 @@ def main():
     # get arguments from argparser
     args = get_args()
     logger.info("got command line arguments")
+
+    cloud = args.cloud == "True"
+    if cloud is True:
+        logger.info("you are running in the cloud")
+    else:
+        logger.info("you are NOT running in the cloud")
 
     # handle episode preprocessing
     if args.task in ["preprocess", "predict"]:
