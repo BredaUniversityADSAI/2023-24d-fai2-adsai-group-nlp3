@@ -22,7 +22,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Model Training" href="model_training.html" />
-    <link rel="prev" title="Installation" href="installation.html" /> 
+    <link rel="prev" title="Usage" href="usage.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -44,9 +44,14 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#cli-usage">CLI Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#api-usage">API Usage</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Source Code</span></p>
 <ul class="current">
@@ -64,10 +69,22 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="model_training.html">Model Training</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.batch_predict_and_decode"><code class="docutils literal notranslate"><span class="pre">batch_predict_and_decode()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.create_tf_datasets"><code class="docutils literal notranslate"><span class="pre">create_tf_datasets()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.encode_labels"><code class="docutils literal notranslate"><span class="pre">encode_labels()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.evaluate"><code class="docutils literal notranslate"><span class="pre">evaluate()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.get_model"><code class="docutils literal notranslate"><span class="pre">get_model()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.load_data"><code class="docutils literal notranslate"><span class="pre">load_data()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.predict"><code class="docutils literal notranslate"><span class="pre">predict()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.preprocess_data"><code class="docutils literal notranslate"><span class="pre">preprocess_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.tokenize_sentences"><code class="docutils literal notranslate"><span class="pre">tokenize_sentences()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.tokenize_text_data"><code class="docutils literal notranslate"><span class="pre">tokenize_text_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.train_model"><code class="docutils literal notranslate"><span class="pre">train_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="moi.html">Model Output Information</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="moi.html#model_output_information.calculate_episode_confidence"><code class="docutils literal notranslate"><span class="pre">calculate_episode_confidence()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="moi.html#model_output_information.plot_emotion_distribution"><code class="docutils literal notranslate"><span class="pre">plot_emotion_distribution()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -96,9 +113,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-episode_preprocessing_pipeline">
-<span id="episode-data-preperocessing"></span><span id="edp"></span><h1>Episode Data Preperocessing<a class="headerlink" href="#module-episode_preprocessing_pipeline" title="Link to this heading"></a></h1>
-<dl class="py function">
+  <section id="episode-data-preperocessing">
+<span id="edp"></span><h1>Episode Data Preperocessing<a class="headerlink" href="#episode-data-preperocessing" title="Link to this heading"></a></h1>
+<p>This process alows user to input new data (video or audio), process that to output text data for training on new data or/and emotion classification.</p>
+<dl class="py function" id="module-episode_preprocessing_pipeline">
 <dt class="sig sig-object py" id="episode_preprocessing_pipeline.adjust_fragment_end_frame">
 <span class="sig-prename descclassname"><span class="pre">episode_preprocessing_pipeline.</span></span><span class="sig-name descname"><span class="pre">adjust_fragment_end_frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">end_fragment_frame</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_audio_length_frames</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#episode_preprocessing_pipeline.adjust_fragment_end_frame" title="Link to this definition"></a></dt>
 <dd><p>A function that moves the end of the larger fragment (a couple of minutes)
@@ -135,7 +153,7 @@ to start 0.125 seconds earlier if the new start does not go below 0.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="episode_preprocessing_pipeline.clean_transcript_df">
-<span class="sig-prename descclassname"><span class="pre">episode_preprocessing_pipeline.</span></span><span class="sig-name descname"><span class="pre">clean_transcript_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">episode_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">datetime.date(2024,</span> <span class="pre">5,</span> <span class="pre">23)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#episode_preprocessing_pipeline.clean_transcript_df" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">episode_preprocessing_pipeline.</span></span><span class="sig-name descname"><span class="pre">clean_transcript_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">episode_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">datetime.date(2024,</span> <span class="pre">5,</span> <span class="pre">29)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#episode_preprocessing_pipeline.clean_transcript_df" title="Link to this definition"></a></dt>
 <dd><p>A function that cleans the output of the transcribe_translate_fragments function.
 It adds a column to identify the episode later
 (current date in YYYY-MM-DD format by deafut). This can be changed by specifying
@@ -292,7 +310,7 @@ file that corresponds to the segment number</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="episode_preprocessing_pipeline.transcribe_translate_fragments">
-<span class="sig-prename descclassname"><span class="pre">episode_preprocessing_pipeline.</span></span><span class="sig-name descname"><span class="pre">transcribe_translate_fragments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">audio</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cut_fragments_frames</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_fp16</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transcription_model_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'base'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">episode_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">datetime.date(2024,</span> <span class="pre">5,</span> <span class="pre">23)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#episode_preprocessing_pipeline.transcribe_translate_fragments" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">episode_preprocessing_pipeline.</span></span><span class="sig-name descname"><span class="pre">transcribe_translate_fragments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">audio</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cut_fragments_frames</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_fp16</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transcription_model_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'base'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">episode_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">datetime.date(2024,</span> <span class="pre">5,</span> <span class="pre">29)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#episode_preprocessing_pipeline.transcribe_translate_fragments" title="Link to this definition"></a></dt>
 <dd><p>A function that transcribes and translates the audio fragments using openai-whisper
 model, and returns a pandas.DataFrame with English sentences
 (one sentence per row). The size of the model can be adjusted.</p>
@@ -324,7 +342,7 @@ see: <a class="reference external" href="https://pypi.org/project/openai-whisper
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="usage.html" class="btn btn-neutral float-left" title="Usage" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="model_training.html" class="btn btn-neutral float-right" title="Model Training" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

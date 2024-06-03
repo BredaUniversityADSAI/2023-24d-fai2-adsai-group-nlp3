@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Python Module Index &mdash; Emotions 1 documentation</title>
+  <title>Usage &mdash; Emotions 1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
 
@@ -20,13 +21,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
- 
-
-    <script>
-      DOCUMENTATION_OPTIONS.COLLAPSE_INDEX = true;
-    </script>
-
-
+    <link rel="next" title="Episode Data Preperocessing" href="edp.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -49,11 +45,11 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="usage.html#cli-usage">CLI Usage</a></li>
-<li class="toctree-l2"><a class="reference internal" href="usage.html#api-usage">API Usage</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#cli-usage">CLI Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#api-usage">API Usage</a></li>
 </ul>
 </li>
 </ul>
@@ -107,8 +103,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Python Module Index</li>
+      <li class="breadcrumb-item active">Usage</li>
       <li class="wy-breadcrumbs-aside">
+            <a href="_sources/usage.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -116,42 +113,69 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-
-   <h1>Python Module Index</h1>
-
-   <div class="modindex-jumpbox">
-   <a href="#cap-e"><strong>e</strong></a> | 
-   <a href="#cap-m"><strong>m</strong></a>
-   </div>
-
-   <table class="indextable modindextable">
-     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
-     <tr class="cap" id="cap-e"><td></td><td>
-       <strong>e</strong></td><td></td></tr>
-     <tr>
-       <td></td>
-       <td>
-       <a href="edp.html#module-episode_preprocessing_pipeline"><code class="xref">episode_preprocessing_pipeline</code></a></td><td>
-       <em></em></td></tr>
-     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
-     <tr class="cap" id="cap-m"><td></td><td>
-       <strong>m</strong></td><td></td></tr>
-     <tr>
-       <td></td>
-       <td>
-       <a href="moi.html#module-model_output_information"><code class="xref">model_output_information</code></a></td><td>
-       <em></em></td></tr>
-     <tr>
-       <td></td>
-       <td>
-       <a href="model_training.html#module-model_training"><code class="xref">model_training</code></a></td><td>
-       <em></em></td></tr>
-   </table>
+  <section id="usage">
+<span id="id1"></span><h1>Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h1>
+<p>This section provides information on how to use the project both through the Command Line Interface (CLI) and the API.</p>
+<nav class="contents local" id="table-of-contents">
+<p class="topic-title">Table of Contents</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#cli-usage" id="id2">CLI Usage</a></p></li>
+<li><p><a class="reference internal" href="#api-usage" id="id3">API Usage</a></p></li>
+</ul>
+</nav>
+<section id="cli-usage">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">CLI Usage</a><a class="headerlink" href="#cli-usage" title="Link to this heading"></a></h2>
+<p>The Command Line Interface (CLI) allows you to interact with the project from the terminal.</p>
+<p>### Installation</p>
+<p>First, ensure the project is installed. You can install it using pip:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>your_project_name
+</pre></div>
+</div>
+<p>### Commands</p>
+<p>Here are some example commands you can use:</p>
+<p>#### <cite>example_command</cite></p>
+<p>This command does something useful.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>example_command<span class="w"> </span>--option<span class="w"> </span>value
+</pre></div>
+</div>
+<p>#### <cite>another_command</cite></p>
+<p>This command performs another useful task.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>another_command<span class="w"> </span>--option<span class="w"> </span>value
+</pre></div>
+</div>
+</section>
+<section id="api-usage">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">API Usage</a><a class="headerlink" href="#api-usage" title="Link to this heading"></a></h2>
+<p>The API allows you to interact with the project programmatically.</p>
+<p>### Importing the Module</p>
+<p>First, import the necessary module(s) in your Python script:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">your_project_name</span> <span class="kn">import</span> <span class="n">your_module</span>
+</pre></div>
+</div>
+<p>### Example Usage</p>
+<p>Here are some examples of how to use the API:</p>
+<p>#### <cite>function_one</cite></p>
+<p>This function performs a specific task.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">your_module</span><span class="o">.</span><span class="n">function_one</span><span class="p">(</span><span class="n">param1</span><span class="p">,</span> <span class="n">param2</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>#### <cite>function_two</cite></p>
+<p>This function performs another specific task.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">your_module</span><span class="o">.</span><span class="n">function_two</span><span class="p">(</span><span class="n">param1</span><span class="p">,</span> <span class="n">param2</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
 
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="edp.html" class="btn btn-neutral float-right" title="Episode Data Preperocessing" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
 
   <hr/>
 

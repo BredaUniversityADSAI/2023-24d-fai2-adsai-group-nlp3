@@ -41,9 +41,14 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#cli-usage">CLI Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#api-usage">API Usage</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Source Code</span></p>
 <ul>
@@ -61,10 +66,22 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="model_training.html">Model Training</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.batch_predict_and_decode"><code class="docutils literal notranslate"><span class="pre">batch_predict_and_decode()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.create_tf_datasets"><code class="docutils literal notranslate"><span class="pre">create_tf_datasets()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.encode_labels"><code class="docutils literal notranslate"><span class="pre">encode_labels()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.evaluate"><code class="docutils literal notranslate"><span class="pre">evaluate()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.get_model"><code class="docutils literal notranslate"><span class="pre">get_model()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.load_data"><code class="docutils literal notranslate"><span class="pre">load_data()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.predict"><code class="docutils literal notranslate"><span class="pre">predict()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.preprocess_data"><code class="docutils literal notranslate"><span class="pre">preprocess_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.tokenize_sentences"><code class="docutils literal notranslate"><span class="pre">tokenize_sentences()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.tokenize_text_data"><code class="docutils literal notranslate"><span class="pre">tokenize_text_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.train_model"><code class="docutils literal notranslate"><span class="pre">train_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="moi.html">Model Output Information</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="moi.html#model_output_information.calculate_episode_confidence"><code class="docutils literal notranslate"><span class="pre">calculate_episode_confidence()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="moi.html#model_output_information.plot_emotion_distribution"><code class="docutils literal notranslate"><span class="pre">plot_emotion_distribution()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -97,6 +114,7 @@
 
 <div class="genindex-jumpbox">
  <a href="#A"><strong>A</strong></a>
+ | <a href="#B"><strong>B</strong></a>
  | <a href="#C"><strong>C</strong></a>
  | <a href="#E"><strong>E</strong></a>
  | <a href="#G"><strong>G</strong></a>
@@ -119,10 +137,24 @@
   </ul></td>
 </tr></table>
 
+<h2 id="B">B</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="model_training.html#model_training.batch_predict_and_decode">batch_predict_and_decode() (in module model_training)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="moi.html#model_output_information.calculate_episode_confidence">calculate_episode_confidence() (in module model_output_information)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="edp.html#episode_preprocessing_pipeline.clean_transcript_df">clean_transcript_df() (in module episode_preprocessing_pipeline)</a>
+</li>
+      <li><a href="model_training.html#model_training.create_tf_datasets">create_tf_datasets() (in module model_training)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -130,6 +162,8 @@
 <h2 id="E">E</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="model_training.html#model_training.encode_labels">encode_labels() (in module model_training)</a>
+</li>
       <li>
     episode_preprocessing_pipeline
 
@@ -137,6 +171,10 @@
         <li><a href="edp.html#module-episode_preprocessing_pipeline">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="model_training.html#model_training.evaluate">evaluate() (in module model_training)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -172,6 +210,13 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li>
+    model_output_information
+
+      <ul>
+        <li><a href="moi.html#module-model_output_information">module</a>
+</li>
+      </ul></li>
+      <li>
     model_training
 
       <ul>
@@ -186,6 +231,8 @@
       <ul>
         <li><a href="edp.html#module-episode_preprocessing_pipeline">episode_preprocessing_pipeline</a>
 </li>
+        <li><a href="moi.html#module-model_output_information">model_output_information</a>
+</li>
         <li><a href="model_training.html#module-model_training">model_training</a>
 </li>
       </ul></li>
@@ -195,10 +242,12 @@
 <h2 id="P">P</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="model_training.html#model_training.predict">predict() (in module model_training)</a>
+      <li><a href="moi.html#model_output_information.plot_emotion_distribution">plot_emotion_distribution() (in module model_output_information)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="model_training.html#model_training.predict">predict() (in module model_training)</a>
+</li>
       <li><a href="model_training.html#model_training.preprocess_data">preprocess_data() (in module model_training)</a>
 </li>
   </ul></td>
@@ -219,6 +268,14 @@
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="model_training.html#model_training.tokenize_sentences">tokenize_sentences() (in module model_training)</a>
+</li>
+      <li><a href="model_training.html#model_training.tokenize_text_data">tokenize_text_data() (in module model_training)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="model_training.html#model_training.train_model">train_model() (in module model_training)</a>
+</li>
       <li><a href="edp.html#episode_preprocessing_pipeline.transcribe_translate_fragments">transcribe_translate_fragments() (in module episode_preprocessing_pipeline)</a>
 </li>
   </ul></td>

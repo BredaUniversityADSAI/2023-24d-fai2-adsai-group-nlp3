@@ -21,6 +21,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Model Output Information" href="moi.html" />
     <link rel="prev" title="Episode Data Preperocessing" href="edp.html" /> 
 </head>
 
@@ -43,9 +44,14 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#cli-usage">CLI Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#api-usage">API Usage</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Source Code</span></p>
 <ul class="current">
@@ -63,10 +69,22 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Model Training</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#model_training.batch_predict_and_decode"><code class="docutils literal notranslate"><span class="pre">batch_predict_and_decode()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model_training.create_tf_datasets"><code class="docutils literal notranslate"><span class="pre">create_tf_datasets()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model_training.encode_labels"><code class="docutils literal notranslate"><span class="pre">encode_labels()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model_training.evaluate"><code class="docutils literal notranslate"><span class="pre">evaluate()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#model_training.get_model"><code class="docutils literal notranslate"><span class="pre">get_model()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#model_training.load_data"><code class="docutils literal notranslate"><span class="pre">load_data()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#model_training.predict"><code class="docutils literal notranslate"><span class="pre">predict()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#model_training.preprocess_data"><code class="docutils literal notranslate"><span class="pre">preprocess_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model_training.tokenize_sentences"><code class="docutils literal notranslate"><span class="pre">tokenize_sentences()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model_training.tokenize_text_data"><code class="docutils literal notranslate"><span class="pre">tokenize_text_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model_training.train_model"><code class="docutils literal notranslate"><span class="pre">train_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="moi.html">Model Output Information</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="moi.html#model_output_information.calculate_episode_confidence"><code class="docutils literal notranslate"><span class="pre">calculate_episode_confidence()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="moi.html#model_output_information.plot_emotion_distribution"><code class="docutils literal notranslate"><span class="pre">plot_emotion_distribution()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -97,41 +115,206 @@
              
   <section id="model-training">
 <span id="id1"></span><h1>Model Training<a class="headerlink" href="#model-training" title="Link to this heading"></a></h1>
-<p>hfhdhdhdhdhhd</p>
+<dl class="simple">
+<dt>This process is used for model training. The model used is RoBERTa model with the input number of output classes.</dt><dd><p>See <a class="reference external" href="https://huggingface.co/docs/transformers/en/model_doc/roberta">RoBERTa model</a> for more information.</p>
+</dd>
+</dl>
 <dl class="py function" id="module-model_training">
+<dt class="sig sig-object py" id="model_training.batch_predict_and_decode">
+<span class="sig-prename descclassname"><span class="pre">model_training.</span></span><span class="sig-name descname"><span class="pre">batch_predict_and_decode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_encoder</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">256</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#model_training.batch_predict_and_decode" title="Link to this definition"></a></dt>
+<dd><p>Predicts the emotion labels for the input data and
+returns the predicted labels and the highest probabilities.</p>
+<dl class="simple">
+<dt>Input:</dt><dd><p>model: Model used for prediction.
+inputs: Dictionary containing the input data.
+label_encoder: Label encoder used to decode the predicted classes.
+batch_size: Batch size for the prediction.</p>
+</dd>
+<dt>Output:</dt><dd><p>predicted_emotions: List of predicted emotion labels.
+highest_probabilities: List of highest probabilities for each predicted emotion.</p>
+</dd>
+<dt>Author:</dt><dd><p>Max Meiners (214936)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model_training.create_tf_datasets">
+<span class="sig-prename descclassname"><span class="pre">model_training.</span></span><span class="sig-name descname"><span class="pre">create_tf_datasets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">256</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#model_training.create_tf_datasets" title="Link to this definition"></a></dt>
+<dd><p>Creates TensorFlow datasets for training and validation.</p>
+<dl class="simple">
+<dt>Input:</dt><dd><p>token_ids: Numpy array of token IDs.
+mask_values: Numpy array of mask values.
+labels: Encoded labels.
+test_size: Size of the validation dataset.
+random_state: Random state for reproducibility.
+batch_size: Batch size for the datasets.</p>
+</dd>
+<dt>Output:</dt><dd><p>training_dataset: TensorFlow dataset for training the model.
+validation_dataset: TensorFlow dataset for validating the model.</p>
+</dd>
+<dt>Author:</dt><dd><p>Max Meiners (214936)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model_training.encode_labels">
+<span class="sig-prename descclassname"><span class="pre">model_training.</span></span><span class="sig-name descname"><span class="pre">encode_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">emotional_labels</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#model_training.encode_labels" title="Link to this definition"></a></dt>
+<dd><p>Encodes the emotional labels using a LabelEncoder
+and returns the transformed labels and the encoder.</p>
+<dl class="simple">
+<dt>Input:</dt><dd><p>emotional_labels: List of emotional labels to be encoded.</p>
+</dd>
+<dt>Output:</dt><dd><p>transformed_labels: Encoded labels.
+encoder: LabelEncoder used to encode the labels.</p>
+</dd>
+<dt>Author:</dt><dd><p>Max Meiners (214936)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model_training.evaluate">
+<span class="sig-prename descclassname"><span class="pre">model_training.</span></span><span class="sig-name descname"><span class="pre">evaluate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eval_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_encoder</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#model_training.evaluate" title="Link to this definition"></a></dt>
+<dd><p>Evaluate the model using the evaluation data.</p>
+<dl class="simple">
+<dt>Input:</dt><dd><p>eval_data (pd.DataFrame): DataFrame containing the evaluation data.
+model: The trained model to be evaluated.
+tokenizer: Tokenizer used to tokenize the input data.
+label_encoder: Label encoder used to decode the predicted classes.</p>
+</dd>
+<dt>Output:</dt><dd><p>predicted_emotions: List of predicted emotion labels.
+highest_probabilities: List of highest probabilities for each predicted emotion.
+accuracy: Accuracy score of the model.
+report: Classification report of the model’s performance.</p>
+</dd>
+<dt>Author:</dt><dd><p>Max Meiners (214936)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="model_training.get_model">
-<span class="sig-prename descclassname"><span class="pre">model_training.</span></span><span class="sig-name descname"><span class="pre">get_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#model_training.get_model" title="Link to this definition"></a></dt>
-<dd><p>create a model and return it
-look for a way to make this as generic as possible (num of classes is a good start)
-bonus: compatible with different model architectures</p>
+<span class="sig-prename descclassname"><span class="pre">model_training.</span></span><span class="sig-name descname"><span class="pre">get_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_classes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#model_training.get_model" title="Link to this definition"></a></dt>
+<dd><p>Create and return a RoBERTa model with the specified number of output classes.</p>
+<dl class="simple">
+<dt>Input:</dt><dd><p>weights_path (str): Path to the model weights file.
+num_classes (int): Number of output classes for the model.</p>
+</dd>
+<dt>Output:</dt><dd><p>model: RoBERTa model with the specified number of output classes.
+tokenizer: Tokenizer used to tokenize the input data.</p>
+</dd>
+<dt>Author:</dt><dd><p>Max Meiners (214936)</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="model_training.load_data">
-<span class="sig-prename descclassname"><span class="pre">model_training.</span></span><span class="sig-name descname"><span class="pre">load_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#model_training.load_data" title="Link to this definition"></a></dt>
-<dd><p>I figured this is a good way to return the number of classes,
-may be worth to go one step further and just return a dict with the classes
-May be also worth to have a class to keep this organized</p>
-<p>probably some way to chose train/evaluate data
-probably some way to filter training data
-(no idea how we are saving this, so TBD tomorrow I guess)</p>
-<p>file_path (string): file path to the datasets
-dataset (string): type of dataset to load (train or eval)</p>
+<span class="sig-prename descclassname"><span class="pre">model_training.</span></span><span class="sig-name descname"><span class="pre">load_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#model_training.load_data" title="Link to this definition"></a></dt>
+<dd><p>Load the dataset from a CSV file and return
+the DataFrame and a dictionary with the classes.</p>
+<dl class="simple">
+<dt>Input:</dt><dd><p>file_path (str): File path to the dataset CSV file.
+dataset (str): Type of dataset to load (‘train’ or ‘eval’).</p>
+</dd>
+<dt>Output:</dt><dd><p>df (pd.DataFrame): Loaded DataFrame containing the data.
+classes (dict[int, str]): Dictionary with the class labels.</p>
+</dd>
+<dt>Author:</dt><dd><p>Max Meiners (214936)</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="model_training.predict">
-<span class="sig-prename descclassname"><span class="pre">model_training.</span></span><span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sentences</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#model_training.predict" title="Link to this definition"></a></dt>
-<dd><p>Probably returns either pd.DataFrame or np.array
-Someone also has the predict func so check if it’s done
-We don’t need 2 of them</p>
+<span class="sig-prename descclassname"><span class="pre">model_training.</span></span><span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sentences</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_encoder</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">256</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#model_training.predict" title="Link to this definition"></a></dt>
+<dd><p>A function that takes a pre-trained model, a list of sentences, a tokenizer,
+and a label encoder to predict the emotion labels for the input sentences.
+It returns the predicted emotions and the highest probabilities for each prediction.</p>
+<dl class="simple">
+<dt>Input:</dt><dd><p>model: Model used for prediction.
+sentences (list): List of input sentences.
+tokenizer: Tokenizer used to tokenize the input sentences.
+label_encoder: Label encoder used to encode the predicted classes.
+batch_size (int): Batch size for prediction.</p>
+</dd>
+<dt>Output:</dt><dd><p>predicted_emotions: List of predicted emotion labels for the input sentences.
+highest_probabilities: List of highest probabilities for each predicted emotion.</p>
+</dd>
+<dt>Author:</dt><dd><p>Max Meiners (214936)</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="model_training.preprocess_data">
-<span class="sig-prename descclassname"><span class="pre">model_training.</span></span><span class="sig-name descname"><span class="pre">preprocess_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sentence_df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#model_training.preprocess_data" title="Link to this definition"></a></dt>
-<dd><p>tokenize, and do whatever needed
-nice is generic, but we can deal with less generic probably</p>
+<span class="sig-prename descclassname"><span class="pre">model_training.</span></span><span class="sig-name descname"><span class="pre">preprocess_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#model_training.preprocess_data" title="Link to this definition"></a></dt>
+<dd><p>A function to preprocess the input data.</p>
+<dl class="simple">
+<dt>Input:</dt><dd><p>df (pd.DataFrame): DataFrame containing the input data.
+tokenizer: Tokenizer used to tokenize the input data.</p>
+</dd>
+<dt>Output:</dt><dd><p>training_dataset: Training dataset for the model.
+validation_dataset: Validation dataset for the model.
+<a href="#id2"><span class="problematic" id="id3">encoder.classes_</span></a>: Encoded classes for the model.
+tokenizer: Tokenizer used to tokenize the input data.</p>
+</dd>
+<dt>Author:</dt><dd><p>Max Meiners (214936)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model_training.tokenize_sentences">
+<span class="sig-prename descclassname"><span class="pre">model_training.</span></span><span class="sig-name descname"><span class="pre">tokenize_sentences</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sentences</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">128</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#model_training.tokenize_sentences" title="Link to this definition"></a></dt>
+<dd><p>Tokenizes the input sentences using the provided
+tokenizer and returns the token IDs and mask values.</p>
+<dl class="simple">
+<dt>Input:</dt><dd><p>sentences: List of sentences to be tokenized.
+tokenizer: Tokenizer used to tokenize the input data.
+max_length: Maximum length of the tokenized sequences.</p>
+</dd>
+<dt>Output:</dt><dd><p>token_ids: Tensor of token IDs.
+mask_values: Tensor of mask values.</p>
+</dd>
+<dt>Author:</dt><dd><p>Max Meiners (214936)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model_training.tokenize_text_data">
+<span class="sig-prename descclassname"><span class="pre">model_training.</span></span><span class="sig-name descname"><span class="pre">tokenize_text_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">128</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#model_training.tokenize_text_data" title="Link to this definition"></a></dt>
+<dd><p>Tokenizes the input text data using the provided
+tokenizer and returns the token IDs and mask values.</p>
+<dl class="simple">
+<dt>Input:</dt><dd><p>text_data: List of text data to be tokenized.
+tokenizer: Tokenizer used to tokenize the input data.
+max_length: Maximum length of the tokenized sequences.</p>
+</dd>
+<dt>Output:</dt><dd><p>token_ids_array: Numpy array of token IDs.
+mask_values_array: Numpy array of mask values.</p>
+</dd>
+<dt>Author:</dt><dd><p>Max Meiners (214936)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model_training.train_model">
+<span class="sig-prename descclassname"><span class="pre">model_training.</span></span><span class="sig-name descname"><span class="pre">train_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#model_training.train_model" title="Link to this definition"></a></dt>
+<dd><p>Train the model using the training dataset.</p>
+<dl class="simple">
+<dt>Input:</dt><dd><p>model: Model to be trained.
+training_dataset: Dataset used for training the model.
+validation_dataset: Dataset used for validating the model.
+epochs (int): Number of epochs to train the model.</p>
+</dd>
+<dt>Output:</dt><dd><p>model: Trained model.</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
@@ -141,6 +324,7 @@ nice is generic, but we can deal with less generic probably</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="edp.html" class="btn btn-neutral float-left" title="Episode Data Preperocessing" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="moi.html" class="btn btn-neutral float-right" title="Model Output Information" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

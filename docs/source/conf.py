@@ -47,4 +47,4 @@ html_theme_options = {
 }
 
 
-autodoc_mock_imports = ["whisper", "spacy", "pydub"]
+autodoc_mock_imports = ["whisper", "spacy", "pydub", "matplotlib", "tensorflow", 'transformers']

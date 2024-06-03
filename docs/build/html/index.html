@@ -43,9 +43,14 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#cli-usage">CLI Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#api-usage">API Usage</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Source Code</span></p>
 <ul>
@@ -63,10 +68,22 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="model_training.html">Model Training</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.batch_predict_and_decode"><code class="docutils literal notranslate"><span class="pre">batch_predict_and_decode()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.create_tf_datasets"><code class="docutils literal notranslate"><span class="pre">create_tf_datasets()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.encode_labels"><code class="docutils literal notranslate"><span class="pre">encode_labels()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.evaluate"><code class="docutils literal notranslate"><span class="pre">evaluate()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.get_model"><code class="docutils literal notranslate"><span class="pre">get_model()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.load_data"><code class="docutils literal notranslate"><span class="pre">load_data()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.predict"><code class="docutils literal notranslate"><span class="pre">predict()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.preprocess_data"><code class="docutils literal notranslate"><span class="pre">preprocess_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.tokenize_sentences"><code class="docutils literal notranslate"><span class="pre">tokenize_sentences()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.tokenize_text_data"><code class="docutils literal notranslate"><span class="pre">tokenize_text_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.train_model"><code class="docutils literal notranslate"><span class="pre">train_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="moi.html">Model Output Information</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="moi.html#model_output_information.calculate_episode_confidence"><code class="docutils literal notranslate"><span class="pre">calculate_episode_confidence()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="moi.html#model_output_information.plot_emotion_distribution"><code class="docutils literal notranslate"><span class="pre">plot_emotion_distribution()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -100,9 +117,14 @@
 <p>Bla bla bla
 Bla bla bla</p>
 <div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#cli-usage">CLI Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#api-usage">API Usage</a></li>
+</ul>
+</li>
 </ul>
 </div>
 <div class="toctree-wrapper compound">
@@ -122,10 +144,22 @@ Bla bla bla</p>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="model_training.html">Model Training</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.batch_predict_and_decode"><code class="docutils literal notranslate"><span class="pre">batch_predict_and_decode()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.create_tf_datasets"><code class="docutils literal notranslate"><span class="pre">create_tf_datasets()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.encode_labels"><code class="docutils literal notranslate"><span class="pre">encode_labels()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.evaluate"><code class="docutils literal notranslate"><span class="pre">evaluate()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.get_model"><code class="docutils literal notranslate"><span class="pre">get_model()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.load_data"><code class="docutils literal notranslate"><span class="pre">load_data()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.predict"><code class="docutils literal notranslate"><span class="pre">predict()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.preprocess_data"><code class="docutils literal notranslate"><span class="pre">preprocess_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.tokenize_sentences"><code class="docutils literal notranslate"><span class="pre">tokenize_sentences()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.tokenize_text_data"><code class="docutils literal notranslate"><span class="pre">tokenize_text_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.train_model"><code class="docutils literal notranslate"><span class="pre">train_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="moi.html">Model Output Information</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="moi.html#model_output_information.calculate_episode_confidence"><code class="docutils literal notranslate"><span class="pre">calculate_episode_confidence()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="moi.html#model_output_information.plot_emotion_distribution"><code class="docutils literal notranslate"><span class="pre">plot_emotion_distribution()</span></code></a></li>
 </ul>
 </li>
 </ul>

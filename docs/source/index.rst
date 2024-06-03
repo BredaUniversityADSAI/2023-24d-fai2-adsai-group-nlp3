@@ -10,22 +10,23 @@ Bla bla bla
 Bla bla bla 
 
 .. toctree::
-   :maxdepth: 3
-   :caption: Contents:
+   :maxdepth: 2
+   :caption: Contents
 
    installation
-
+   usage
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
    :caption: Source Code
 
    edp
    model_training
+   moi
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
 * :ref:`modindex`
-* :ref:`search`
+* :ref:`search
