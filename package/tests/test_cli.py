@@ -116,7 +116,7 @@ def test_evaluate_model(monkeypatch, cli_args):
 
 @pytest.mark.parametrize(
     "cli_args",
-    [(["predict", "--input_path", "input_path", "--output_path", "output_path"])],
+    [(["predict", "--input_path", "", "--model_path", ""])],
 )
 def test_predict():
     predict()

@@ -5,7 +5,6 @@ import e3k.episode_preprocessing_pipeline as epp
 import e3k.model_output_information as moi
 import e3k.model_training as mt
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
 
 """
 command line args:
@@ -41,16 +40,6 @@ stream_handler.setFormatter(formatter)
 
 logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
-
-
-TEMP_EMOTIONS_LABELS = {
-    0: "Anger",
-    1: "Disgust",
-    2: "Fear",
-    3: "Happiness",
-    4: "Sadness",
-    5: "Surprise",
-}
 
 
 def get_args() -> argparse.Namespace:
@@ -289,57 +278,51 @@ def model_training(args):
 
     Author - Wojciech Stachowiak
     """
-    data, labels_dict = mt.load_data(args.input_path, "train")
-    label_encoder = LabelEncoder()
-    label_encoder.fit(list(labels_dict.values()))
+    data, label_decoder_data = mt.load_data(args.input_path)
 
-    num_classes = len(TEMP_EMOTIONS_LABELS)
+    tokenizer = mt.get_tokenizer()
 
-    model, tokenizer = mt.get_model(args.model_path, num_classes)
+    if args.model_path == "new":
+        label_decoder = label_decoder_data
+        model, _ = mt.get_model(args.model_path, num_classes=len(label_decoder))
+    else:
+        model, label_decoder = mt.get_model(
+            args.model_path, num_classes=args.num_classes
+        )
 
-    training_dataset, validation_dataset, num_classes, tokenizer = mt.preprocess_data(
-        data, tokenizer
+    train_set, val_set = mt.get_train_val_data(data, val_size=args.val_size)
+
+    train_tokens, train_masks = mt.tokenize_text_data(train_set[0], tokenizer)
+    val_tokens, val_masks = mt.tokenize_text_data(val_set[0], tokenizer)
+
+    train_labels = mt.encode_labels(train_set[1], label_decoder)
+    val_labels = mt.encode_labels(val_set[1], label_decoder)
+
+    train_dataset = mt.create_tf_dataset(
+        train_tokens, train_masks, train_labels, batch_size=args.batch_size
+    )
+    val_dataset = mt.create_tf_dataset(
+        val_tokens, val_masks, val_labels, batch_size=args.batch_size
     )
 
-    model = mt.train_model(model, training_dataset, validation_dataset)
-
-    return model, tokenizer, label_encoder
-
-
-def evaluate_model(args, model, tokenizer, label_encoder):
-    """
-    A function that evaluates newly trained model returned by the
-    model_training function. Returns predicted emotions, and confidence scores
-    for each sentence, and total accuracy with the full report as a general statistic.
-
-    Input:
-        args (argparse.Namespace): Namespace object returned by get_args function.
-            holds the information about positional and optional arguments
-            from command line
-        model: the model trained with model_training function
-        tokenizer: tokenizer used to preprocess data for the model
-        label_encoder: label encoder used for encoding labels during training
-
-    Output:
-        predicted_emotions: emotion predicted for each sentence
-        confidence_scores: confidence for the most probable emotion for each sentence
-        total_accuracy: aggregated accuracy score for the model
-        report: text report showing the main classification metrics
-
-    Author - Wojciech Stachowiak
-    """
-    print("entered evaluation")
-    eval_data, _ = mt.load_data(args.eval_path, "eval")
-
-    predicted_emotions, confidence_scores, total_accuracy, report = mt.evaluate(
-        eval_data, model, tokenizer, label_encoder
+    model = mt.train_model(
+        model,
+        train_dataset,
+        val_dataset,
+        epochs=args.epochs,
+        learning_rate=args.learning_rate,
+        early_stopping_patience=args.early_stopping_patience,
     )
 
-    return predicted_emotions, confidence_scores, total_accuracy, report
+    predicted_emotions, highest_probabilities, accuracy, report = mt.evaluate(
+        model, tokenizer, label_decoder, eval_path=args.eval_data, max_length=128
+    )
+
+    mt.save_model(model, label_decoder, model_path=args.model_save_path)
 
 
 def predict(
-    args: argparse.Namespace, data_df: pd.DataFrame
+    args: argparse.Namespace, data: pd.DataFrame
 ) -> tuple[list[str], list[float]]:
     """
     A function that returns model predictions given a model_path command line argument,
@@ -349,27 +332,25 @@ def predict(
         args (argparse.Namespace): Namespace object returned by get_args function.
             holds the information about positional and optional arguments
             from command line
-        data_df (pd.DataFrame): dataframe with sentences in a column
+        data (pd.DataFrame): dataframe with sentences in a column
 
     Output:
-        predicted_emotions (list[str]): text representation of predicted emotion for
+        emotions (list[str]): text representation of predicted emotion for
             each sentence
-        highest_probabilities (list[float]): model's confidence for
+        probabilities (list[float]): model's confidence for
             the most probable emotion in each sentence
 
     Author - Wojciech Stachowiak
     """
-    classes = TEMP_EMOTIONS_LABELS
+    tokenizer = mt.get_tokenizer()
 
-    label_encoder = LabelEncoder()
-    label_encoder.fit(list(classes.values()))
+    model, label_decoder = mt.get_model(args.model_path, num_classes=0)
 
-    model, tokenizer = mt.get_model(args.model_path, len(classes))
-    predicted_emotions, highest_probabilities = mt.predict(
-        model, data_df["sentence"].to_list(), tokenizer, label_encoder
-    )
+    tokens, masks = mt.tokenize_text_data(data["sentence"], tokenizer)
 
-    return predicted_emotions, highest_probabilities
+    emotions, probabilities = mt.predict(model, tokens, masks, label_decoder)
+
+    return emotions, probabilities
 
 
 def model_output_information(
@@ -414,12 +395,6 @@ def main():
     args = get_args()
     logger.info("got command line arguments")
 
-    # handle data adding
-    if args.task == "add":
-        logger.info("entered task: add")
-
-        pass
-
     # handle episode preprocessing
     if args.task in ["preprocess", "predict"]:
         logger.info("entered task: preprocess")
@@ -429,23 +404,13 @@ def main():
     # handle predicting
     if args.task == "predict":
         logger.info("entered task: predict")
-
         predicted_emotions, highest_probabilities = predict(args, data_df)
-
-        _ = moi.calculate_episode_confidence(highest_probabilities)
-        moi.plot_emotion_distribution(predicted_emotions)
+        model_output_information(predicted_emotions, highest_probabilities)
 
     # handle training
     if args.task == "train":
         logger.info("entered task: train")
-
-        model, tokenizer, label_encoder = model_training(args)
-        predicted_emotions, confidence_scores, total_accuracy, report = evaluate_model(
-            args, model, tokenizer, label_encoder
-        )
-
-        # a way to calm down pre-commits
-        (confidence_scores, total_accuracy, report)
+        model_training(args)
 
 
 if __name__ == "__main__":

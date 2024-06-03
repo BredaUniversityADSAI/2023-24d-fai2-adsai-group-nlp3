@@ -1,93 +1,137 @@
 import argparse
+import collections
+import collections.abc
 import logging
 import os
 
+import joblib
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+import transformers
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
-from tensorflow.keras.callbacks import EarlyStopping
-from transformers import (RobertaConfig, RobertaTokenizer,
-                          TFRobertaForSequenceClassification)
-
-# Setting hyperparameters and constants
-MAX_LENGTH = 128
-BATCH_SIZE = 256
-TEST_SIZE = 0.2
-RANDOM_STATE = 42
-LEARNING_RATE = 1e-5
-EPOCHS = 3
 
 mt_logger = logging.getLogger("main.model_training")
 
 
-def load_data(file_path: str, dataset: str) -> tuple[pd.DataFrame, dict[int, str]]:
+def load_data(file_path: str) -> tuple[pd.DataFrame, dict[int, str]]:
     """
     Load the dataset from a CSV file and return
-    the DataFrame and a dictionary with the classes.
+    the DataFrame and a dictionary with labels.
+    CSV needs to have "sentence" and "emotion" columns.
 
     Input:
         file_path (str): File path to the dataset CSV file.
-        dataset (str): Type of dataset to load ('train' or 'eval').
 
     Output:
         df (pd.DataFrame): Loaded DataFrame containing the data.
-        classes (dict[int, str]): Dictionary with the class labels.
+        emotion_decoder (dict[int, str]): Dictionary with the class labels.
 
     Author:
         Max Meiners (214936)
     """
 
-    df = pd.read_csv(file_path)
+    df = pd.read_csv(file_path)[["sentence", "emotion"]].dropna()
 
-    if dataset == "train":
-        # Filter the training data
-        df = df.dropna(subset=["sentence", "emotion"])
+    # Create a dictionary with class labels
+    emotion_decoder = {i: label for i, label in enumerate(df["emotion"].unique())}
 
-    # Create a dictionary with the class labels
-    classes = {i: label for i, label in enumerate(df["emotion"].unique())}
-
-    return df, classes
+    return df, emotion_decoder
 
 
-def get_model(model_path: str, num_classes: int):
+def get_model(
+    model_path: str, num_classes: int = 0
+) -> tuple[transformers.TFRobertaForSequenceClassification, dict[int, str]]:
     """
-    Create and return a RoBERTa model with the specified number of output classes.
+    Create or load a RoBERTa model with the specified number of output classes.
+    Number of classes not needed when loading a previously trained model.
 
     Input:
-        weights_path (str): Path to the model weights file.
-        num_classes (int): Number of output classes for the model.
+        model_path (str): Path to the model directory.
+        num_classes (int): Number of output classes for the model. default: 0
+            (for loading already trained models,
+            needs to be specified for new models only)
 
     Output:
         model: RoBERTa model with the specified number of output classes.
-        tokenizer: Tokenizer used to tokenize the input data.
+        emotion_dict (dict[int, str]): python dictionary that maps integers to text
+            emotions for the model, only returned when loading a trained model,
+            otherwise the value is None
 
     Author:
         Max Meiners (214936)
     """
 
+    # return new instance of the model
+    if model_path == "new":
+        model_configuration = transformers.RobertaConfig.from_pretrained(
+            "roberta-base", num_labels=num_classes
+        )
+        model = transformers.TFRobertaForSequenceClassification.from_pretrained(
+            "roberta-base", config=model_configuration
+        )
+
+        return model, None
+
+    # get config and model file paths
     config_path = os.path.join(model_path, "config.json")
     weights_path = os.path.join(model_path, "tf_model.h5")
+    dict_path = os.path.join(model_path, "emotion_dict.joblib")
 
     mt_logger.info(f"loading model configuration")
 
-    config = RobertaConfig.from_pretrained(config_path)
-    config.num_labels = num_classes
-    model = TFRobertaForSequenceClassification.from_pretrained(
+    # load an existing model
+    config = transformers.RobertaConfig.from_pretrained(config_path)
+    model = transformers.TFRobertaForSequenceClassification.from_pretrained(
         "roberta-base", config=config
     )
 
     mt_logger.info("loading model weights")
     model.load_weights(weights_path)
-    tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
-    mt_logger.info("model and tokenizer loaded")
 
-    return model, tokenizer
+    mt_logger.info("model loaded")
+
+    emotion_dict = joblib.load(dict_path)
+
+    return model, emotion_dict
 
 
-def tokenize_text_data(text_data, tokenizer, max_length=MAX_LENGTH):
+def get_tokenizer(type: str = "roberta-base") -> transformers.RobertaTokenizer:
+    """
+    TODO
+    """
+    tokenizer = transformers.RobertaTokenizer.from_pretrained(type)
+    mt_logger.info("tokenizer loaded")
+
+    return tokenizer
+
+
+def get_train_val_data(
+    data_df: pd.DataFrame, val_size: float = 0.2
+) -> tuple[tuple[pd.DataFrame], tuple[pd.DataFrame]]:
+    """
+    TODO
+    """
+    X_train, X_val, y_train, y_val = train_test_split(
+        data_df["sentence"],
+        data_df["emotion"],
+        test_size=val_size,
+        random_state=42,
+        stratify=data_df["emotion"],
+    )
+
+    train_set = (X_train, y_train)
+    val_set = (X_val, y_val)
+
+    return train_set, val_set
+
+
+def tokenize_text_data(
+    text_data: collections.abc.Iterable,
+    tokenizer: transformers.RobertaTokenizer,
+    max_length: int = 128,
+) -> tuple[np.array, np.array]:
     """
     Tokenizes the input text data using the provided
     tokenizer and returns the token IDs and mask values.
@@ -135,158 +179,104 @@ def tokenize_text_data(text_data, tokenizer, max_length=MAX_LENGTH):
     return token_ids_array, mask_values_array
 
 
-def encode_labels(emotional_labels):
+def encode_labels(
+    emotion_labels: list[str], label_decoder: dict[int, str]
+) -> list[int]:
     """
-    Encodes the emotional labels using a LabelEncoder
-    and returns the transformed labels and the encoder.
+    Encodes emotion labels using a LabelEncoder and returns the transformed labels.
 
     Input:
-        emotional_labels: List of emotional labels to be encoded.
+        emotion_labels (list[str]): List of emotional labels to be encoded.
+        label_decoder (dict[int, str]):
 
     Output:
         transformed_labels: Encoded labels.
-        encoder: LabelEncoder used to encode the labels.
 
     Author:
         Max Meiners (214936)
     """
 
-    encoder = LabelEncoder()
-    transformed_labels = encoder.fit_transform(emotional_labels)
+    label_encoder = reverse_dict(label_decoder)
 
-    return transformed_labels, encoder
+    encoded_labels = list(map(lambda x: label_encoder[x], emotion_labels))
+
+    return encoded_labels
 
 
-def create_tf_datasets(
-    token_ids,
-    mask_values,
-    labels,
-    test_size=TEST_SIZE,
-    random_state=RANDOM_STATE,
-    batch_size=BATCH_SIZE,
-):
+def create_tf_dataset(
+    token_array: np.array,
+    mask_array: np.array,
+    encoded_labels: list[int],
+    batch_size: int = 256,
+) -> tf.data.Dataset:
     """
     Creates TensorFlow datasets for training and validation.
 
     Input:
-        token_ids: Numpy array of token IDs.
-        mask_values: Numpy array of mask values.
-        labels: Encoded labels.
-        test_size: Size of the validation dataset.
-        random_state: Random state for reproducibility.
-        batch_size: Batch size for the datasets.
+        token_array (np.array): Numpy array of token IDs.
+        mask_array (np.array): Numpy array of mask values.
+        encoded_labels (list[int]): Encoded labels.
+        batch_size (int): Batch size for the datasets.
 
     Output:
-        training_dataset: TensorFlow dataset for training the model.
-        validation_dataset: TensorFlow dataset for validating the model.
+        dataset (tf.data.Dataset): TensorFlow dataset
 
     Author:
         Max Meiners (214936)
     """
 
-    X_train_split, X_val_split, y_train_split, y_val_split = train_test_split(
-        token_ids,
-        labels,
-        test_size=test_size,
-        random_state=random_state,
-        stratify=labels,
-    )
-    training_masks, validation_masks = train_test_split(
-        mask_values, test_size=test_size, random_state=random_state, stratify=labels
-    )
-
     # Reformatting numpy arrays back to TensorFlow tensors for model input
-    X_train_tensors = tf.convert_to_tensor(X_train_split)
-    X_val_tensors = tf.convert_to_tensor(X_val_split)
-    y_train_tensors = tf.convert_to_tensor(y_train_split)
-    y_val_tensors = tf.convert_to_tensor(y_val_split)
-    training_masks_tensors = tf.convert_to_tensor(training_masks)
-    validation_masks_tensors = tf.convert_to_tensor(validation_masks)
+    token_tensor = tf.convert_to_tensor(token_array)
+    mask_tensor = tf.convert_to_tensor(mask_array)
+    label_tensor = tf.convert_to_tensor(encoded_labels)
 
     # Constructing TensorFlow datasets for training and validation
-    training_dataset = tf.data.Dataset.from_tensor_slices(
-        (
-            {"input_ids": X_train_tensors, "attention_mask": training_masks_tensors},
-            y_train_tensors,
-        )
+    dataset = tf.data.Dataset.from_tensor_slices(
+        ({"input_ids": token_tensor, "attention_mask": mask_tensor}, label_tensor)
     )
-    training_dataset = (
-        training_dataset.shuffle(len(X_train_tensors))
+    dataset = (
+        dataset.shuffle(len(token_tensor))
         .batch(batch_size)
         .prefetch(tf.data.experimental.AUTOTUNE)
     )
 
-    validation_dataset = tf.data.Dataset.from_tensor_slices(
-        (
-            {"input_ids": X_val_tensors, "attention_mask": validation_masks_tensors},
-            y_val_tensors,
-        )
-    )
-    validation_dataset = validation_dataset.batch(batch_size).prefetch(
-        tf.data.experimental.AUTOTUNE
-    )
-
-    return training_dataset, validation_dataset
+    return dataset
 
 
-def preprocess_data(df: pd.DataFrame, tokenizer):
+def train_model(
+    model: transformers.TFRobertaForSequenceClassification,
+    training_dataset: tf.data.Dataset,
+    validation_dataset: tf.data.Dataset,
+    epochs: int = 3,
+    learning_rate: float = 1e-5,
+    early_stopping_patience: int = 3,
+) -> transformers.TFRobertaForSequenceClassification:
     """
-    A function to preprocess the input data.
-
-    Input:
-        df (pd.DataFrame): DataFrame containing the input data.
-        tokenizer: Tokenizer used to tokenize the input data.
-
-    Output:
-        training_dataset: Training dataset for the model.
-        validation_dataset: Validation dataset for the model.
-        encoder.classes_: Encoded classes for the model.
-        tokenizer: Tokenizer used to tokenize the input data.
-
-    Author:
-        Max Meiners (214936)
-    """
-
-    text_data = df["sentence"].values
-    emotional_labels = df["emotion"].values
-
-    # Tokenize the text data
-    token_ids, mask_values = tokenize_text_data(text_data, tokenizer)
-
-    # Encode the labels
-    transformed_labels, encoder = encode_labels(emotional_labels)
-
-    # Create TensorFlow datasets
-    training_dataset, validation_dataset = create_tf_datasets(
-        token_ids, mask_values, transformed_labels
-    )
-
-    mt_logger.info("data preprocessing complete")
-    return training_dataset, validation_dataset, encoder.classes_, tokenizer
-
-
-def train_model(model, training_dataset, validation_dataset, epochs=EPOCHS):
-    """
-    Train the model using the training dataset.
+    Train the model using tensorflow datasets.
 
     Input:
         model: Model to be trained.
-        training_dataset: Dataset used for training the model.
-        validation_dataset: Dataset used for validating the model.
-        epochs (int): Number of epochs to train the model.
+        training_dataset: Dataset used for training the model
+        validation_dataset: Dataset used for validating the model
+        epochs (int): Number of epochs to train the model. default: 3
+        learning_rate (float): optimizer's learning rate. default: 1e-5
+        early_stopping_patience (int): patience parameter for EarlyStopping callback
 
     Output:
-        model: Trained model.
+        model: trained model
     """
 
-    optimizer = tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 
     model.compile(optimizer=optimizer, loss=loss, metrics=["accuracy"])
 
     # Early stopping callback
-    early_stopping = EarlyStopping(
-        monitor="val_loss", patience=3, verbose=1, restore_best_weights=True
+    early_stopping = tf.keras.callbacks.EarlyStopping(
+        monitor="val_loss",
+        patience=early_stopping_patience,
+        verbose=1,
+        restore_best_weights=True,
     )
 
     model.fit(
@@ -299,230 +289,272 @@ def train_model(model, training_dataset, validation_dataset, epochs=EPOCHS):
     return model
 
 
-def tokenize_sentences(sentences, tokenizer, max_length=MAX_LENGTH):
+def save_model(
+    model: transformers.TFRobertaForSequenceClassification,
+    label_decoder: dict[int, str],
+    model_path: str,
+) -> None:
     """
-    Tokenizes the input sentences using the provided
-    tokenizer and returns the token IDs and mask values.
+    A function that saves trained model and it's emotion mapping to a file.
 
     Input:
-        sentences: List of sentences to be tokenized.
-        tokenizer: Tokenizer used to tokenize the input data.
-        max_length: Maximum length of the tokenized sequences.
+        model (transformers.TFRobertaForSequenceClassification): trained model
+        label_encoder (dict[int, str]): python dictionary mapping
+            numbers to text emotions
+        model_path (str): path to directory where the model will be saved
 
-    Output:
-        token_ids: Tensor of token IDs.
-        mask_values: Tensor of mask values.
-
-    Author:
-        Max Meiners (214936)
+    Output: None
     """
+    dict_path = os.path.join(model_path, "emotion_dict.joblib")
 
-    token_ids = []
-    mask_values = []
-
-    for text_piece in sentences:
-        tokenized_result = tokenizer.encode_plus(
-            text_piece,
-            add_special_tokens=True,
-            max_length=max_length,
-            truncation=True,
-            padding="max_length",
-            return_attention_mask=True,
-            return_tensors="tf",
-        )
-
-        token_ids.append(tokenized_result["input_ids"])
-        mask_values.append(tokenized_result["attention_mask"])
-
-    token_ids = tf.concat(token_ids, axis=0)
-    mask_values = tf.concat(mask_values, axis=0)
-
-    return token_ids, mask_values
+    model.save_pretrained(model_path)
+    joblib.dump(label_decoder, dict_path)
 
 
-def batch_predict_and_decode(model, inputs, label_encoder, batch_size=BATCH_SIZE):
+def predict(
+    model: transformers.TFRobertaForSequenceClassification,
+    token_array: np.array,
+    mask_array: np.array,
+    emotion_decoder: dict[int, str],
+) -> tuple[list[str], list[float]]:
     """
-    Predicts the emotion labels for the input data and
-    returns the predicted labels and the highest probabilities.
-
-    Input:
-        model: Model used for prediction.
-        inputs: Dictionary containing the input data.
-        label_encoder: Label encoder used to decode the predicted classes.
-        batch_size: Batch size for the prediction.
-
-    Output:
-        predicted_emotions: List of predicted emotion labels.
-        highest_probabilities: List of highest probabilities for each predicted emotion.
-
-    Author:
-        Max Meiners (214936)
+    TODO
     """
+    input = {
+        "input_ids": token_array,
+        "attention_mask": mask_array,
+    }
 
-    num_samples = inputs["input_ids"].shape[0]
-    all_predicted_classes = []
-    all_highest_probabilities = []
+    preds = model(input)
+    logits = preds.logits
 
-    for start_idx in range(0, num_samples, batch_size):
-        end_idx = min(start_idx + batch_size, num_samples)
-        batch_inputs = {
-            "input_ids": inputs["input_ids"][start_idx:end_idx],
-            "attention_mask": inputs["attention_mask"][start_idx:end_idx],
-        }
-        outputs = model(batch_inputs)
-        logits = outputs.logits
+    probabilities = tf.nn.softmax(logits, axis=-1).numpy()
+    predicted_classes = np.argmax(probabilities, axis=1)
+    highest_probabilities = np.max(probabilities, axis=1)
 
-        probabilities = tf.nn.softmax(logits, axis=-1).numpy()
-        predicted_classes = np.argmax(probabilities, axis=1)
-        highest_probabilities = np.max(probabilities, axis=1)
+    text_labels = decode_labels(predicted_classes, emotion_decoder)
 
-        all_predicted_classes.extend(predicted_classes)
-        all_highest_probabilities.extend(highest_probabilities)
-
-    predicted_emotions = label_encoder.inverse_transform(all_predicted_classes)
-
-    return predicted_emotions, all_highest_probabilities
+    return text_labels, highest_probabilities
 
 
-def predict(model, sentences: list, tokenizer, label_encoder, batch_size=BATCH_SIZE):
+def evaluate(
+    model: transformers.TFRobertaForSequenceClassification,
+    tokenizer: transformers.RobertaTokenizer,
+    label_decoder: dict[int, str],
+    eval_path: str,
+    max_length: int,
+) -> tuple[list[str], list[float], float, str]:
     """
-    A function that takes a pre-trained model, a list of sentences, a tokenizer,
-    and a label encoder to predict the emotion labels for the input sentences.
-    It returns the predicted emotions and the highest probabilities for each prediction.
-
-    Input:
-        model: Model used for prediction.
-        sentences (list): List of input sentences.
-        tokenizer: Tokenizer used to tokenize the input sentences.
-        label_encoder: Label encoder used to encode the predicted classes.
-        batch_size (int): Batch size for prediction.
-
-    Output:
-        predicted_emotions: List of predicted emotion labels for the input sentences.
-        highest_probabilities: List of highest probabilities for each predicted emotion.
-
-    Author:
-        Max Meiners (214936)
+    TODO
     """
-
-    token_ids = []
-    mask_values = []
-
-    for text_piece in sentences:
-        tokenized_result = tokenizer.encode_plus(
-            text_piece,
-            add_special_tokens=True,
-            max_length=MAX_LENGTH,
-            truncation=True,
-            padding="max_length",
-            return_attention_mask=True,
-            return_tensors="tf",
-        )
-
-        token_ids.append(tokenized_result["input_ids"])
-        mask_values.append(tokenized_result["attention_mask"])
-
-    token_ids = tf.concat(token_ids, axis=0)
-    mask_values = tf.concat(mask_values, axis=0)
-
-    inputs = {"input_ids": token_ids, "attention_mask": mask_values}
-
-    predicted_emotions, highest_probabilities = batch_predict_and_decode(
-        model, inputs, label_encoder, batch_size
+    eval_data, _ = load_data(eval_path)
+    token_array, mask_array = tokenize_text_data(
+        eval_data["sentence"], tokenizer, max_length
     )
 
-    return predicted_emotions, highest_probabilities
-
-
-def evaluate(eval_data: pd.DataFrame, model, tokenizer, label_encoder):
-    """
-    Evaluate the model using the evaluation data.
-
-    Input:
-        eval_data (pd.DataFrame): DataFrame containing the evaluation data.
-        model: The trained model to be evaluated.
-        tokenizer: Tokenizer used to tokenize the input data.
-        label_encoder: Label encoder used to decode the predicted classes.
-
-    Output:
-        predicted_emotions: List of predicted emotion labels.
-        highest_probabilities: List of highest probabilities for each predicted emotion.
-        accuracy: Accuracy score of the model.
-        report: Classification report of the model's performance.
-
-    Author:
-        Max Meiners (214936)
-    """
-
-    prepared_sentences = eval_data["sentence"].tolist()
-    true_labels = eval_data["emotion"].tolist()
-
-    predicted_emotions, highest_probabilities = predict(
-        model, prepared_sentences, tokenizer, label_encoder
+    pred_labels, highest_probabilities = predict(
+        model, token_array, mask_array, label_decoder
     )
+    true_labels = eval_data["sentence"].to_list()
 
-    # Calculate accuracy
-    accuracy = accuracy_score(true_labels, predicted_emotions)
+    accuracy = accuracy_score(true_labels, pred_labels)
     mt_logger.info(f"model accuracy: {accuracy}")
 
-    # Generate classification report
-    report = classification_report(true_labels, predicted_emotions)
+    report = classification_report(true_labels, pred_labels)
     print(report)
 
-    return predicted_emotions, highest_probabilities, accuracy, report
+    return pred_labels, highest_probabilities, accuracy, report
+
+
+"""
+Util functions (only used in other functions)
+"""
+
+
+def reverse_dict(dict: dict[int, str]) -> dict[str, int]:
+    """
+    A function that swaps keys and values of a dict so that
+    the keys become values and the values become the keys
+
+    Input:
+        dict: a python dictionary
+
+    Output:
+        reverse_dict: a python dictionary with swapped keys and values
+    """
+
+    reverse_dict = {}
+
+    for key, value in dict.items():
+        reverse_dict[value] = key
+
+    return reverse_dict
+
+
+def decode_labels(
+    encoded_labels: list[int], emotion_decoder: dict[int, str]
+) -> list[str]:
+    decoded_labels = list(map(lambda x: emotion_decoder[x], encoded_labels))
+
+    return decoded_labels
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    print("Loading data(1)...")
+    parser.add_argument(
+        "--input_path",
+        required=False,
+        type=str,
+        default="",
+        help="string, file path to the audio file",
+    )
+
+    parser.add_argument(
+        "--output_path",
+        required=False,
+        type=str,
+        default="output.csv",
+        help="string, file path to saved pipeline output (default: output.csv)",
+    )
 
     parser.add_argument(
         "--model_path",
-        required=True,
+        required=False,
         type=str,
         help="Path to the model configuration and weights file.",
     )
 
     parser.add_argument(
         "--train_data",
-        required=True,
+        required=False,
         type=str,
         help="Path to the training data CSV file.",
     )
 
     parser.add_argument(
         "--eval_data",
-        required=True,
+        required=False,
         type=str,
         help="Path to the evaluation data CSV file.",
     )
 
-    print("Data loaded successfully.")
+    parser.add_argument(
+        "--num_classes",
+        required=False,
+        type=int,
+        help="num_classes",
+    )
+
+    parser.add_argument(
+        "--val_size",
+        required=False,
+        type=float,
+        help="val_size",
+    )
+
+    parser.add_argument(
+        "--batch_size",
+        required=False,
+        type=int,
+        help="batch_size",
+    )
+
+    parser.add_argument(
+        "--model_save_path",
+        required=False,
+        type=str,
+        help="model_save_path",
+    )
+
+    parser.add_argument(
+        "--epochs",
+        required=False,
+        type=int,
+        help="epochs",
+    )
+
+    parser.add_argument(
+        "--learning_rate",
+        required=False,
+        type=float,
+        help="learning_rate",
+    )
+
+    parser.add_argument(
+        "--early_stopping_patience",
+        required=False,
+        type=int,
+        help="early_stopping_patience",
+    )
 
     args = parser.parse_args()
 
-    print("Loading training data...")
-    train_data, train_classes = load_data(args.train_data, "train")
-    num_classes = len(train_classes)
-    print("Training data loaded successfully.")
+    # training pipeline (commented)
+    # to run it, from this script, uncomment the code below
+    # and comment prediction pipeline code
+    """
+    data, label_decoder_data = load_data(args.input_path)
 
-    print("Preparing model...")
-    model, tokenizer = get_model(args.model_path, num_classes)
-    print("Model prepared.")
+    tokenizer = get_tokenizer()
 
-    print("Preprocessing training data...")
-    training_dataset, validation_dataset, class_names, tokenizer = preprocess_data(
-        train_data, tokenizer
+    if args.model_path == "new":
+        label_decoder = label_decoder_data
+        model, label_decoder_model = get_model(
+            args.model_path,
+            num_classes=len(label_decoder)
+        )
+    else:
+        model, label_decoder = get_model(args.model_path, num_classes=args.num_classes)
+
+    train_set, val_set = get_train_val_data(data, val_size=args.val_size)
+
+    train_tokens, train_masks = tokenize_text_data(train_set[0], tokenizer)
+    val_tokens, val_masks = tokenize_text_data(val_set[0], tokenizer)
+
+    train_labels = encode_labels(train_set[1], label_decoder)
+    val_labels = encode_labels(val_set[1], label_decoder)
+
+    train_dataset = create_tf_dataset(train_tokens, train_masks,
+        train_labels, batch_size=args.batch_size)
+    val_dataset = create_tf_dataset(val_tokens, val_masks,
+        val_labels, batch_size=args.batch_size)
+
+
+    model = train_model(
+        model,
+        train_dataset,
+        val_dataset,
+        epochs=args.epochs,
+        learning_rate=args.learning_rate,
+        early_stopping_patience=args.early_stopping_patience
     )
-    print("Training data preprocessed.")
 
-    print("Loading evaluation data...")
-    eval_data, eval_classes = load_data(args.eval_data, "eval")
-    print("Evaluation data loaded successfully.")
+    predicted_emotions, highest_probabilities, accuracy, report = evaluate(
+        model,
+        tokenizer,
+        label_decoder,
+        eval_path=args.eval_data,
+        max_length=128
+    )
 
-    print("Starting evaluation...")
-    label_encoder = LabelEncoder()
-    label_encoder.fit(list(train_classes.values()))
-    evaluate(eval_data, model, tokenizer, label_encoder)
-    print("Evaluation complete.")
+    save_model(model, label_decoder, model_path=args.model_save_path)
+    """
+
+    # prediction pipeline
+    data, label_decoder_data = load_data(args.input_path)
+    label_decoder_data = 0
+    tokenizer = get_tokenizer()
+
+    if args.model_path == "new":
+        label_decoder = label_decoder_data
+        model, _ = get_model(args.model_path, num_classes=len(label_decoder))
+    else:
+        model, label_decoder = get_model(args.model_path, num_classes=0)
+
+    tokens, masks = tokenize_text_data(data["sentence"], tokenizer)
+
+    emotions, probabilities = predict(model, tokens, masks, label_decoder)
+
+    print(emotions[:3])
+    print(probabilities[:3])
