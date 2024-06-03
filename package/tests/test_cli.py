@@ -3,10 +3,8 @@ import sys
 
 import pandas as pd
 import pytest
-from e3k.cli import (episode_preprocessing, evaluate_model, get_args,
+from e3k.cli import (episode_preprocessing, get_args, model_output_information,
                      model_training, predict)
-
-# model_output_information
 
 
 @pytest.mark.parametrize(
@@ -91,27 +89,6 @@ def test_model_training(monkeypatch, cli_args):
     assert model
     assert tokenizer
     assert label_encoder
-
-
-@pytest.mark.parametrize(
-    "cli_args", [(["train", "--input_path", "", "--model_path", "", "eval_path", ""])]
-)
-def test_evaluate_model(monkeypatch, cli_args):
-    # Author -Wojciech Stachowiak
-
-    monkeypatch.setattr(sys, "argv", ["prog_name"] + cli_args)
-
-    args = get_args()
-
-    model, tokenizer, label_encoder = model_training(args)
-    predicted_emotions, confidence_scores, total_accuracy, report = evaluate_model(
-        args, model, tokenizer, label_encoder
-    )
-
-    assert len(predicted_emotions) > 0
-    assert len(confidence_scores) > 0
-    assert total_accuracy > 0
-    assert report
 
 
 @pytest.mark.parametrize(

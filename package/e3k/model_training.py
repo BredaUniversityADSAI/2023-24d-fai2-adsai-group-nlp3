@@ -37,6 +37,8 @@ def load_data(file_path: str) -> tuple[pd.DataFrame, dict[int, str]]:
     # Create a dictionary with class labels
     emotion_decoder = {i: label for i, label in enumerate(df["emotion"].unique())}
 
+    mt_logger.info(f"loaded data: {os.path.basename(file_path)}")
+
     return df, emotion_decoder
 
 
@@ -50,8 +52,8 @@ def get_model(
     Input:
         model_path (str): Path to the model directory.
         num_classes (int): Number of output classes for the model. default: 0
-            (for loading already trained models,
-            needs to be specified for new models only)
+            (handled outside this function using emotion_decoder
+            from load_data function)
 
     Output:
         model: RoBERTa model with the specified number of output classes.
@@ -99,7 +101,18 @@ def get_model(
 
 def get_tokenizer(type: str = "roberta-base") -> transformers.RobertaTokenizer:
     """
-    TODO
+    A function that returns a pretrained tokenizer with a specified type.
+    As a default, it's "roberta-base" tokenizer, but the type can be changed.
+
+    Input:
+        type (str): a tokenizer type from Hugging Faces
+
+    Output:
+        tokenizer (transformers.RobertaTokenizer): a tokenizer later used for
+            preparing data for the model
+
+    Author:
+        Max Meiners (214936)
     """
     tokenizer = transformers.RobertaTokenizer.from_pretrained(type)
     mt_logger.info("tokenizer loaded")
@@ -111,8 +124,25 @@ def get_train_val_data(
     data_df: pd.DataFrame, val_size: float = 0.2
 ) -> tuple[tuple[pd.DataFrame], tuple[pd.DataFrame]]:
     """
-    TODO
+    A function that splits the data into training and validation sets.
+    It returns train set and val set with sentences and labels in both.
+
+    Input:
+        data_df (pd.DataFrame): a dataframe with columns named "sentence" and "emotion"
+        val_size (float): a portion of data that will be assigned as validation set
+
+    Output:
+        train_set (tuple[pd.DataFrame, pd.DataFrame]): tuple with sentences and labels
+            for the training set
+        val_set (tuple[pd.DataFrame, pd.DataFrame]): tuple with sentences and labels
+            for the validation set
+
+    Author:
+        Max Meiners (214936)
     """
+
+    mt_logger.info("splitting data into train and validation")
+
     X_train, X_val, y_train, y_val = train_test_split(
         data_df["sentence"],
         data_df["emotion"],
@@ -123,6 +153,8 @@ def get_train_val_data(
 
     train_set = (X_train, y_train)
     val_set = (X_val, y_val)
+
+    mt_logger.info("data split")
 
     return train_set, val_set
 
@@ -148,6 +180,8 @@ def tokenize_text_data(
     Author:
         Max Meiners (214936)
     """
+
+    mt_logger.info("tokenizing sentences")
 
     token_ids = []
     mask_values = []
@@ -176,6 +210,8 @@ def tokenize_text_data(
         mask_values.numpy() if isinstance(mask_values, tf.Tensor) else mask_values
     )
 
+    mt_logger.info("tokenized")
+
     return token_ids_array, mask_values_array
 
 
@@ -195,6 +231,8 @@ def encode_labels(
     Author:
         Max Meiners (214936)
     """
+
+    mt_logger.info("encoding labels")
 
     label_encoder = reverse_dict(label_decoder)
 
@@ -224,6 +262,8 @@ def create_tf_dataset(
     Author:
         Max Meiners (214936)
     """
+
+    mt_logger.info("creating tensorflow dataset")
 
     # Reformatting numpy arrays back to TensorFlow tensors for model input
     token_tensor = tf.convert_to_tensor(token_array)
@@ -264,7 +304,12 @@ def train_model(
 
     Output:
         model: trained model
+
+    Author:
+        Max Meiners (214936)
     """
+
+    mt_logger.info("compiling model")
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
@@ -279,12 +324,16 @@ def train_model(
         restore_best_weights=True,
     )
 
+    mt_logger.info("training model")
+
     model.fit(
         training_dataset,
         validation_data=validation_dataset,
         epochs=epochs,
         callbacks=[early_stopping],
     )
+
+    mt_logger.info("training finished")
 
     return model
 
@@ -304,11 +353,17 @@ def save_model(
         model_path (str): path to directory where the model will be saved
 
     Output: None
+
+    Author:
+        Max Meiners (214936)
     """
+
     dict_path = os.path.join(model_path, "emotion_dict.joblib")
 
     model.save_pretrained(model_path)
     joblib.dump(label_decoder, dict_path)
+
+    mt_logger.info("model saved")
 
 
 def predict(
@@ -318,8 +373,28 @@ def predict(
     emotion_decoder: dict[int, str],
 ) -> tuple[list[str], list[float]]:
     """
-    TODO
+    A function that predicts emotions from preprocessed input using a loaded model.
+    It returns text labels decoded using emotion_decoder dictionary loaded
+    with the model.
+
+    Input:
+        model (transformers.TFRobertaForSequenceClassification): a loaded roBERTa model
+        token_array (np.array): a token array returned by tokenize_text_data function
+        mask_array (np.array): a mask array returned by tokenize_text_data function
+        emotion_decoder (dict[int, str]): dictionary with number to text mapping loaded
+            with get_model function
+
+    Output:
+        text_labels (list[str]): list of text emotions predicted by the model
+        highest_probabilities (list[float]): list of model's confidence
+            that the predicted emotion is correct
+
+    Author:
+        Max Meiners (214936)
     """
+
+    mt_logger.info("predicting")
+
     input = {
         "input_ids": token_array,
         "attention_mask": mask_array,
@@ -334,6 +409,8 @@ def predict(
 
     text_labels = decode_labels(predicted_classes, emotion_decoder)
 
+    mt_logger.info("got predictions")
+
     return text_labels, highest_probabilities
 
 
@@ -345,8 +422,24 @@ def evaluate(
     max_length: int,
 ) -> tuple[list[str], list[float], float, str]:
     """
-    TODO
+    A function that evaluates trained model using a separate dataset.
+    It returns predicted labels, and their probabilities, total_accuracy,
+        and creates a report with different metrics.
+
+    Input:
+        model (transformers.TFRobertaForSequenceClassification): a loaded roBERTa model
+        tokenizer (transformers.RobertaTokenizer): tokenizer compatible with the model
+            architecture returned from the get_tokenizer function
+        emotion_decoder (dict[int, str]): dictionary with number to text mapping loaded
+            with get_model function
+        eval_path (str): path do evaluation dataset CSV file
+
+    Author:
+        Max Meiners (214936)
     """
+
+    mt_logger.info("evaluating trained model")
+
     eval_data, _ = load_data(eval_path)
     token_array, mask_array = tokenize_text_data(
         eval_data["sentence"], tokenizer, max_length
@@ -361,7 +454,6 @@ def evaluate(
     mt_logger.info(f"model accuracy: {accuracy}")
 
     report = classification_report(true_labels, pred_labels)
-    print(report)
 
     return pred_labels, highest_probabilities, accuracy, report
 
@@ -381,6 +473,9 @@ def reverse_dict(dict: dict[int, str]) -> dict[str, int]:
 
     Output:
         reverse_dict: a python dictionary with swapped keys and values
+
+    Author:
+        Max Meiners (214936)
     """
 
     reverse_dict = {}
@@ -394,6 +489,21 @@ def reverse_dict(dict: dict[int, str]) -> dict[str, int]:
 def decode_labels(
     encoded_labels: list[int], emotion_decoder: dict[int, str]
 ) -> list[str]:
+    """
+    A function that decodes label numbers into text representation of labels
+
+    Input:
+        encoded_labels (list[int]): list of labels represented as number
+        emotion_decoder (dict[int, str]): dictionary with number to text mapping loaded
+            with get_model function
+
+    Output:
+        decoded_labels (list[str]): list of labels represented as text
+
+    Author:
+        Max Meiners (214936)
+    """
+
     decoded_labels = list(map(lambda x: emotion_decoder[x], encoded_labels))
 
     return decoded_labels
