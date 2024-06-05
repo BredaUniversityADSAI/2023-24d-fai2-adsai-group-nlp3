@@ -3,6 +3,7 @@ import pandas as pd
 import pytest
 from sklearn.preprocessing import LabelEncoder
 from transformers import RobertaTokenizer, TFRobertaForSequenceClassification
+from ek3.model_training import (load_data)
 
 
 class TestModelTraining:
