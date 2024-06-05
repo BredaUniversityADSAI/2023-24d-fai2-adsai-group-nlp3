@@ -1,3 +1,6 @@
 BlockC/Max/model/tf_model.h5
 .DS_tore
 package/ep_1_10min.mp3
+package/tests/__pycache__/__init__.cpython-311.pyc
+package/tests/__pycache__/test_model_training.cpython-311-pytest-7.4.0.pyc
+package/tests/__pycache__/test_model_training.cpython-311.pyc
