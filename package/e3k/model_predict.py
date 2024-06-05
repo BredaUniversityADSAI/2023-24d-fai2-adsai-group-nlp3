@@ -4,6 +4,7 @@ import logging
 import numpy as np
 import tensorflow as tf
 import transformers
+from Components.preprocessing import preprocess_prediction_data
 
 mt_logger = logging.getLogger("main.model_predict")
 
