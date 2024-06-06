@@ -1,30 +1,60 @@
 import argparse
 import logging
 import os
-
-import joblib
+import json
+import pandas as pd
 import mltable
 import tensorflow as tf
 import transformers
-from azure.core import MLClient
-from azure.identity import ClientSecretCredential
+from azure.ai.ml import MLClient
+from azure.identity import InteractiveBrowserCredential
+from Components.preprocessing import preprocess_training_data
 
-# from preprocessing import preprocessing_function
+# setting up logger
+mt_logger = logging.getLogger("model_training")
+mt_logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-mt_logger = logging.getLogger("main.model_training")
+file_handler = logging.FileHandler("logs.log")
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.DEBUG)
+stream_handler.setFormatter(formatter)
+
+mt_logger.addHandler(file_handler)
+mt_logger.addHandler(stream_handler)
 
 
-# TODO find a different way to get ml_client object (tenant id not available)
+# const values for Azure connection
 SUBSCRIPTION_ID = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
 RESOURCE_GROUP = "buas-y2"
 WORKSPACE_NAME = "NLP3"
-TENANT_ID = ""
-CLIENT_ID = ""
-CLIENT_SECRET = ""
 
 
-def get_args():
+def get_args() -> argparse.Namespace:
+    """
+    A function that instantiates argument parser and collects CLI arguments.
+
+    Input: None
+
+    Output:
+        args (argparse.Namespace): namespace object with CLI arguments
+    
+    Author - Wojciech Stachowiak
+    """
     parser = argparse.ArgumentParser()
+
+    mt_logger.debug("collecting CLI args")
+
+    parser.add_argument(
+        "--cloud",
+        type=bool,
+        choices=[True, False],
+        default=False,
+        help="whether to run the code locally, or in Azure"
+    )
 
     parser.add_argument(
         "--train_dataset_name",
@@ -33,7 +63,9 @@ def get_args():
     )
 
     parser.add_argument(
-        "--dataset_version", type=int, help="version of the chosen dataset"
+        "--dataset_version",
+        type=str,
+        help="version of the chosen dataset"
     )
 
     parser.add_argument(
@@ -44,9 +76,17 @@ def get_args():
         """,
     )
 
-    parser.add_argument("--epochs", type=int, help="number of training epochs ")
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        help="number of training epochs "
+    )
 
-    parser.add_argument("--learning_rate", type=float, help="optimizer's learning rate")
+    parser.add_argument(
+        "--learning_rate",
+        type=float,
+        help="optimizer's learning rate"
+    )
 
     parser.add_argument(
         "--early_stopping_patience",
@@ -54,90 +94,130 @@ def get_args():
         help="patience of the early stopping callback",
     )
 
+    mt_logger.info("collected CLI args")
+
+    mt_logger.debug("parsing args")
+
     args = parser.parse_args()
+
+    mt_logger.debug("parsed args")
 
     return args
 
 
-def get_ml_client(tenant_id, client_id, client_secret, subscription_id, resource_group):
-    credential = ClientSecretCredential(
-        tenant_id=tenant_id, client_id=client_id, client_secret=client_secret
-    )
+def get_ml_client(
+    subscription_id: str,
+    resource_group: str,
+    workspace_name:str
+) -> MLClient:
+    """
+    A function that creates an MLClient object used to interact with AzureML.
+
+    Input:
+        subscription_id (str): 
+    """
+    mt_logger.debug("getting credentials")
+    credential = InteractiveBrowserCredential()
+
+    mt_logger.debug("building MLClient")
 
     ml_client = MLClient(
         subscription_id=subscription_id,
-        resource_group=resource_group,
+        resource_group_name=resource_group,
         credential=credential,
+        workspace_name=workspace_name
     )
+
+    mt_logger.info("got MLClient")
 
     return ml_client
 
 
-def get_data_asset_as_df(ml_client, dataset_name, dataset_version):
+def get_data_asset_as_df(
+    ml_client: MLClient,
+    dataset_name: str,
+    dataset_version: str
+) -> pd.DataFrame:
+    """
+    A function that loads Azure dataset and converts it to pandas.DataFrame.
+
+    Input:
+        ml_client (azure.ai.ml.MLClient): MLClient used to interact with AzureML
+        dataset_name (str): name of the dataset registered on Azure
+        dataset_version (str): version of the dataset
+
+    Output:
+        df (pd.DataFrame): dataframe created from the Azure dataset
+    
+    Author - Wojciech Stachowiak
+    """
+
+    # fetching dataset
+    mt_logger.debug(f"getting dataset: {dataset_name} version {dataset_version}")
     data_asset = ml_client.data.get(dataset_name, version=dataset_version)
+    mt_logger.debug("got dataset")
 
-    path = {"file": data_asset.path}
+    path = {"folder": data_asset.path}
 
+    # loading data as mltable
+    mt_logger.debug("reading into table")
     table = mltable.from_delimited_files(paths=[path])
+    mt_logger.debug("table loaded")
+
+    # converting to pd.DataFrame
+    mt_logger.debug("getting dataframe")
     df = table.to_pandas_dataframe()
+    mt_logger.debug("got dataframe")
+
     return df
 
 
-def get_model(
-    model_path: str, num_classes: int = 0
-) -> tuple[transformers.TFRobertaForSequenceClassification, dict[int, str]]:
+def get_label_decoder(series: pd.Series) -> dict[int, str]:
+    """
+    A function that creates label_decoder dictionary from pandas.Series.
+
+    Input:
+        series (pd.Series): series with labels
+
+    Output:
+        label_decoder (dict[int, str]): dictionary mapping number values
+        to text representation
+
+    Author - Wojciech Stachowiak
+    """
+    mt_logger.info("getting label decoder from training data")
+    label_decoder = {i: label for i, label in enumerate(series.unique())}
+
+    return label_decoder
+
+
+def get_new_model(
+    num_classes: int
+) -> transformers.TFRobertaForSequenceClassification:
     """
     Create or load a RoBERTa model with the specified number of output classes.
-    Number of classes not needed when loading a previously trained model.
 
     Input:
         model_path (str): Path to the model directory.
-        num_classes (int): Number of output classes for the model. default: 0
-            (handled outside this function using emotion_decoder
-            from load_data function)
+        num_classes (int): Number of output classes for the model.
 
     Output:
         model: RoBERTa model with the specified number of output classes.
-        emotion_dict (dict[int, str]): python dictionary that maps integers to text
-            emotions for the model, only returned when loading a trained model,
-            otherwise the value is None
 
     Author:
         Max Meiners (214936)
     """
 
-    # return new instance of the model
-    if model_path == "new":
-        model_configuration = transformers.RobertaConfig.from_pretrained(
-            "roberta-base", num_labels=num_classes
-        )
-        model = transformers.TFRobertaForSequenceClassification.from_pretrained(
-            "roberta-base", config=model_configuration
-        )
-
-        return model, None
-
-    # get config and model file paths
-    config_path = os.path.join(model_path, "config.json")
-    weights_path = os.path.join(model_path, "tf_model.h5")
-    dict_path = os.path.join(model_path, "emotion_dict.joblib")
-
-    mt_logger.info(f"loading model configuration")
-
-    # load an existing model
-    config = transformers.RobertaConfig.from_pretrained(config_path)
-    model = transformers.TFRobertaForSequenceClassification.from_pretrained(
-        "roberta-base", config=config
+    mt_logger.debug("loading model")
+    model_configuration = transformers.RobertaConfig.from_pretrained(
+        "roberta-base", num_labels=num_classes
     )
+    model = transformers.TFRobertaForSequenceClassification.from_pretrained(
+        "roberta-base", config=model_configuration
+    )
+    mt_logger.info("loaded model")
 
-    mt_logger.info("loading model weights")
-    model.load_weights(weights_path)
-
-    mt_logger.info("model loaded")
-
-    emotion_dict = joblib.load(dict_path)
-
-    return model, emotion_dict
+    return model
 
 
 def train_model(
@@ -195,11 +275,22 @@ def train_model(
     return model
 
 
-def main(args):
+def main(args: argparse.Namespace) -> None:
     """
-    ml_client = get_ml_client(
-        TENANT_ID, CLIENT_ID, CLIENT_SECRET, SUBSCRIPTION_ID, RESOURCE_GROUP
-    )
+    An aggregate function for the model_training module.
+    Intended to be used as an Azure component only. It dumps both the trained model
+    and label decoder to files that can be passed in component declaration.
+
+    Input:
+        args (argparse.Namespace): namespace object with CLI arguments
+
+    Output: None
+        model: dumped to "model.pkl" with joblib.dump
+        label_decoder: dumped to "label_decoder" with json.dump
+    """
+
+    ml_client = get_ml_client(SUBSCRIPTION_ID, RESOURCE_GROUP, WORKSPACE_NAME)
+
     train_data = get_data_asset_as_df(
         ml_client, args.train_dataset_name, args.dataset_version
     )
@@ -207,9 +298,16 @@ def main(args):
         ml_client, args.val_dataset_name, args.dataset_version
     )
 
-    train_tf_data = preprocessing_function(train_data)
-    val_tf_data = preprocessing_function(val_data)
-    model, _ = get_model("new")
+    label_decoder = get_label_decoder(train_data["emotion"])
+    print(label_decoder)
+    
+    train_tf_data, val_tf_data = preprocess_training_data(
+        train_data,
+        val_data,
+        label_decoder
+    )
+
+    model = get_new_model(num_classes=len(label_decoder))
     model = train_model(
         model,
         train_tf_data,
@@ -218,7 +316,11 @@ def main(args):
         args.learning_rate,
         args.early_stopping_patience,
     )
-    """
+
+    os.makedirs(args.model_name, exist_ok=True)
+    model.save(args.model_name)
+    with open("label_decoder.json", "w") as f:
+        json.dump(label_decoder, f)
 
 
 if __name__ == "__main__":
