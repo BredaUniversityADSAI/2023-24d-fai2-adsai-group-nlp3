@@ -1,11 +1,14 @@
 import argparse
 import logging
+import joblib
 
+import pandas as pd
 import numpy as np
 import tensorflow as tf
 import transformers
 from Components.preprocessing import preprocess_prediction_data
 
+logging.basicConfig(level=logging.INFO)
 mt_logger = logging.getLogger("main.model_predict")
 
 
@@ -85,9 +88,66 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--model_path",
-        required=False,
+        required=True,
         type=str,
         help="Path to the model configuration and weights file.",
     )
 
+    parser.add_argument(
+        "--data_path",
+        required=True,
+        type=str,
+        help="Data to be predicted.",
+    )
+
+    parser.add_argument(
+        "--tokenizer_model",
+        required=False,
+        type=str,
+        default="roberta-base",
+        help="Model to use for tokenization.",
+    )
+
+    parser.add_argument(
+        "--max_length",
+        required=False,
+        type=int,
+        default=128,
+        help="Maximum length for tokenized sequences.",
+    )
+
+    parser.add_argument(
+        "--decoder_path",
+        required=True,
+        type=str,
+        help="Path to the joblib file containing the emotion decoder.",
+    )
+
     args = parser.parse_args()
+
+    mt_logger.info("Arguments parsed")
+
+    # Load the data
+    data = pd.read_csv(args.data_path)
+    mt_logger.info("Data loaded")
+
+    # Call the preprocess_prediction_data function to get the preprocessed data
+    tokens, masks = preprocess_prediction_data(data, args.tokenizer_model, args.max_length)
+    mt_logger.info("Data preprocessed")
+
+    # Load the model
+    model = transformers.TFRobertaForSequenceClassification.from_pretrained(args.model_path)
+    mt_logger.info("Model loaded")
+
+    # Load the emotion decoder
+    emotion_decoder = joblib.load(args.decoder_path)
+    mt_logger.info("Emotion decoder loaded")
+
+    # Make predictions
+    text_labels, highest_probabilities = predict(model, tokens, masks, emotion_decoder)
+    mt_logger.info("Predictions made")
+
+    # Print the predictions
+    for label, prob in zip(text_labels, highest_probabilities):
+        print(f"Predicted emotion: {label} with confidence: {prob:.2f}")
+    mt_logger.info("Results printed")
