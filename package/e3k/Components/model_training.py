@@ -7,8 +7,8 @@ import mltable
 import tensorflow as tf
 import transformers
 from azure.ai.ml import MLClient
-from azure.identity import InteractiveBrowserCredential
-from Components.preprocessing import preprocess_training_data
+from azure.identity import DefaultAzureCredential
+from preprocessing import preprocess_training_data
 
 # setting up logger
 mt_logger = logging.getLogger("model_training")
@@ -52,8 +52,7 @@ def get_args() -> argparse.Namespace:
         "--cloud",
         type=bool,
         choices=[True, False],
-        default=False,
-        help="whether to run the code locally, or in Azure"
+        help="whether the code will execute on Azure or locally"
     )
 
     parser.add_argument(
@@ -63,17 +62,17 @@ def get_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--dataset_version",
-        type=str,
-        help="version of the chosen dataset"
-    )
-
-    parser.add_argument(
         "--val_dataset_name",
         type=str,
         help="""
         name of registered dataset used as validation data during model training
         """,
+    )
+
+    parser.add_argument(
+        "--dataset_version",
+        type=str,
+        help="version of the chosen dataset"
     )
 
     parser.add_argument(
@@ -92,6 +91,18 @@ def get_args() -> argparse.Namespace:
         "--early_stopping_patience",
         type=int,
         help="patience of the early stopping callback",
+    )
+
+    parser.add_argument(
+        "--model_output_path",
+        type=str,
+        help="path where the trained model will be saved",
+    )
+
+    parser.add_argument(
+        "--decoder_output_path",
+        type=str,
+        help="path where the label_decoder will be saved",
     )
 
     mt_logger.info("collected CLI args")
@@ -117,7 +128,7 @@ def get_ml_client(
         subscription_id (str): 
     """
     mt_logger.debug("getting credentials")
-    credential = InteractiveBrowserCredential()
+    credential = DefaultAzureCredential()
 
     mt_logger.debug("building MLClient")
 
@@ -317,9 +328,8 @@ def main(args: argparse.Namespace) -> None:
         args.early_stopping_patience,
     )
 
-    os.makedirs(args.model_name, exist_ok=True)
-    model.save(args.model_name)
-    with open("label_decoder.json", "w") as f:
+    model.save(args.model_output_path)
+    with open(args.decoder_output_path, "w") as f:
         json.dump(label_decoder, f)
 
 
