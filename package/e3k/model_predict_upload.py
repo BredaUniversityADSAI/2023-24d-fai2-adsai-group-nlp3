@@ -31,7 +31,7 @@ except Exception as e:
 
 # Define the prediction component
 predict_component = command(
-    name="predict_component",
+    name="prediction_component",
     display_name="Model Prediction",
     description="Predict emotions from input data using a pre-trained RoBERTa model",
     inputs={
@@ -59,7 +59,7 @@ predict_component = command(
             mode="upload", 
             description="Output predictions with confidence scores")
     },
-    code="./package/predict",
+    code="./package/e3k/model_predict.py",
     command="""
     python model_predict.py 
     --model_path ${{inputs.model_path}} 
