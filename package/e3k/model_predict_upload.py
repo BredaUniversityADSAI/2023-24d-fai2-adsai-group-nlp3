@@ -14,12 +14,16 @@ ws = Workspace(subscription_id=subscription_id,
 
 # Authenticate and create an MLClient
 credential = InteractiveBrowserCredential()
-ml_client = MLClient(credential, subscription_id, resource_group, workspace_name)
 
-# Fetch the existing preprocessing component
-preprocessing_component = ml_client.components.get(
-    name="preprocessing_component", 
-    version="1.0")
+ml_client = MLClient(
+    credential, 
+    subscription_id, 
+    resource_group, 
+    workspace_name)
+
+environment = ml_client.environments.get(
+    name="BlockD", 
+    version="1")
 
 # Define the compute target
 compute_name = "adsai0"
@@ -32,7 +36,7 @@ except Exception as e:
 # Define the prediction component
 predict_component = command(
     name="prediction_component",
-    display_name="Model Prediction",
+    display_name="Model prediction",
     description="Predict emotions from input data using a pre-trained RoBERTa model",
     inputs={
         "model_path": Input(
@@ -69,9 +73,9 @@ predict_component = command(
     --decoder_path ${{inputs.decoder_path}} 
     --output_path ${{outputs.predictions}}
     """,
-    environment=ml_client.environments.get("BlockD", version="1"),
+    environment=environment,
     compute=compute_name
 )
 
 # Create or update the prediction component
-ml_client.create_or_update(predict_component)
+ml_client.create_or_update(predict_component.component)
