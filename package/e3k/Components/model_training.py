@@ -1,13 +1,13 @@
 import argparse
-import logging
-import os
 import json
-import pandas as pd
+import logging
+
 import mltable
+import pandas as pd
 import tensorflow as tf
 import transformers
 from azure.ai.ml import MLClient
-from azure.identity import DefaultAzureCredential
+from azure.identity import ClientSecretCredential
 from preprocessing import preprocess_training_data
 
 # setting up logger
@@ -31,6 +31,9 @@ mt_logger.addHandler(stream_handler)
 SUBSCRIPTION_ID = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
 RESOURCE_GROUP = "buas-y2"
 WORKSPACE_NAME = "NLP3"
+TENANT_ID = "0a33589b-0036-4fe8-a829-3ed0926af886"
+CLIENT_ID = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
+CLIENT_SECRET = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
 
 
 def get_args() -> argparse.Namespace:
@@ -41,7 +44,7 @@ def get_args() -> argparse.Namespace:
 
     Output:
         args (argparse.Namespace): namespace object with CLI arguments
-    
+
     Author - Wojciech Stachowiak
     """
     parser = argparse.ArgumentParser()
@@ -52,7 +55,7 @@ def get_args() -> argparse.Namespace:
         "--cloud",
         type=bool,
         choices=[True, False],
-        help="whether the code will execute on Azure or locally"
+        help="whether the code will execute on Azure or locally",
     )
 
     parser.add_argument(
@@ -70,22 +73,12 @@ def get_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--dataset_version",
-        type=str,
-        help="version of the chosen dataset"
+        "--dataset_version", type=str, help="version of the chosen dataset"
     )
 
-    parser.add_argument(
-        "--epochs",
-        type=int,
-        help="number of training epochs "
-    )
+    parser.add_argument("--epochs", type=int, help="number of training epochs ")
 
-    parser.add_argument(
-        "--learning_rate",
-        type=float,
-        help="optimizer's learning rate"
-    )
+    parser.add_argument("--learning_rate", type=float, help="optimizer's learning rate")
 
     parser.add_argument(
         "--early_stopping_patience",
@@ -118,17 +111,20 @@ def get_args() -> argparse.Namespace:
 
 def get_ml_client(
     subscription_id: str,
+    tenant_id: str,
+    client_id: str,
+    client_secret: str,
     resource_group: str,
-    workspace_name:str
+    workspace_name: str,
 ) -> MLClient:
     """
     A function that creates an MLClient object used to interact with AzureML.
 
     Input:
-        subscription_id (str): 
+        subscription_id (str):
     """
     mt_logger.debug("getting credentials")
-    credential = DefaultAzureCredential()
+    credential = ClientSecretCredential(tenant_id, client_id, client_secret)
 
     mt_logger.debug("building MLClient")
 
@@ -136,7 +132,7 @@ def get_ml_client(
         subscription_id=subscription_id,
         resource_group_name=resource_group,
         credential=credential,
-        workspace_name=workspace_name
+        workspace_name=workspace_name,
     )
 
     mt_logger.info("got MLClient")
@@ -145,9 +141,7 @@ def get_ml_client(
 
 
 def get_data_asset_as_df(
-    ml_client: MLClient,
-    dataset_name: str,
-    dataset_version: str
+    ml_client: MLClient, dataset_name: str, dataset_version: str
 ) -> pd.DataFrame:
     """
     A function that loads Azure dataset and converts it to pandas.DataFrame.
@@ -159,7 +153,7 @@ def get_data_asset_as_df(
 
     Output:
         df (pd.DataFrame): dataframe created from the Azure dataset
-    
+
     Author - Wojciech Stachowiak
     """
 
@@ -202,9 +196,7 @@ def get_label_decoder(series: pd.Series) -> dict[int, str]:
     return label_decoder
 
 
-def get_new_model(
-    num_classes: int
-) -> transformers.TFRobertaForSequenceClassification:
+def get_new_model(num_classes: int) -> transformers.TFRobertaForSequenceClassification:
     """
     Create or load a RoBERTa model with the specified number of output classes.
 
@@ -300,7 +292,14 @@ def main(args: argparse.Namespace) -> None:
         label_decoder: dumped to "label_decoder" with json.dump
     """
 
-    ml_client = get_ml_client(SUBSCRIPTION_ID, RESOURCE_GROUP, WORKSPACE_NAME)
+    ml_client = get_ml_client(
+        SUBSCRIPTION_ID,
+        TENANT_ID,
+        CLIENT_ID,
+        CLIENT_SECRET,
+        RESOURCE_GROUP,
+        WORKSPACE_NAME,
+    )
 
     train_data = get_data_asset_as_df(
         ml_client, args.train_dataset_name, args.dataset_version
@@ -310,12 +309,9 @@ def main(args: argparse.Namespace) -> None:
     )
 
     label_decoder = get_label_decoder(train_data["emotion"])
-    print(label_decoder)
-    
+
     train_tf_data, val_tf_data = preprocess_training_data(
-        train_data,
-        val_data,
-        label_decoder
+        train_data, val_data, label_decoder
     )
 
     model = get_new_model(num_classes=len(label_decoder))
