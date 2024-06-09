@@ -1,286 +1,226 @@
 import argparse
-import collections
-import collections.abc
+import json
 import logging
-import os
 
-import joblib
-import numpy as np
+import mltable
 import pandas as pd
 import tensorflow as tf
 import transformers
-from sklearn.metrics import accuracy_score, classification_report
-from sklearn.model_selection import train_test_split
+from azure.ai.ml import MLClient
+from azure.identity import ClientSecretCredential
+from preprocessing import preprocess_training_data
 
-mt_logger = logging.getLogger("main.model_training")
+# setting up logger
+mt_logger = logging.getLogger("model_training")
+mt_logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+file_handler = logging.FileHandler("logs.log")
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.DEBUG)
+stream_handler.setFormatter(formatter)
+
+mt_logger.addHandler(file_handler)
+mt_logger.addHandler(stream_handler)
 
 
-def load_data(file_path: str) -> tuple[pd.DataFrame, dict[int, str]]:
+# const values for Azure connection
+SUBSCRIPTION_ID = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
+RESOURCE_GROUP = "buas-y2"
+WORKSPACE_NAME = "NLP3"
+TENANT_ID = "0a33589b-0036-4fe8-a829-3ed0926af886"
+CLIENT_ID = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
+CLIENT_SECRET = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
+
+
+def get_args() -> argparse.Namespace:
     """
-    Load the dataset from a CSV file and return
-    the DataFrame and a dictionary with labels.
-    CSV needs to have "sentence" and "emotion" columns.
+    A function that instantiates argument parser and collects CLI arguments.
 
-    Input:
-        file_path (str): File path to the dataset CSV file.
+    Input: None
 
     Output:
-        df (pd.DataFrame): Loaded DataFrame containing the data.
-        emotion_decoder (dict[int, str]): Dictionary with the class labels.
+        args (argparse.Namespace): namespace object with CLI arguments
 
-    Author:
-        Max Meiners (214936)
+    Author - Wojciech Stachowiak
+    """
+    parser = argparse.ArgumentParser()
+
+    mt_logger.debug("collecting CLI args")
+
+    parser.add_argument(
+        "--cloud",
+        type=bool,
+        choices=[True, False],
+        help="whether the code will execute on Azure or locally",
+    )
+
+    parser.add_argument(
+        "--train_dataset_name",
+        type=str,
+        help="name of registered dataset used to train the model",
+    )
+
+    parser.add_argument(
+        "--val_dataset_name",
+        type=str,
+        help="""
+        name of registered dataset used as validation data during model training
+        """,
+    )
+
+    parser.add_argument(
+        "--dataset_version", type=str, help="version of the chosen dataset"
+    )
+
+    parser.add_argument("--epochs", type=int, help="number of training epochs ")
+
+    parser.add_argument("--learning_rate", type=float, help="optimizer's learning rate")
+
+    parser.add_argument(
+        "--early_stopping_patience",
+        type=int,
+        help="patience of the early stopping callback",
+    )
+
+    parser.add_argument(
+        "--model_output_path",
+        type=str,
+        help="path where the trained model will be saved",
+    )
+
+    parser.add_argument(
+        "--decoder_output_path",
+        type=str,
+        help="path where the label_decoder will be saved",
+    )
+
+    mt_logger.info("collected CLI args")
+
+    mt_logger.debug("parsing args")
+
+    args = parser.parse_args()
+
+    mt_logger.debug("parsed args")
+
+    return args
+
+
+def get_ml_client(
+    subscription_id: str,
+    tenant_id: str,
+    client_id: str,
+    client_secret: str,
+    resource_group: str,
+    workspace_name: str,
+) -> MLClient:
+    """
+    A function that creates an MLClient object used to interact with AzureML.
+
+    Input:
+        subscription_id (str):
+    """
+    mt_logger.debug("getting credentials")
+    credential = ClientSecretCredential(tenant_id, client_id, client_secret)
+
+    mt_logger.debug("building MLClient")
+
+    ml_client = MLClient(
+        subscription_id=subscription_id,
+        resource_group_name=resource_group,
+        credential=credential,
+        workspace_name=workspace_name,
+    )
+
+    mt_logger.info("got MLClient")
+
+    return ml_client
+
+
+def get_data_asset_as_df(
+    ml_client: MLClient, dataset_name: str, dataset_version: str
+) -> pd.DataFrame:
+    """
+    A function that loads Azure dataset and converts it to pandas.DataFrame.
+
+    Input:
+        ml_client (azure.ai.ml.MLClient): MLClient used to interact with AzureML
+        dataset_name (str): name of the dataset registered on Azure
+        dataset_version (str): version of the dataset
+
+    Output:
+        df (pd.DataFrame): dataframe created from the Azure dataset
+
+    Author - Wojciech Stachowiak
     """
 
-    df = pd.read_csv(file_path)[["sentence", "emotion"]].dropna()
+    # fetching dataset
+    mt_logger.debug(f"getting dataset: {dataset_name} version {dataset_version}")
+    data_asset = ml_client.data.get(dataset_name, version=dataset_version)
+    mt_logger.debug("got dataset")
 
-    # Create a dictionary with class labels
-    emotion_decoder = {i: label for i, label in enumerate(df["emotion"].unique())}
+    path = {"folder": data_asset.path}
 
-    mt_logger.info(f"Loaded data: {os.path.basename(file_path)}")
+    # loading data as mltable
+    mt_logger.debug("reading into table")
+    table = mltable.from_delimited_files(paths=[path])
+    mt_logger.debug("table loaded")
 
-    return df, emotion_decoder
+    # converting to pd.DataFrame
+    mt_logger.debug("getting dataframe")
+    df = table.to_pandas_dataframe()
+    mt_logger.debug("got dataframe")
+
+    return df
 
 
-def get_model(
-    model_path: str, num_classes: int = 0
-) -> tuple[transformers.TFRobertaForSequenceClassification, dict[int, str]]:
+def get_label_decoder(series: pd.Series) -> dict[int, str]:
+    """
+    A function that creates label_decoder dictionary from pandas.Series.
+
+    Input:
+        series (pd.Series): series with labels
+
+    Output:
+        label_decoder (dict[int, str]): dictionary mapping number values
+        to text representation
+
+    Author - Wojciech Stachowiak
+    """
+    mt_logger.info("getting label decoder from training data")
+    label_decoder = {i: label for i, label in enumerate(series.unique())}
+
+    return label_decoder
+
+
+def get_new_model(num_classes: int) -> transformers.TFRobertaForSequenceClassification:
     """
     Create or load a RoBERTa model with the specified number of output classes.
-    Number of classes not needed when loading a previously trained model.
 
     Input:
         model_path (str): Path to the model directory.
-        num_classes (int): Number of output classes for the model. default: 0
-            (handled outside this function using emotion_decoder
-            from load_data function)
+        num_classes (int): Number of output classes for the model.
 
     Output:
         model: RoBERTa model with the specified number of output classes.
-        emotion_dict (dict[int, str]): Python dictionary that maps integers to text
-            emotions for the model, only returned when loading a trained model,
-            otherwise the value is None.
 
     Author:
         Max Meiners (214936)
     """
 
-    # return new instance of the model
-    if model_path == "new":
-        model_configuration = transformers.RobertaConfig.from_pretrained(
-            "roberta-base", num_labels=num_classes
-        )
-        model = transformers.TFRobertaForSequenceClassification.from_pretrained(
-            "roberta-base", config=model_configuration
-        )
-
-        return model, None
-
-    # get config and model file paths
-    config_path = os.path.join(model_path, "config.json")
-    weights_path = os.path.join(model_path, "tf_model.h5")
-    dict_path = os.path.join(model_path, "emotion_dict.joblib")
-
-    mt_logger.info(f"Loading model configuration")
-
-    # load an existing model
-    config = transformers.RobertaConfig.from_pretrained(config_path)
+    mt_logger.debug("loading model")
+    model_configuration = transformers.RobertaConfig.from_pretrained(
+        "roberta-base", num_labels=num_classes
+    )
     model = transformers.TFRobertaForSequenceClassification.from_pretrained(
-        "roberta-base", config=config
+        "roberta-base", config=model_configuration
     )
+    mt_logger.info("loaded model")
 
-    mt_logger.info("Loading model weights")
-    model.load_weights(weights_path)
-
-    mt_logger.info("Model loaded")
-
-    emotion_dict = joblib.load(dict_path)
-
-    return model, emotion_dict
-
-
-def get_tokenizer(type: str = "roberta-base") -> transformers.RobertaTokenizer:
-    """
-    A function that returns a pretrained tokenizer with a specified type.
-    As a default, it's "roberta-base" tokenizer, but the type can be changed.
-
-    Input:
-        type (str): A tokenizer type from Hugging Faces.
-
-    Output:
-        tokenizer (transformers.RobertaTokenizer): A tokenizer later used for
-            preparing data for the model.
-
-    Author:
-        Max Meiners (214936)
-    """
-    tokenizer = transformers.RobertaTokenizer.from_pretrained(type)
-    mt_logger.info("Tokenizer loaded")
-
-    return tokenizer
-
-
-def get_train_val_data(
-    data_df: pd.DataFrame, val_size: float = 0.2
-) -> tuple[tuple[pd.DataFrame], tuple[pd.DataFrame]]:
-    """
-    A function that splits the data into training and validation sets.
-    It returns train set and val set with sentences and labels in both.
-
-    Input:
-        data_df (pd.DataFrame): A DataFrame with columns named "sentence" and "emotion"
-        val_size (float): A portion of data that will be assigned as validation set.
-
-    Output:
-        train_set (tuple[pd.DataFrame, pd.DataFrame]): Tuple with sentences and labels
-            for the training set.
-        val_set (tuple[pd.DataFrame, pd.DataFrame]): Tuple with sentences and labels
-            for the validation set.
-
-    Author:
-        Max Meiners (214936)
-    """
-
-    mt_logger.info("Splitting data into train and validation")
-
-    X_train, X_val, y_train, y_val = train_test_split(
-        data_df["sentence"],
-        data_df["emotion"],
-        test_size=val_size,
-        random_state=42,
-        stratify=data_df["emotion"],
-    )
-
-    train_set = (X_train, y_train)
-    val_set = (X_val, y_val)
-
-    mt_logger.info("Data split")
-
-    return train_set, val_set
-
-
-def tokenize_text_data(
-    text_data: collections.abc.Iterable,
-    tokenizer: transformers.RobertaTokenizer,
-    max_length: int = 128,
-) -> tuple[np.array, np.array]:
-    """
-    Tokenizes the input text data using the provided
-    tokenizer and returns the token IDs and mask values.
-
-    Input:
-        text_data: List of text data to be tokenized.
-        tokenizer: Tokenizer used to tokenize the input data.
-        max_length: Maximum length of the tokenized sequences.
-
-    Output:
-        token_ids_array: Numpy array of token IDs.
-        mask_values_array: Numpy array of mask values.
-
-    Author:
-        Max Meiners (214936)
-    """
-
-    mt_logger.info("Tokenizing sentences")
-
-    token_ids = []
-    mask_values = []
-
-    for text_piece in text_data:
-        tokenized_result = tokenizer.encode_plus(
-            text_piece,
-            add_special_tokens=True,
-            max_length=max_length,
-            truncation=True,
-            padding="max_length",
-            return_attention_mask=True,
-            return_tensors="tf",
-        )
-
-        token_ids.append(tokenized_result["input_ids"])
-        mask_values.append(tokenized_result["attention_mask"])
-
-    token_ids = tf.concat(token_ids, axis=0)
-    mask_values = tf.concat(mask_values, axis=0)
-
-    token_ids_array = (
-        token_ids.numpy() if isinstance(token_ids, tf.Tensor) else token_ids
-    )
-    mask_values_array = (
-        mask_values.numpy() if isinstance(mask_values, tf.Tensor) else mask_values
-    )
-
-    mt_logger.info("Sentences tokenized")
-
-    return token_ids_array, mask_values_array
-
-
-def encode_labels(
-    emotion_labels: list[str], label_decoder: dict[int, str]
-) -> list[int]:
-    """
-    Encodes emotion labels using a LabelEncoder and returns the transformed labels.
-
-    Input:
-        emotion_labels (list[str]): List of emotional labels to be encoded.
-        label_decoder (dict[int, str]): Python dictionary mapping numbers to text emotions.
-    
-    Output:
-        transformed_labels: Encoded labels.
-
-    Author:
-        Max Meiners (214936)
-    """
-
-    mt_logger.info("Encoding labels")
-
-    label_encoder = reverse_dict(label_decoder)
-
-    encoded_labels = list(map(lambda x: label_encoder[x], emotion_labels))
-
-    return encoded_labels
-
-
-def create_tf_dataset(
-    token_array: np.array,
-    mask_array: np.array,
-    encoded_labels: list[int],
-    batch_size: int = 256,
-) -> tf.data.Dataset:
-    """
-    Creates TensorFlow datasets for training and validation.
-
-    Input:
-        token_array (np.array): Numpy array of token IDs.
-        mask_array (np.array): Numpy array of mask values.
-        encoded_labels (list[int]): Encoded labels.
-        batch_size (int): Batch size for the datasets.
-
-    Output:
-        dataset (tf.data.Dataset): TensorFlow dataset
-
-    Author:
-        Max Meiners (214936)
-    """
-
-    mt_logger.info("Creating tensorflow dataset")
-
-    # Reformatting numpy arrays back to TensorFlow tensors for model input
-    token_tensor = tf.convert_to_tensor(token_array)
-    mask_tensor = tf.convert_to_tensor(mask_array)
-    label_tensor = tf.convert_to_tensor(encoded_labels)
-
-    # Constructing TensorFlow datasets for training and validation
-    dataset = tf.data.Dataset.from_tensor_slices(
-        ({"input_ids": token_tensor, "attention_mask": mask_tensor}, label_tensor)
-    )
-    dataset = (
-        dataset.shuffle(len(token_tensor))
-        .batch(batch_size)
-        .prefetch(tf.data.experimental.AUTOTUNE)
-    )
-
-    return dataset
+    return model
 
 
 def train_model(
@@ -296,20 +236,20 @@ def train_model(
 
     Input:
         model: Model to be trained.
-        training_dataset: Dataset used for training the model.
-        validation_dataset: Dataset used for validating the model.
-        epochs (int): Number of epochs to train the model. Default: 3
-        learning_rate (float): Optimizer's learning rate. Default: 1e-5
-        early_stopping_patience (int): Patience parameter for EarlyStopping callback.
+        training_dataset: Dataset used for training the model
+        validation_dataset: Dataset used for validating the model
+        epochs (int): Number of epochs to train the model. default: 3
+        learning_rate (float): optimizer's learning rate. default: 1e-5
+        early_stopping_patience (int): patience parameter for EarlyStopping callback
 
     Output:
-        model: Trained model
+        model: trained model
 
     Author:
         Max Meiners (214936)
     """
 
-    mt_logger.info("Compiling model")
+    mt_logger.info("compiling model")
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
@@ -324,7 +264,7 @@ def train_model(
         restore_best_weights=True,
     )
 
-    mt_logger.info("Training model")
+    mt_logger.info("training model")
 
     model.fit(
         training_dataset,
@@ -333,338 +273,63 @@ def train_model(
         callbacks=[early_stopping],
     )
 
-    mt_logger.info("Training finished")
+    mt_logger.info("training finished")
 
     return model
 
 
-def save_model(
-    model: transformers.TFRobertaForSequenceClassification,
-    label_decoder: dict[int, str],
-    model_path: str,
-) -> None:
+def main(args: argparse.Namespace) -> None:
     """
-    A function that saves trained model and it's emotion mapping to a file.
+    An aggregate function for the model_training module.
+    Intended to be used as an Azure component only. It dumps both the trained model
+    and label decoder to files that can be passed in component declaration.
 
     Input:
-        model (transformers.TFRobertaForSequenceClassification): trained model
-        label_encoder (dict[int, str]): Python dictionary mapping
-            numbers to text emotions.
-        model_path (str): Path to directory where the model will be saved.
+        args (argparse.Namespace): namespace object with CLI arguments
 
     Output: None
-
-    Author:
-        Max Meiners (214936)
+        model: dumped to "model.pkl" with joblib.dump
+        label_decoder: dumped to "label_decoder" with json.dump
     """
 
-    dict_path = os.path.join(model_path, "emotion_dict.joblib")
-
-    model.save_pretrained(model_path)
-    joblib.dump(label_decoder, dict_path)
-
-    mt_logger.info("Model saved")
-
-
-def predict(
-    model: transformers.TFRobertaForSequenceClassification,
-    token_array: np.array,
-    mask_array: np.array,
-    emotion_decoder: dict[int, str],
-) -> tuple[list[str], list[float]]:
-    """
-    A function that predicts emotions from preprocessed input using a loaded model.
-    It returns text labels decoded using emotion_decoder dictionary loaded
-    with the model.
-
-    Input:
-        model (transformers.TFRobertaForSequenceClassification): a loaded RoBERTa model.
-        token_array (np.array): A token array returned by tokenize_text_data function.
-        mask_array (np.array): A mask array returned by tokenize_text_data function.
-        emotion_decoder (dict[int, str]): Dictionary with number to text mapping loaded
-            with get_model function.
-
-    Output:
-        text_labels (list[str]): List of text emotions predicted by the model.
-        highest_probabilities (list[float]): List of model's confidence
-            that the predicted emotion is correct.
-
-    Author:
-        Max Meiners (214936)
-    """
-
-    mt_logger.info("Predicting")
-
-    input = {
-        "input_ids": token_array,
-        "attention_mask": mask_array,
-    }
-
-    preds = model(input)
-    logits = preds.logits
-
-    probabilities = tf.nn.softmax(logits, axis=-1).numpy()
-    predicted_classes = np.argmax(probabilities, axis=1)
-    highest_probabilities = np.max(probabilities, axis=1)
-
-    text_labels = decode_labels(predicted_classes, emotion_decoder)
-
-    mt_logger.info("Got predictions")
-
-    return text_labels, highest_probabilities
-
-
-def evaluate(
-    model: transformers.TFRobertaForSequenceClassification,
-    tokenizer: transformers.RobertaTokenizer,
-    label_decoder: dict[int, str],
-    eval_path: str,
-    max_length: int,
-) -> tuple[list[str], list[float], float, str]:
-    """
-    A function that evaluates trained model using a separate dataset.
-    It returns predicted labels, and their probabilities, total_accuracy,
-        and creates a report with different metrics.
-
-    Input:
-        model (transformers.TFRobertaForSequenceClassification): A loaded RoBERTa model.
-        tokenizer (transformers.RobertaTokenizer): Tokenizer compatible with the model
-            architecture returned from the get_tokenizer function.
-        emotion_decoder (dict[int, str]): Dictionary with number to text mapping loaded
-            with get_model function.
-        eval_path (str): Path do evaluation dataset CSV file.
-
-    Author:
-        Max Meiners (214936)
-    """
-
-    mt_logger.info("Evaluating trained model")
-
-    eval_data, _ = load_data(eval_path)
-    token_array, mask_array = tokenize_text_data(
-        eval_data["sentence"], tokenizer, max_length
+    ml_client = get_ml_client(
+        SUBSCRIPTION_ID,
+        TENANT_ID,
+        CLIENT_ID,
+        CLIENT_SECRET,
+        RESOURCE_GROUP,
+        WORKSPACE_NAME,
     )
 
-    pred_labels, highest_probabilities = predict(
-        model, token_array, mask_array, label_decoder
+    train_data = get_data_asset_as_df(
+        ml_client, args.train_dataset_name, args.dataset_version
     )
-    true_labels = eval_data["sentence"].to_list()
+    val_data = get_data_asset_as_df(
+        ml_client, args.val_dataset_name, args.dataset_version
+    )
 
-    accuracy = accuracy_score(true_labels, pred_labels)
-    mt_logger.info(f"Model accuracy: {accuracy}")
+    label_decoder = get_label_decoder(train_data["emotion"])
 
-    report = classification_report(true_labels, pred_labels)
+    train_tf_data, val_tf_data = preprocess_training_data(
+        train_data, val_data, label_decoder
+    )
 
-    return pred_labels, highest_probabilities, accuracy, report
+    model = get_new_model(num_classes=len(label_decoder))
+    model = train_model(
+        model,
+        train_tf_data,
+        val_tf_data,
+        args.epochs,
+        args.learning_rate,
+        args.early_stopping_patience,
+    )
 
-
-"""
-Util functions (only used in other functions)
-"""
-
-
-def reverse_dict(dict: dict[int, str]) -> dict[str, int]:
-    """
-    A function that swaps keys and values of a dict so that
-    the keys become values and the values become the keys
-
-    Input:
-        dict: A Python dictionary.
-
-    Output:
-        reverse_dict: A Python dictionary with swapped keys and values.
-
-    Author:
-        Max Meiners (214936)
-    """
-
-    reverse_dict = {}
-
-    for key, value in dict.items():
-        reverse_dict[value] = key
-
-    return reverse_dict
-
-
-def decode_labels(
-    encoded_labels: list[int], emotion_decoder: dict[int, str]
-) -> list[str]:
-    """
-    A function that decodes label numbers into text representation of labels
-
-    Input:
-        encoded_labels (list[int]): List of labels represented as number.
-        emotion_decoder (dict[int, str]): Dictionary with number to text mapping loaded
-            with get_model function.
-
-    Output:
-        decoded_labels (list[str]): List of labels represented as text.
-
-    Author:
-        Max Meiners (214936)
-    """
-
-    decoded_labels = list(map(lambda x: emotion_decoder[x], encoded_labels))
-
-    return decoded_labels
+    model.save(args.model_output_path)
+    with open(args.decoder_output_path, "w") as f:
+        json.dump(label_decoder, f)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    args = get_args()
 
-    parser.add_argument(
-        "--input_path",
-        required=False,
-        type=str,
-        default="",
-        help="String, file path to the audio file",
-    )
-
-    parser.add_argument(
-        "--output_path",
-        required=False,
-        type=str,
-        default="output.csv",
-        help="String, file path to saved pipeline output (default: output.csv)",
-    )
-
-    parser.add_argument(
-        "--model_path",
-        required=False,
-        type=str,
-        help="Path to the model configuration and weights file.",
-    )
-
-    parser.add_argument(
-        "--train_data",
-        required=False,
-        type=str,
-        help="Path to the training data CSV file.",
-    )
-
-    parser.add_argument(
-        "--eval_data",
-        required=False,
-        type=str,
-        help="Path to the evaluation data CSV file.",
-    )
-
-    parser.add_argument(
-        "--num_classes",
-        required=False,
-        type=int,
-        help="num_classes",
-    )
-
-    parser.add_argument(
-        "--val_size",
-        required=False,
-        type=float,
-        help="val_size",
-    )
-
-    parser.add_argument(
-        "--batch_size",
-        required=False,
-        type=int,
-        help="batch_size",
-    )
-
-    parser.add_argument(
-        "--model_save_path",
-        required=False,
-        type=str,
-        help="model_save_path",
-    )
-
-    parser.add_argument(
-        "--epochs",
-        required=False,
-        type=int,
-        help="epochs",
-    )
-
-    parser.add_argument(
-        "--learning_rate",
-        required=False,
-        type=float,
-        help="learning_rate",
-    )
-
-    parser.add_argument(
-        "--early_stopping_patience",
-        required=False,
-        type=int,
-        help="early_stopping_patience",
-    )
-
-    args = parser.parse_args()
-
-    # training pipeline (commented)
-    # to run it, from this script, uncomment the code below
-    # and comment prediction pipeline code
-    """
-    data, label_decoder_data = load_data(args.input_path)
-
-    tokenizer = get_tokenizer()
-
-    if args.model_path == "new":
-        label_decoder = label_decoder_data
-        model, label_decoder_model = get_model(
-            args.model_path,
-            num_classes=len(label_decoder)
-        )
-    else:
-        model, label_decoder = get_model(args.model_path, num_classes=args.num_classes)
-
-    train_set, val_set = get_train_val_data(data, val_size=args.val_size)
-
-    train_tokens, train_masks = tokenize_text_data(train_set[0], tokenizer)
-    val_tokens, val_masks = tokenize_text_data(val_set[0], tokenizer)
-
-    train_labels = encode_labels(train_set[1], label_decoder)
-    val_labels = encode_labels(val_set[1], label_decoder)
-
-    train_dataset = create_tf_dataset(train_tokens, train_masks,
-        train_labels, batch_size=args.batch_size)
-    val_dataset = create_tf_dataset(val_tokens, val_masks,
-        val_labels, batch_size=args.batch_size)
-
-
-    model = train_model(
-        model,
-        train_dataset,
-        val_dataset,
-        epochs=args.epochs,
-        learning_rate=args.learning_rate,
-        early_stopping_patience=args.early_stopping_patience
-    )
-
-    predicted_emotions, highest_probabilities, accuracy, report = evaluate(
-        model,
-        tokenizer,
-        label_decoder,
-        eval_path=args.eval_data,
-        max_length=128
-    )
-
-    save_model(model, label_decoder, model_path=args.model_save_path)
-    """
-
-    # prediction pipeline
-    data, label_decoder_data = load_data(args.input_path)
-    label_decoder_data = 0
-    tokenizer = get_tokenizer()
-
-    if args.model_path == "new":
-        label_decoder = label_decoder_data
-        model, _ = get_model(args.model_path, num_classes=len(label_decoder))
-    else:
-        model, label_decoder = get_model(args.model_path, num_classes=0)
-
-    tokens, masks = tokenize_text_data(data["sentence"], tokenizer)
-
-    emotions, probabilities = predict(model, tokens, masks, label_decoder)
-
-    print(emotions[:3])
-    print(probabilities[:3])
+    main(args)
