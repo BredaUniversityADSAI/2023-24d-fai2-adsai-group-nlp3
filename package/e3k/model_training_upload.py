@@ -60,7 +60,7 @@ train_component = command(
         "model": Output(type="uri_folder", mode="upload"),
         "label_decoder": Output(type="uri_file", mode="upload"),
     },
-    code="./package/e3k/Components",
+    code="d:/BUAS/Year 2/Block 2D/Block D/package/e3k/Components/",
     command=(
         "python model_training.py "
         "--cloud True "
@@ -81,8 +81,8 @@ train_component = command(
 
 
 @dsl.pipeline(
-    name="test_model_training_pipeline",
-    description="testing if model_training part works",
+    name="test_model_training_Juraj",
+    description="testing if model_training part works Juraj",
     compute="adsai0",
 )
 def test_training_pipeline(
@@ -107,8 +107,8 @@ pipeline_instance = test_training_pipeline(
     train_dataset_name="wojciech_val",
     val_dataset_name="wojciech_val",
     dataset_version="1",
-    epochs=3,
-    learning_rate=1e-3,
+    epochs=5,
+    learning_rate=1e-2,
     early_stopping_patience=3,
 )
 
