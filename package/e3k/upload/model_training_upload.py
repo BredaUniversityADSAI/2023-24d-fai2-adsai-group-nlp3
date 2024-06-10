@@ -27,13 +27,9 @@ train_component = command(
     display_name="Model training",
     description="Train model with data from a predefined data asset",
     inputs={
-        "train_data": Input(
-            type="string", description="training data", default="wojciech_val"
-        ),
+        "train_data": Input(type="string", description="training data"),
         "val_data": Input(
-            type="string",
-            description="validation dataset for model training",
-            default="wojciech_val",
+            type="string", description="validation data for model training"
         ),
         "dataset_version": Input(
             type="string",
@@ -77,7 +73,7 @@ train_component = command(
     compute_target=compute.name,
 )
 
-# ml_client.create_or_update(train_component.component)
+ml_client.create_or_update(train_component.component)
 
 
 @dsl.pipeline(
@@ -107,7 +103,7 @@ pipeline_instance = test_training_pipeline(
     train_dataset_name="wojciech_val",
     val_dataset_name="wojciech_val",
     dataset_version="1",
-    epochs=3,
+    epochs=1,
     learning_rate=1e-3,
     early_stopping_patience=3,
 )
