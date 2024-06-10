@@ -12,6 +12,7 @@ import transformers
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
 
+# get logger
 mt_logger = logging.getLogger("main.model_training")
 
 
