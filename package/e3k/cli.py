@@ -2,9 +2,13 @@ import argparse
 import logging
 
 import episode_preprocessing_pipeline as epp
+import model_evaluate as me
 import model_output_information as moi
+import model_predict as mp
 import model_training as mt
 import pandas as pd
+import preprocessing
+import splitting
 from tensorflow import config as tf_config
 from transformers import TFRobertaForSequenceClassification
 
@@ -29,12 +33,12 @@ logger.addHandler(stream_handler)
 detected_gpu = len(tf_config.list_physical_devices("GPU")) > 0
 if not detected_gpu:
     logger.warning(
-        """
-        No GPU detected, using CPU instead.
-        Preprocessing from audio/video will take significantly longer,
-        and training and predicting may not be a feasible task.
-        Consider switching to a GPU device.
-        """
+        (
+            "No GPU detected, using CPU instead. "
+            "Preprocessing from audio/video will take significantly longer, "
+            "and training and predicting may not be a feasible task. "
+            "Consider switching to a GPU device."
+        )
     )
 else:
     logger.info("GPU detected")
@@ -66,6 +70,18 @@ def get_args() -> argparse.Namespace:
 
     # general args
     parser.add_argument(
+        "task",
+        type=str,
+        choices=["preprocess", "train", "predict", "add"],
+        help="""
+        string, task that has to be performed (preprocess/train/predict).
+        preprocess: from video/audio to sentences,
+        train: get new model from existing data,
+        predict: get emotions from new episode
+        add: upload selected train data to Azure
+        """,
+    )
+    parser.add_argument(
         "--cloud",
         type=bool,
         choices=[True, False],
@@ -75,17 +91,6 @@ def get_args() -> argparse.Namespace:
     )
 
     # episode_preprocessing args
-    parser.add_argument(
-        "task",
-        type=str,
-        choices=["preprocess", "train", "predict"],
-        help="""
-        string, task that has to be performed (preprocess/train/predict).
-        preprocess: from video/audio to sentences,
-        train: get new model from existing data,
-        predict: get emotions from new episode
-        """,
-    )
     parser.add_argument(
         "--input_path",
         required=False,
@@ -98,7 +103,9 @@ def get_args() -> argparse.Namespace:
         required=False,
         type=str,
         default="output.csv",
-        help="string, file path to saved pipeline output (default: output.csv)",
+        help="""
+        string, file path to saved pipeline output (local only, default: output.csv)
+        """,
     )
     parser.add_argument(
         "--save",
@@ -108,7 +115,7 @@ def get_args() -> argparse.Namespace:
         choices=[True, False],
         help="""
         bool, whether to save the processed video episode as a csv file.
-        default: False"
+        (local only, default: False")
         """,
     )
     parser.add_argument(
@@ -174,60 +181,96 @@ def get_args() -> argparse.Namespace:
         """,
     )
 
-    # model_training args
+    # data_loading args
     parser.add_argument(
         "--train_data",
         required=False,
         type=str,
-        help="Path to the training data CSV file.",
+        default="new_test_data/train_eval_sample.csv",
+        help="Path to the training data [CSV file (local) | dataset (cloud)].",
     )
     parser.add_argument(
-        "--model_path",
+        "--val_data",
         required=False,
         type=str,
-        help="Path to the model configuration and weights file.",
+        default="new_test_data/train_eval_sample.csv",
+        help="Path to the validation data [CSV file (local) | dataset (cloud)]",
     )
-    parser.add_argument(
-        "--val_size",
-        required=False,
-        type=float,
-        help="size of the validation data for model training",
-    )
+
+    # model_training args
     parser.add_argument(
         "--batch_size",
         required=False,
         type=int,
+        default=32,
         help="number of examples in one training batch",
     )
     parser.add_argument(
         "--epochs",
         required=False,
         type=int,
+        default=5,
         help="number of training epochs",
     )
     parser.add_argument(
         "--learning_rate",
         required=False,
         type=float,
+        default=1e-5,
         help="learning rate for the optimizer",
     )
     parser.add_argument(
         "--early_stopping_patience",
         required=False,
         type=int,
+        default=3,
         help="patience parameter in the early stopping callback",
-    )
-    parser.add_argument(
-        "--eval_data",
-        required=False,
-        type=str,
-        help="Path to the evaluation data CSV file.",
     )
     parser.add_argument(
         "--model_save_path",
         required=False,
         type=str,
-        help="path to the directory where the trained model will be saved",
+        default="new_test_data/new_saved_model",
+        help="""
+        path to the directory where the trained model will be saved (local only)
+        """,
+    )
+    parser.add_argument(
+        "--threshold",
+        required=False,
+        type=float,
+        default=0.8,
+        help="accuracy threshold for the model to be considered good",
+    )
+    parser.add_argument(
+        "--test_data",
+        type=str,
+        default="new_test_data/train_eval_sample.csv",
+        help="path to test data for model evaluation",
+    )
+
+    # model_predict args (that are not in model_train already)
+    parser.add_argument(
+        "--model_path", type=str, help="path to the folder with saved model"
+    )
+    parser.add_argument(
+        "--label_decoder_path",
+        type=str,
+        help="path to the file/folder (TODO check cloud) with label_decoder data",
+    )
+    parser.add_argument(
+        "--tokenizer_model",
+        type=str,
+        required=False,
+        default="roberta-base",
+        help="tokenizer model used to preprocess data",
+    )
+    parser.add_argument(
+        "--token_max_length",
+        type=int,
+        required=False,
+        default=128,
+        help="max number of tokens created by preprocessing a sentence",
     )
 
     args = parser.parse_args()
@@ -310,7 +353,7 @@ def model_training(
     TFRobertaForSequenceClassification, tuple[list[str], list[float], float, str]
 ]:
     """
-    A function that follows parts of the model_training module that only train models.
+    A function that follows the model_training module.
     It loads and pre-processes the data for model training, creates a new model,
     and fits the data into the model.
 
@@ -321,36 +364,22 @@ def model_training(
 
     Output:
         model: a trained roBERTa transformer model
-        metrics (tuple[]): tuple with evaluation metrics
-        (predicted_emotions, confidence_scores, total_accuracy, classification_report)
 
     Author - Wojciech Stachowiak
     """
-    data, label_decoder_data = mt.load_data(args.train_data)
 
-    tokenizer = mt.get_tokenizer()
-
-    if args.model_path == "new":
-        label_decoder = label_decoder_data
-        model, _ = mt.get_model(args.model_path, num_classes=len(label_decoder))
+    train_data = splitting.load_data(args.train_data)
+    if args.val_data == "":
+        train_data, val_data = splitting.get_train_val_data(train_data, args.val_size)
     else:
-        model, label_decoder = mt.get_model(args.model_path)
+        val_data = splitting.load_data(args.val_data)
+    label_decoder = mt.get_label_decoder(train_data["emotion"])
 
-    train_set, val_set = mt.get_train_val_data(data, val_size=args.val_size)
-
-    train_tokens, train_masks = mt.tokenize_text_data(train_set[0], tokenizer)
-    val_tokens, val_masks = mt.tokenize_text_data(val_set[0], tokenizer)
-
-    train_labels = mt.encode_labels(train_set[1], label_decoder)
-    val_labels = mt.encode_labels(val_set[1], label_decoder)
-
-    train_dataset = mt.create_tf_dataset(
-        train_tokens, train_masks, train_labels, batch_size=args.batch_size
-    )
-    val_dataset = mt.create_tf_dataset(
-        val_tokens, val_masks, val_labels, batch_size=args.batch_size
+    train_dataset, val_dataset = preprocessing.preprocess_training_data(
+        train_data, val_data, label_decoder
     )
 
+    model = mt.get_new_model(len(label_decoder))
     model = mt.train_model(
         model,
         train_dataset,
@@ -360,15 +389,23 @@ def model_training(
         early_stopping_patience=args.early_stopping_patience,
     )
 
-    predicted_emotions, highest_probabilities, accuracy, report = mt.evaluate(
-        model, tokenizer, label_decoder, eval_path=args.eval_data, max_length=128
-    )
+    return model, label_decoder
 
-    metrics = (predicted_emotions, highest_probabilities, accuracy, report)
 
-    mt.save_model(model, label_decoder, model_path=args.model_save_path)
-
-    return model, metrics
+def evaluate_model(
+    args: argparse.Namespace,
+    model: TFRobertaForSequenceClassification,
+    label_decoder: dict[int, str],
+) -> None:
+    """
+    A function that evaluates the model
+    """
+    data = me.load_data(args.test_data)
+    tokens, masks = me.preprocess_prediction_data(data)
+    emotions, _ = me.predict(model, tokens, masks, label_decoder)
+    accuracy, _ = me.evaluate(emotions, data)
+    print(f"Test accuracy: {accuracy * 100:.2f}%")
+    me.save_model(model, label_decoder, args.model_save_path, accuracy, args.threshold)
 
 
 def predict(
@@ -392,14 +429,13 @@ def predict(
 
     Author - Wojciech Stachowiak
     """
+    model, label_decoder = mp.get_model(args.model_path)
 
-    tokenizer = mt.get_tokenizer()
+    token_array, mask_array = preprocessing.preprocess_prediction_data(
+        data, args.tokenizer_model, args.token_max_length
+    )
 
-    model, label_decoder = mt.get_model(args.model_path, num_classes=0)
-
-    tokens, masks = mt.tokenize_text_data(data["sentence"], tokenizer)
-
-    emotions, probabilities = mt.predict(model, tokens, masks, label_decoder)
+    emotions, probabilities = mp.predict(model, token_array, mask_array, label_decoder)
 
     return emotions, probabilities
 
@@ -432,9 +468,8 @@ def main():
     functions named after modules depending on the specified task (see: --help)
 
     Input:
-        args (argparse.Namespace): Namespace object returned by get_args function.
-            holds the information about positional and optional arguments
-            from command line
+        None: the inputs are defined by the get_args function withing main,
+            and handled through CLI arguments.
 
     Output:
         None: the inputs and outputs are defined in other functions and this only
@@ -448,9 +483,9 @@ def main():
 
     cloud = args.cloud == "True"
     if cloud is True:
-        logger.info("you are running in the cloud")
+        logger.info("the pipeline will run in the cloud")
     else:
-        logger.info("you are NOT running in the cloud")
+        logger.info("the pipeline will run locally")
 
     # handle episode preprocessing
     if args.task in ["preprocess", "predict"]:
@@ -461,13 +496,16 @@ def main():
     # handle predicting
     if args.task == "predict":
         logger.info("entered task: predict")
+
         predicted_emotions, highest_probabilities = predict(args, data_df)
         model_output_information(predicted_emotions, highest_probabilities)
 
     # handle training
     if args.task == "train":
         logger.info("entered task: train")
-        model_training(args)
+
+        model, label_decoder = model_training(args)
+        evaluate_model(args, model, label_decoder)
 
 
 if __name__ == "__main__":
