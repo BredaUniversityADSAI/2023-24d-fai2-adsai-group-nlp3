@@ -1,104 +1,264 @@
 from azure.identity import ClientSecretCredential
 from azure.ai.ml import MLClient, Input, Output, command
 from azure.ai.ml.dsl import pipeline
-from azure.ai.ml.entities import PipelineJob
+from azure.ai.ml.constants import AssetTypes
 import os
 
+print("Starting the pipeline setup...")
+
 # Define credentials and workspace details
-tenant_id = "0a33589b-0036-4fe8-a829-3ed0926af886"
-client_id = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
-client_secret = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
 subscription_id = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
 resource_group = "buas-y2"
 workspace_name = "NLP3"
-model_name = "RoBERTa_model"
+tenant_id = "0a33589b-0036-4fe8-a829-3ed0926af886"
+client_id = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
+client_secret = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
+
+print("Credentials and workspace details defined.")
 
 # Authenticate and create an MLClient
-credential = ClientSecretCredential(
-    tenant_id=tenant_id,
-    client_id=client_id,
-    client_secret=client_secret
-)
+try:
+    credential = ClientSecretCredential(
+        tenant_id=tenant_id,
+        client_id=client_id,
+        client_secret=client_secret
+    )
+    print("Authentication successful.")
+except Exception as e:
+    print("Failed to authenticate. Details:")
+    print(e)
 
-ml_client = MLClient(
-    credential=credential,
-    subscription_id=subscription_id,
-    resource_group=resource_group,
-    workspace_name=workspace_name
+try:
+    ml_client = MLClient(
+        credential=credential,
+        subscription_id=subscription_id,
+        resource_group_name=resource_group,
+        workspace_name=workspace_name
+    )
+    print(f"MLClient created for workspace: {workspace_name}")
+except Exception as e:
+    print("Failed to create MLClient. Details:")
+    print(e)
+
+# Retrieve the model from the workspace
+model_name = "RoBERTa_model"
+model_version = "1"
+try:
+    model = ml_client.models.get(name=model_name, version=model_version)
+    model_path = model.path
+    print(f"Model retrieved. Resolved model path: {model_path}")
+except Exception as e:
+    print(f"Failed to retrieve model '{model_name}' version '{model_version}'. Details:")
+    print(e)
+
+# Define paths for inputs and outputs
+data_folder_path = (
+    "azureml://subscriptions/0a94de80-6d3b-49f2-b3e9-ec5818862801/resourcegroups/buas-y2/"
+    "workspaces/NLP3/datastores/workspaceblobstore/paths/dataset_max/emotions_all_azure_10rows.csv"
 )
+decoder_folder_path = (
+    "azureml://subscriptions/0a94de80-6d3b-49f2-b3e9-ec5818862801/resourcegroups/buas-y2/"
+    "workspaces/NLP3/datastores/workspaceblobstore/paths/labels_encodings/label_decoder"
+)
+print(f"Data paths defined: data - {data_folder_path}, decoder - {decoder_folder_path}")
 
 # Define the compute target and environment
 compute_name = "adsai0"
 environment_name = "BlockD"
-environment_version = "1"
+environment_version = "2"
+print(f"Compute target: {compute_name}, Environment: {environment_name}:{environment_version}")
 
-# Define the command component
-predict_component = command(
-    name="prediction_component",
-    display_name="Model Prediction Component",
-    description="Predict emotions from input data using a pre-trained RoBERTa model",
-    inputs={
-        "model_path": Input(type="uri_folder"),
-        "data_path": Input(type="uri_file"),
-        "tokenizer_model": Input(type="string"),
-        "max_length": Input(type="integer"),
-        "decoder_path": Input(type="uri_file")
-    },
-    outputs={
-        "predictions": Output(type="uri_file")
-    },
-    code=os.path.abspath("./model_predict.py"),
-    command="""
-    python model_predict.py 
-    --model_path ${{inputs.model_path}} 
-    --data_path ${{inputs.data_path}} 
-    --tokenizer_model ${{inputs.tokenizer_model}} 
-    --max_length ${{inputs.max_length}} 
-    --decoder_path ${{inputs.decoder_path}} 
-    --output_path ${{outputs.predictions}}
-    """,
-    environment=f"{environment_name}:{environment_version}",
-    compute=compute_name
-)
-
-# Define the pipeline
-@pipeline(description="Pipeline to run model prediction")
-def predict_pipeline(model_name, 
-                     data_path, 
-                     tokenizer_model, 
-                     max_length, 
-                     decoder_path):
-    predict_step = predict_component(
-        model_path=f"azureml://datastores/workspaceblobstore/Models/{model_name}",
-        data_path=data_path,
-        tokenizer_model=tokenizer_model,
-        max_length=max_length,
-        decoder_path=decoder_path
-    )
-    return {
-        "predictions": predict_step.outputs.predictions
+# Define the inputs and outputs for the job
+try:
+    job_inputs = {
+        "model_path": Input(type=AssetTypes.URI_FOLDER, path=model_path, mode="download"),
+        "data_path": Input(type=AssetTypes.URI_FILE, path=data_folder_path),
+        "decoder_path": Input(type=AssetTypes.URI_FILE, path=decoder_folder_path),
+        "tokenizer_model": Input(type="string", default="roberta-base"),
+        "max_length": Input(type="integer", default=128),
     }
 
-# Instantiate the pipeline
-data_path = "azureml://datastores/workspaceblobstore/dataset_max/emotions_all_azure_10rows.csv"
-decoder_path = "azureml://datastores/workspaceblobstore/data/decoder.joblib"  # Update your actual decoder path
+    job_outputs = {
+        "predictions": Output(type="uri_file")
+    }
+    print("Job inputs and outputs defined.")
+except Exception as e:
+    print("Failed to define job inputs and outputs. Details:")
+    print(e)
+
+# Define the command component
+try:
+    predict_component = command(
+        name="prediction_component",
+        display_name="Model Prediction Component",
+        description="Predict emotions from input data using a pre-trained RoBERTa model",
+        inputs=job_inputs,
+        outputs=job_outputs,
+        code=os.path.abspath("./model_predict.py"),
+        command=(
+            'python model_predict.py '
+            '--model_path ${{inputs.model_path}} '
+            '--data_path ${{inputs.data_path}} '
+            '--tokenizer_model ${{inputs.tokenizer_model}} '
+            '--max_length ${{inputs.max_length}} '
+            '--decoder_path ${{inputs.decoder_path}} '
+            '--output_path ${{outputs.predictions}}'
+        ),
+        environment=f"{environment_name}:{environment_version}",
+        compute=compute_name,
+        environment_variables={
+            "AZUREML_COMPUTE_USE_COMMON_RUNTIME": "true"
+        }
+    )
+    print("Command component defined.")
+except Exception as e:
+    print("Failed to define the command component. Details:")
+    print(e)
+
+# Define the pipeline
+try:
+    @pipeline(description="Pipeline to run model prediction")
+    def predict_pipeline(tokenizer_model="roberta-base", max_length=128):
+        predict_step = predict_component(
+            model_path=job_inputs["model_path"],
+            data_path=job_inputs["data_path"],
+            tokenizer_model=tokenizer_model,
+            max_length=max_length,
+            decoder_path=job_inputs["decoder_path"]
+        )
+        return {
+            "predictions": predict_step.outputs.predictions
+        }
+
+    print("Pipeline defined.")
+except Exception as e:
+    print("Failed to define the pipeline. Details:")
+    print(e)
 
 # Create an instance of the pipeline job
-pipeline_job_instance = predict_pipeline(
-    model_name=model_name,
-    data_path=data_path,
-    tokenizer_model="roberta-base",
-    max_length=128,
-    decoder_path=decoder_path
-)
+try:
+    pipeline_job_instance = predict_pipeline()
+    print("Pipeline job instance created.")
+except Exception as e:
+    print("Failed to create pipeline job instance. Details:")
+    print(e)
 
 # Create and submit the pipeline job directly
 try:
     submitted_job = ml_client.jobs.create_or_update(
-        job=pipeline_job_instance,  # Submit the pipeline instance directly
+        job=pipeline_job_instance,
         experiment_name="predict_experiment"
     )
     print(f"Pipeline job {submitted_job.name} is submitted.")
 except Exception as e:
     print("Failed to submit the job. Details:")
     print(e)
+
+# from azure.identity import ClientSecretCredential
+# from azure.ai.ml import MLClient, Input, Output, command
+# from azure.ai.ml.dsl import pipeline
+# from azure.ai.ml.constants import AssetTypes
+# import os
+
+# # Define credentials and workspace details
+# subscription_id = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
+# resource_group = "buas-y2"
+# workspace_name = "NLP3"
+# tenant_id = "0a33589b-0036-4fe8-a829-3ed0926af886"
+# client_id = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
+# client_secret = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
+# model_name = "RoBERTa_model"
+
+# # Authenticate and create an MLClient
+# credential = ClientSecretCredential(
+#     tenant_id=tenant_id,
+#     client_id=client_id,
+#     client_secret=client_secret
+# )
+
+# ml_client = MLClient(
+#     credential=credential,
+#     subscription_id=subscription_id,
+#     resource_group_name=resource_group,
+#     workspace_name=workspace_name
+# )
+
+# # Define paths for inputs and outputs
+# model_path = ("azureml://subscriptions/0a94de80-6d3b-49f2-b3e9-ec5818862801/resourcegroups/buas-y2"
+# "/providers/Microsoft.MachineLearningServices/workspaces/NLP3/models/")
+# data_folder_path = "azureml://subscriptions/0a94de80-6d3b-49f2-b3e9-ec5818862801/resourcegroups/buas-y2/workspaces/NLP3/datastores/workspaceblobstore/paths/dataset_max/"
+# decoder_folder_path = "azureml://subscriptions/0a94de80-6d3b-49f2-b3e9-ec5818862801/resourcegroups/buas-y2/workspaces/NLP3/datastores/workspaceblobstore/paths/labels_encodings/"
+
+# # Define the compute target and environment
+# compute_name = "adsai0"
+# environment_name = "BlockD"
+# environment_version = "2"
+
+# # Define the inputs and outputs for the job
+# job_inputs = {
+#     "model_path": Input(type=AssetTypes.URI_FILE, path=f"{model_path}RoBERTa_model/versions/1", mode="download"),
+#     "data_path": Input(type=AssetTypes.URI_FILE, path=f"{data_folder_path}emotions_all_azure_10rows.csv"),
+#     "decoder_path": Input(type=AssetTypes.URI_FILE, path=f"{decoder_folder_path}label_decoder"),
+#     "tokenizer_model": Input(type="string"),
+#     "max_length": Input(type="integer"),
+# }
+
+# job_outputs = {
+#     "predictions": Output(type="uri_file")
+# }
+
+# # Define the command component
+# predict_component = command(
+#     name="prediction_component",
+#     display_name="Model Prediction Component",
+#     description="Predict emotions from input data using a pre-trained RoBERTa model",
+#     inputs=job_inputs,
+#     outputs=job_outputs,
+#     code=os.path.abspath("./model_predict.py"),
+#     command=(
+#     'python model_predict.py ' 
+#     '--model_path ${{inputs.model_path}} ' 
+#     '--data_path ${{inputs.data_path}} ' 
+#     '--tokenizer_model ${{inputs.tokenizer_model}} ' 
+#     '--max_length ${{inputs.max_length}} ' 
+#     '--decoder_path ${{inputs.decoder_path}} ' 
+#     '--output_path ${{outputs.predictions}}'
+#     ),
+#     environment=f"{environment_name}:{environment_version}",
+#     compute=compute_name,
+#     environment_variables={
+#         "AZUREML_COMPUTE_USE_COMMON_RUNTIME": "true"
+#     }
+# )
+
+# # Define the pipeline
+# @pipeline(description="Pipeline to run model prediction")
+# def predict_pipeline(model_name, tokenizer_model, max_length):
+#     predict_step = predict_component(
+#         model_path=job_inputs["model_path"],
+#         data_path=job_inputs["data_path"],
+#         tokenizer_model=tokenizer_model,
+#         max_length=max_length,
+#         decoder_path=job_inputs["decoder_path"]
+#     )
+#     return {
+#         "predictions": predict_step.outputs.predictions
+#     }
+
+# # Create an instance of the pipeline job
+# pipeline_job_instance = predict_pipeline(
+#     model_name=model_name,
+#     tokenizer_model="roberta-base",
+#     max_length=128
+# )
+
+# # Create and submit the pipeline job directly
+# try:
+#     submitted_job = ml_client.jobs.create_or_update(
+#         job=pipeline_job_instance,
+#         experiment_name="predict_experiment"
+#     )
+#     print(f"Pipeline job {submitted_job.name} is submitted.")
+# except Exception as e:
+#     print("Failed to submit the job. Details:")
+#     print(e)
