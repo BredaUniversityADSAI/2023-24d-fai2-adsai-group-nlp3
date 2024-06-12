@@ -1,15 +1,59 @@
 import argparse
 import logging
-import joblib
+import os
 
-import pandas as pd
+import joblib
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 import transformers
-from Components.preprocessing import preprocess_prediction_data
+from preprocessing import preprocess_prediction_data
 
 logging.basicConfig(level=logging.INFO)
 mt_logger = logging.getLogger("main.model_predict")
+
+
+def get_model(
+    model_path: str,
+) -> tuple[transformers.TFRobertaForSequenceClassification, dict[int, str]]:
+    """
+    Create or load a RoBERTa model with the specified number of output classes.
+    Number of classes not needed when loading a previously trained model.
+
+    Input:
+        model_path (str): Path to the model directory.
+
+    Output:
+        model: RoBERTa model with the specified number of output classes.
+        emotion_dict (dict[int, str]): Python dictionary that maps integers to text
+            emotions for the model, only returned when loading a trained model,
+            otherwise the value is None.
+
+    Author:
+        Max Meiners (214936)
+    """
+
+    # get config and model file paths
+    config_path = os.path.join(model_path, "config.json")
+    weights_path = os.path.join(model_path, "tf_model.h5")
+    dict_path = os.path.join(model_path, "emotion_dict.joblib")
+
+    mt_logger.info(f"Loading model configuration")
+
+    # load an existing model
+    config = transformers.RobertaConfig.from_pretrained(config_path)
+    model = transformers.TFRobertaForSequenceClassification.from_pretrained(
+        "roberta-base", config=config
+    )
+
+    mt_logger.info("Loading model weights")
+    model.load_weights(weights_path)
+
+    mt_logger.info("Model loaded")
+
+    emotion_dict = joblib.load(dict_path)
+
+    return model, emotion_dict
 
 
 def decode_labels(
@@ -88,14 +132,14 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--model_path",
-        required=True,
+        required=False,
         type=str,
         help="Path to the model configuration and weights file.",
     )
 
     parser.add_argument(
         "--data_path",
-        required=True,
+        required=False,
         type=str,
         help="Data to be predicted.",
     )
@@ -118,7 +162,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--decoder_path",
-        required=True,
+        required=False,
         type=str,
         help="Path to the joblib file containing the emotion decoder.",
     )
@@ -132,11 +176,15 @@ if __name__ == "__main__":
     mt_logger.info("Data loaded")
 
     # Call the preprocess_prediction_data function to get the preprocessed data
-    tokens, masks = preprocess_prediction_data(data, args.tokenizer_model, args.max_length)
+    tokens, masks = preprocess_prediction_data(
+        data, args.tokenizer_model, args.max_length
+    )
     mt_logger.info("Data preprocessed")
 
     # Load the model
-    model = transformers.TFRobertaForSequenceClassification.from_pretrained(args.model_path)
+    model = transformers.TFRobertaForSequenceClassification.from_pretrained(
+        args.model_path
+    )
     mt_logger.info("Model loaded")
 
     # Load the emotion decoder

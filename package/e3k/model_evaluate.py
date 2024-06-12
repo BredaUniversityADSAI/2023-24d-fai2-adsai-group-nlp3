@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import os
 
@@ -6,19 +7,17 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 import transformers
-from sklearn.metrics import accuracy_score, classification_report 
-from azureml.core import Workspace, Datastore, Dataset
-from azureml.core.authentication import InteractiveLoginAuthentication
 from azure.ai.ml.entities import Model
-
+from azureml.core import Dataset, Datastore, Workspace
+from azureml.core.authentication import InteractiveLoginAuthentication
 from preprocessing import preprocess_prediction_data
-
+from sklearn.metrics import accuracy_score, classification_report
 
 mt_logger = logging.getLogger("main.model_evaluation")
 
 
 # Loading data from local device
-def load_data(file_path: str) -> tuple[pd.DataFrame, dict[int, str]]:
+def load_data(file_path: str) -> pd.DataFrame:
     """
     Load the dataset from a CSV file and return
     the DataFrame and a dictionary with labels.
@@ -42,7 +41,7 @@ def load_data(file_path: str) -> tuple[pd.DataFrame, dict[int, str]]:
 
 
 # Loading data from Azure ML datastore
-def load_data_from_azure(test_data_uri): 
+def load_data_from_azure(test_data):
     """
     Loads data from an Azure ML datastore.
 
@@ -50,7 +49,7 @@ def load_data_from_azure(test_data_uri):
     URI and loads the specified test data.
 
     Input:
-        test_data_uri (str): The URI of the test data stored in the Azure ML datastore.
+        test_data (str): The URI of the test data stored in the Azure ML datastore.
 
     Output:
         df (pd.DataFrame): Loaded DataFrame containing the data.
@@ -58,10 +57,8 @@ def load_data_from_azure(test_data_uri):
     -Author: Kornelia Flizik (223643)
     """
 
-
     # Loading the csv
-    test_set = Dataset.Tabular.from_delimited_files(test_data_uri)
-
+    test_set = Dataset.Tabular.from_delimited_files(test_data)
     test_data = test_set.to_pandas_dataframe()
 
     return test_data
@@ -116,9 +113,8 @@ def predict(
 
 
 def evaluate(
-    pred_labels, 
-    data, 
-
+    pred_labels,
+    data,
 ) -> tuple[list[str], list[float], float, str]:
     """
     A function that evaluates trained model using a separate dataset.
@@ -139,14 +135,14 @@ def evaluate(
 
     mt_logger.info("evaluating trained model")
 
-    true_labels = data["emotions"].to_list()
+    true_labels = data["emotion"].to_list()
 
     accuracy = accuracy_score(true_labels, pred_labels)
     mt_logger.info(f"model accuracy: {accuracy}")
 
     report = classification_report(true_labels, pred_labels)
 
-    return  accuracy, report
+    return accuracy, report
 
 
 def register_model_and_encoding(
@@ -166,43 +162,88 @@ def register_model_and_encoding(
         threshold (float, optional): The accuracy threshold for registering the model.
         Default is 0.5.
 
-    Output: 
+    Output:
         None
 
     - Author: Kornelia Flizik
     """
     mt_logger.info(f"Registering model if accuracy is above {threshold}.")
-    
+
     # Only register model if accuracy is above threshold
     if accuracy > threshold:
         mt_logger.info("Model accuracy is above threshold, registering model.")
 
         # Register the model
         Model.register(
-            workspace = workspace, 
-            model_name ="Emotion Classification", 
-            model_path = model_path, 
-            description = "RoBERTa model for emotion recognition")
+            workspace=workspace,
+            model_name="Emotion Classification",
+            model_path=model_path,
+            description="RoBERTa model for emotion recognition",
+        )
 
         mt_logger.info("Model registered")
 
         # Register label encodings
-        datastore = Datastore(workspace, name='workspaceblobstore')
-        
-        datastore.upload(src_dir=os.path.dirname(label_decoder),
-                 target_path='labels_encodings',
-                 overwrite=True,
-                 show_progress=True)
-        
+        datastore = Datastore(workspace, name="workspaceblobstore")
+
+        datastore.upload(
+            src_dir=os.path.dirname(label_decoder),
+            target_path="labels_encodings",
+            overwrite=True,
+            show_progress=True,
+        )
+
         mt_logger.info("Encodings saved")
-         
+
     else:
         mt_logger.info("Model accuracy is not above threshold, not registering model.")
+
+
+def save_model(
+    model: transformers.TFRobertaForSequenceClassification,
+    label_decoder: dict[int, str],
+    model_path: str,
+    model_accuracy: float,
+    threshold: float = 0.5,
+) -> None:
+    """
+    A function that saves trained model and it's emotion mapping to a file.
+
+    Input:
+        model (transformers.TFRobertaForSequenceClassification): trained model
+        label_encoder (dict[int, str]): Python dictionary mapping
+            numbers to text emotions.
+        model_path (str): Path to directory where the model will be saved.
+
+    Output: None
+
+    Author:
+        Max Meiners (214936)
+    """
+
+    if model_accuracy > threshold:
+        mt_logger.info(
+            "model's accuracy on the test set surpassed the threshold, saving model"
+        )
+
+        dict_path = os.path.join(model_path, "emotion_dict.json")
+
+        model.save_pretrained(model_path)
+        with open(dict_path, "w") as f:
+            json.dump(label_decoder, f)
+        mt_logger.info("Model saved")
+
+    else:
+        mt_logger.info(
+            "model's accuracy on the test set didn't surpass the threshold,"
+            "not saving the model"
+        )
 
 
 """
 Util functions (only used in other functions)
 """
+
 
 def decode_labels(
     encoded_labels: list[int], emotion_decoder: dict[int, str]
@@ -237,7 +278,7 @@ def load_model(model_path: str) -> tf.keras.Model:
     Returns:
         tf.keras.Model: Loaded model.
 
-    
+
     """
     # Check if the model file exists at the specified path and load it if it does.
     if os.path.exists(model_path):
@@ -246,7 +287,7 @@ def load_model(model_path: str) -> tf.keras.Model:
     else:
         print(f"No model file found at {model_path}")
         return None
-    
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -259,13 +300,13 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--test_data_uri",
+        "--test_data",
         required=False,
         type=str,
         default="",
         help="URI of the test data from Azure ML datastore",
     )
-    
+
     parser.add_argument(
         "--subscription_id",
         required=False,
@@ -300,7 +341,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--label_decoder",
         required=False,
-        type = dict[int, str],
+        type=dict[int, str],
         help="File containing label decoder dict",
     )
 
@@ -309,25 +350,29 @@ if __name__ == "__main__":
     cloud = args.cloud == "True"
 
     model = load_model(args.model_path)
-    
+
     if cloud is True:
         # Load the workspace
         auth = InteractiveLoginAuthentication()
 
-        workspace = Workspace(subscription_id=args.subscription_id, 
-                    resource_group=args.resource_group, 
-                    workspace_name=args.workspace_name,
-                    auth = auth)
-        
-        data = load_data_from_azure(args.test_data_uri)
+        workspace = Workspace(
+            subscription_id=args.subscription_id,
+            resource_group=args.resource_group,
+            workspace_name=args.workspace_name,
+            auth=auth,
+        )
+
+        data = load_data_from_azure(args.test_data)
         tokens, masks = preprocess_prediction_data(data)
         emotions, probabilities = predict(model, tokens, masks, args.label_decoder)
         accuracy, _ = evaluate(emotions, data)
         print(f"Test accuracy: {accuracy * 100:.2f}%")
-        register_model_and_encoding(args.model_path, args.label_decoder, accuracy, workspace)
+        register_model_and_encoding(
+            args.model_path, args.label_decoder, accuracy, workspace
+        )
 
     else:
-        data, _ = load_data(args.test_data_uri)
+        data, _ = load_data(args.test_data)
         tokens, masks = preprocess_prediction_data(data)
         emotions, probabilities = predict(model, tokens, masks, args.label_decoder)
         accuracy, _ = evaluate(emotions, data)

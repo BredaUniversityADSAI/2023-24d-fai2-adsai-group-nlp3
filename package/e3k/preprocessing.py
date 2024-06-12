@@ -1,19 +1,20 @@
-import argparse
 import logging
-import pandas as pd
+
 import numpy as np
-from sklearn.model_selection import train_test_split
-import transformers
+import pandas as pd
 import tensorflow as tf
+import transformers
 
 mt_logger = logging.getLogger("main.preprocessing")
+
 
 def get_tokenizer(model_name: str = "roberta-base") -> transformers.AutoTokenizer:
     """
     Get the tokenizer for a specified model.
 
     Input:
-        model_name (str): Name of the model for the tokenizer. Default is 'roberta-base'.
+        model_name (str): Name of the model for the tokenizer.
+        Default is 'roberta-base'.
 
     Output:
         tokenizer: Tokenizer for the specified model.
@@ -21,7 +22,10 @@ def get_tokenizer(model_name: str = "roberta-base") -> transformers.AutoTokenize
     tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
     return tokenizer
 
-def tokenize_text_data(data: pd.Series, tokenizer: transformers.AutoTokenizer, max_length: int = 128) -> tuple[np.ndarray, np.ndarray]:
+
+def tokenize_text_data(
+    data: pd.Series, tokenizer: transformers.AutoTokenizer, max_length: int = 128
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Tokenize text data using the provided tokenizer.
 
@@ -38,14 +42,15 @@ def tokenize_text_data(data: pd.Series, tokenizer: transformers.AutoTokenizer, m
         data.tolist(),
         add_special_tokens=True,
         max_length=max_length,
-        padding='max_length',
+        padding="max_length",
         truncation=True,
         return_attention_mask=True,
-        return_tensors='np'
+        return_tensors="np",
     )
-    input_ids = encoding['input_ids']
-    attention_masks = encoding['attention_mask']
+    input_ids = encoding["input_ids"]
+    attention_masks = encoding["attention_mask"]
     return input_ids, attention_masks
+
 
 def encode_labels(labels: pd.Series, label_decoder: dict[int, str]) -> np.ndarray:
     """
@@ -62,7 +67,13 @@ def encode_labels(labels: pd.Series, label_decoder: dict[int, str]) -> np.ndarra
     encoded_labels = labels.map(label_encoder).values
     return encoded_labels
 
-def create_tf_dataset(input_ids: np.ndarray, attention_masks: np.ndarray, labels: np.ndarray, batch_size: int = 32) -> tf.data.Dataset:
+
+def create_tf_dataset(
+    input_ids: np.ndarray,
+    attention_masks: np.ndarray,
+    labels: np.ndarray,
+    batch_size: int = 32,
+) -> tf.data.Dataset:
     """
     Create a TensorFlow dataset from input IDs, attention masks, and labels.
 
@@ -75,11 +86,21 @@ def create_tf_dataset(input_ids: np.ndarray, attention_masks: np.ndarray, labels
     Output:
         dataset (tf.data.Dataset): TensorFlow dataset.
     """
-    dataset = tf.data.Dataset.from_tensor_slices(({"input_ids": input_ids, "attention_mask": attention_masks}, labels))
+    dataset = tf.data.Dataset.from_tensor_slices(
+        ({"input_ids": input_ids, "attention_mask": attention_masks}, labels)
+    )
     dataset = dataset.shuffle(buffer_size=10000).batch(batch_size)
     return dataset
 
-def preprocess_training_data(train_data: pd.DataFrame, val_data: pd.DataFrame, label_decoder: dict[int, str], tokenizer_model: str = "roberta-base", max_length: int = 128, batch_size: int = 32):
+
+def preprocess_training_data(
+    train_data: pd.DataFrame,
+    val_data: pd.DataFrame,
+    label_decoder: dict[int, str],
+    tokenizer_model: str = "roberta-base",
+    max_length: int = 128,
+    batch_size: int = 32,
+):
     """
     Preprocess training and validation data.
 
@@ -96,21 +117,29 @@ def preprocess_training_data(train_data: pd.DataFrame, val_data: pd.DataFrame, l
         val_dataset (tf.data.Dataset): Preprocessed validation dataset.
     """
     tokenizer = get_tokenizer(tokenizer_model)
-    
+
     # Tokenize and encode training data
-    train_tokens, train_masks = tokenize_text_data(train_data["sentence"], tokenizer, max_length)
+    train_tokens, train_masks = tokenize_text_data(
+        train_data["sentence"], tokenizer, max_length
+    )
     train_labels = encode_labels(train_data["emotion"], label_decoder)
-    train_dataset = create_tf_dataset(train_tokens, train_masks, train_labels, batch_size)
-    
+    train_dataset = create_tf_dataset(
+        train_tokens, train_masks, train_labels, batch_size
+    )
+
     # Tokenize and encode validation data
-    val_tokens, val_masks = tokenize_text_data(val_data["sentence"], tokenizer, max_length)
+    val_tokens, val_masks = tokenize_text_data(
+        val_data["sentence"], tokenizer, max_length
+    )
     val_labels = encode_labels(val_data["emotion"], label_decoder)
     val_dataset = create_tf_dataset(val_tokens, val_masks, val_labels, batch_size)
-    
+
     return train_dataset, val_dataset
 
 
-def preprocess_prediction_data(data: pd.DataFrame, tokenizer_model: str = "roberta-base", max_length: int = 128):
+def preprocess_prediction_data(
+    data: pd.DataFrame, tokenizer_model: str = "roberta-base", max_length: int = 128
+):
     """
     Preprocess data for prediction.
 

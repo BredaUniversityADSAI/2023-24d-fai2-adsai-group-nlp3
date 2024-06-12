@@ -1,4 +1,4 @@
-from azure.ai.ml import Input, MLClient, Output, command, dsl
+from azure.ai.ml import Input, MLClient, command
 from azure.identity import ClientSecretCredential
 
 # const values for Azure connection
@@ -27,23 +27,16 @@ evaluate_component = command(
     display_name="Model evaluation",
     description="Evaluate model using test data",
     inputs={
-        "test_data": Input(
-            type="uri_folder",
-            description="Data asset URI"
-        ),
-
+        "test_data": Input(type="uri_folder", description="Data asset URI"),
         "model_path": Input(
             type="uri_folder",
             description="Model URI",
         ),
-
         "label_decoder": Input(
             type="Uri_folder",
             description="URI of label encoding dict",
         ),
-        
     },
-    
     code="./package/e3k/Components",
     command=(
         "python model_evaluate.py "
