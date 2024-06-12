@@ -1,6 +1,7 @@
 import argparse
 import json
 import logging
+import pickle
 
 import mltable
 import pandas as pd
@@ -34,6 +35,9 @@ WORKSPACE_NAME = "NLP3"
 TENANT_ID = "0a33589b-0036-4fe8-a829-3ed0926af886"
 CLIENT_ID = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
 CLIENT_SECRET = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
+
+
+mt_logger.info(f"devices: {tf.config.list_physical_devices()}")
 
 
 def get_args() -> argparse.Namespace:
@@ -121,7 +125,18 @@ def get_ml_client(
     A function that creates an MLClient object used to interact with AzureML.
 
     Input:
-        subscription_id (str):
+        subscription_id (str): subscription ID from Azure
+        tenant_id (str): tenant ID from Azure
+        client_id (str): client ID from Azure
+        client_secret (str): client secret from Azure
+        resource_group (str): name of the resource group from Azure
+        workspace_name (str): name of the workspace name from Azure
+
+    Output:
+        ml_client (azure.ai.ml.MLClient): an object that allows manipulating
+        objects on Azure
+
+    Author - Wojciech Stachowiak
     """
     mt_logger.debug("getting credentials")
     credential = ClientSecretCredential(tenant_id, client_id, client_secret)
@@ -192,6 +207,7 @@ def get_label_decoder(series: pd.Series) -> dict[int, str]:
     """
     mt_logger.info("getting label decoder from training data")
     label_decoder = {i: label for i, label in enumerate(series.unique())}
+    mt_logger.debug(f"detected {len(label_decoder)} classes")
 
     return label_decoder
 
@@ -288,8 +304,8 @@ def main(args: argparse.Namespace) -> None:
         args (argparse.Namespace): namespace object with CLI arguments
 
     Output: None
-        model: dumped to "model.pkl" with joblib.dump
-        label_decoder: dumped to "label_decoder" with json.dump
+        model: saved in a folder under the specified path
+        label_decoder: dumped to a file under the specified path using json.dump
     """
 
     ml_client = get_ml_client(
@@ -301,6 +317,7 @@ def main(args: argparse.Namespace) -> None:
         WORKSPACE_NAME,
     )
 
+    # getting datasets
     train_data = get_data_asset_as_df(
         ml_client, args.train_dataset_name, args.dataset_version
     )
@@ -324,12 +341,11 @@ def main(args: argparse.Namespace) -> None:
         args.early_stopping_patience,
     )
 
-    model.save(args.model_output_path)
-    with open(args.decoder_output_path, "w") as f:
-        json.dump(label_decoder, f)
+    model.save_pretrained(args.model_output_path)
+    with open(args.decoder_output_path, 'wb') as f:
+        pickle.dump(label_decoder, f)
 
 
 if __name__ == "__main__":
     args = get_args()
-
     main(args)

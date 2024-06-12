@@ -398,7 +398,19 @@ def evaluate_model(
     label_decoder: dict[int, str],
 ) -> None:
     """
-    A function that evaluates the model
+    A function that evaluates a trained model using a separate dataset.
+
+    Inputs:
+        args (argparse.Namespace): Namespace object returned by get_args function.
+            holds the information about positional and optional arguments
+            from command line
+        model (TFRobertaForSequenceClassification): a trained roBERTa model
+        label_decoder (dict[int, str]): python dictionary mapping numbers
+        to text emotions
+
+    Outputs: None
+
+    Author - Wojciech Stachowiak
     """
     data = me.load_data(args.test_data)
     tokens, masks = me.preprocess_prediction_data(data)
@@ -461,7 +473,7 @@ def model_output_information(
     moi.calculate_episode_confidence(confidence_scores)
 
 
-def main():
+def main() -> None:
     """
     A function that handles the correct execution of different modules given
     the command line arguments specified by the user. It calls the higher level
@@ -487,25 +499,25 @@ def main():
     else:
         logger.info("the pipeline will run locally")
 
-    # handle episode preprocessing
-    if args.task in ["preprocess", "predict"]:
-        logger.info("entered task: preprocess")
+        # handle episode preprocessing
+        if args.task in ["preprocess", "predict"]:
+            logger.info("entered task: preprocess")
 
-        data_df = episode_preprocessing(args)
+            data_df = episode_preprocessing(args)
 
-    # handle predicting
-    if args.task == "predict":
-        logger.info("entered task: predict")
+        # handle predicting
+        if args.task == "predict":
+            logger.info("entered task: predict")
 
-        predicted_emotions, highest_probabilities = predict(args, data_df)
-        model_output_information(predicted_emotions, highest_probabilities)
+            predicted_emotions, highest_probabilities = predict(args, data_df)
+            model_output_information(predicted_emotions, highest_probabilities)
 
-    # handle training
-    if args.task == "train":
-        logger.info("entered task: train")
+        # handle training
+        if args.task == "train":
+            logger.info("entered task: train")
 
-        model, label_decoder = model_training(args)
-        evaluate_model(args, model, label_decoder)
+            model, label_decoder = model_training(args)
+            evaluate_model(args, model, label_decoder)
 
 
 if __name__ == "__main__":
