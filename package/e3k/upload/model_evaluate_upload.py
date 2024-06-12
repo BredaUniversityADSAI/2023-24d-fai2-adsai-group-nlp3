@@ -1,4 +1,4 @@
-from azure.ai.ml import Input, MLClient, command
+from azure.ai.ml import Input, MLClient, Output, command, dsl
 from azure.identity import ClientSecretCredential
 
 # const values for Azure connection
@@ -22,29 +22,145 @@ ml_client = MLClient(
 env = ml_client.environments.get("BlockD", version="2")
 compute = ml_client.compute.get("adsai0")
 
+train_component = command(
+    name="train_env2_check",
+    display_name="Model training",
+    description="Train model with data from a predefined data asset",
+    inputs={
+        "train_data": Input(
+            type="string", description="training data", default="wojciech_val"
+        ),
+        "val_data": Input(
+            type="string",
+            description="validation dataset for model training",
+            default="wojciech_val",
+        ),
+        "dataset_version": Input(
+            type="string",
+            description="version of training and validation sets",
+            default="1",
+        ),
+        "epochs": Input(
+            type="integer",
+            description="number of epochs to train the model for",
+            default=3,
+        ),
+        "learning_rate": Input(
+            type="number",
+            description="learning rate of the model's optimizer",
+            default=1e-3,
+        ),
+        "early_stopping_patience": Input(
+            type="integer",
+            description="patience parameter of the early stopping callback",
+            default=3,
+        ),
+    },
+    outputs={
+        "model_path": Output(type="uri_folder", mode="upload"),
+        "label_decoder": Output(type="uri_file", mode="upload"),
+    },
+    code="./package/e3k/Components",
+    command=(
+        "python model_training.py "
+        "--cloud True "
+        "--train_dataset_name ${{inputs.train_data}} "
+        "--val_dataset_name ${{inputs.val_data}} "
+        "--dataset_version ${{inputs.dataset_version}} "
+        "--epochs ${{inputs.epochs}} "
+        "--learning_rate ${{inputs.learning_rate}} "
+        "--early_stopping_patience ${{inputs.early_stopping_patience}} "
+        "--model_output_path ${{outputs.model_path}} "
+        "--decoder_output_path ${{outputs.label_decoder}}"
+    ),
+    environment=env,
+    compute_target=compute.name,
+)
+
 evaluate_component = command(
     name="evaluation",
     display_name="Model evaluation",
     description="Evaluate model using test data",
     inputs={
-        "test_data": Input(type="uri_folder", description="Data asset URI"),
+        "test_data": Input(
+            type="string",
+            description="Data asset URI"
+        ),
+
         "model_path": Input(
             type="uri_folder",
             description="Model URI",
         ),
+
         "label_decoder": Input(
-            type="Uri_folder",
+            type="uri_folder",
             description="URI of label encoding dict",
         ),
+
+        "model_name": Input(
+            type="string",
+            description="Name to register the model"
+        ),
+        
     },
+    
     code="./package/e3k/Components",
     command=(
         "python model_evaluate.py "
         "--cloud True "
-        "--train_dataset_name ${{inputs.test_data}} "
-        "--val_dataset_name ${{inputs.model_path}} "
-        "--dataset_version ${{inputs.label_decoder}} "
+        "--test_data_name ${{inputs.test_data}} "
+        "--model_path ${{inputs.model_path}} "
+        "--label_decoder ${{inputs.label_decoder}} "
+        "--model_name ${{inputs.model_name}}"
     ),
     environment=env,
     compute_target=compute.name,
 )
+
+
+ml_client.create_or_update(evaluate_component.component)
+
+
+@dsl.pipeline(
+    name="test_model_evaluation_pipeline",
+    description="testing if model_evaluation part works",
+    compute="adsai0",
+)
+def test_training_pipeline(
+    train_dataset_name,
+    val_dataset_name,
+    dataset_version,
+    epochs,
+    learning_rate,
+    early_stopping_patience,
+    test_data,
+    model_name,
+) -> None:
+    train_step = train_component(
+        train_data=train_dataset_name,
+        val_data=val_dataset_name,
+        dataset_version=dataset_version,
+        epochs=epochs,
+        learning_rate=learning_rate,
+        early_stopping_patience=early_stopping_patience,
+    )
+    eval_step = evaluate_component(
+        test_data=test_data,
+        model_path=train_step.outputs.model_path,
+        label_decoder=train_step.outputs.label_decoder,
+        model_name=model_name
+    )
+
+
+pipeline_instance = test_training_pipeline(
+    train_dataset_name="wojciech_val",
+    val_dataset_name="wojciech_val",
+    dataset_version="1",
+    epochs=3,
+    learning_rate=1e-3,
+    early_stopping_patience=3,
+    test_data='dataset_wojciech/test_azure_data.csv',
+    model_name='testModel',
+    )
+
+pipeline_run = ml_client.jobs.create_or_update(pipeline_instance, experiment_name="Model_evaluation")
