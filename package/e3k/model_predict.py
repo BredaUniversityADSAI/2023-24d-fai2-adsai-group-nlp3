@@ -3,6 +3,7 @@ import logging
 import os
 
 import joblib
+import json
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -74,7 +75,13 @@ def decode_labels(
         Max Meiners (214936)
     """
 
-    decoded_labels = list(map(lambda x: emotion_decoder[x], encoded_labels))
+    decoded_labels = []
+    for label in encoded_labels:
+        if str(label) in emotion_decoder:
+            decoded_labels.append(emotion_decoder[str(label)])
+        else:
+            mt_logger.warning(f"Class {label} not found in emotion_decoder.")
+            decoded_labels.append("unknown")
 
     return decoded_labels
 
@@ -120,10 +127,14 @@ def predict(
     predicted_classes = np.argmax(probabilities, axis=1)
     highest_probabilities = np.max(probabilities, axis=1)
 
+    mt_logger.info(f"Probabilities: {probabilities}")
+    mt_logger.info(f"Predicted classes: {predicted_classes}")
+    mt_logger.info(f"Highest probabilities: {highest_probabilities}")
+    
     text_labels = decode_labels(predicted_classes, emotion_decoder)
 
     mt_logger.info("Got predictions")
-
+    
     return text_labels, highest_probabilities
 
 
@@ -188,8 +199,9 @@ if __name__ == "__main__":
     mt_logger.info("Model loaded")
 
     # Load the emotion decoder
-    emotion_decoder = joblib.load(args.decoder_path)
-    mt_logger.info("Emotion decoder loaded")
+    with open(args.decoder_path, 'r') as f:  # Open file as text
+        emotion_decoder = json.load(f)  # Use json.load instead of pickle.load
+    mt_logger.info(f"Emotion decoder loaded with keys: {list(emotion_decoder.keys())}")
 
     # Make predictions
     text_labels, highest_probabilities = predict(model, tokens, masks, emotion_decoder)
