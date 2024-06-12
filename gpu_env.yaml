@@ -1,18 +1,17 @@
 name: blockD-gpu
 channels:
+  - anaconda
   - conda-forge
-  - defaults
 dependencies:
-  - python=3.10
+  - python=3.10.9
   - tensorflow=2.10
   - cudatoolkit=11.2
   - cudnn=8.1.0
   - pip
   - pip:
-    - azure-ai-ml
-    - azure-identity
-    - azureml-core
-    - transformers
-    - pandas>=2.0
-    - numpy
-    - scikit-learn
+      - azureml
+      - mltable
+      - azureml-defaults
+      - azure-ai-ml
+      - transformers==4.31.0
+      - pandas>-2.0
