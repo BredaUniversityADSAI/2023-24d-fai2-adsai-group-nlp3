@@ -1,4 +1,5 @@
 import logging
+from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -25,7 +26,7 @@ def get_tokenizer(model_name: str = "roberta-base") -> transformers.AutoTokenize
 
 def tokenize_text_data(
     data: pd.Series, tokenizer: transformers.AutoTokenizer, max_length: int = 128
-) -> tuple[np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Tokenize text data using the provided tokenizer.
 
@@ -52,7 +53,7 @@ def tokenize_text_data(
     return input_ids, attention_masks
 
 
-def encode_labels(labels: pd.Series, label_decoder: dict[int, str]) -> np.ndarray:
+def encode_labels(labels: pd.Series, label_decoder: Dict[int, str]) -> np.ndarray:
     """
     Encode labels using the label decoder.
 
@@ -96,7 +97,7 @@ def create_tf_dataset(
 def preprocess_training_data(
     train_data: pd.DataFrame,
     val_data: pd.DataFrame,
-    label_decoder: dict[int, str],
+    label_decoder: Dict[int, str],
     tokenizer_model: str = "roberta-base",
     max_length: int = 128,
     batch_size: int = 32,

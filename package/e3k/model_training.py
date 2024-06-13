@@ -2,6 +2,8 @@ import argparse
 import json
 import logging
 import pickle
+from functools import reduce
+from typing import Dict, Tuple
 
 import mltable
 import pandas as pd
@@ -63,21 +65,9 @@ def get_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--train_dataset_name",
+        "--dataset_name_file",
         type=str,
         help="name of registered dataset used to train the model",
-    )
-
-    parser.add_argument(
-        "--val_dataset_name",
-        type=str,
-        help="""
-        name of registered dataset used as validation data during model training
-        """,
-    )
-
-    parser.add_argument(
-        "--dataset_version", type=str, help="version of the chosen dataset"
     )
 
     parser.add_argument("--epochs", type=int, help="number of training epochs ")
@@ -155,6 +145,20 @@ def get_ml_client(
     return ml_client
 
 
+def get_versioned_datasets(args, ml_client) -> Tuple[str, str, str]:
+    dataset_info = json.load(args.dataset_name_file)
+    train_name = dataset_info["train"]
+    val_name = dataset_info["val"]
+
+    dataset_list = ml_client.data.list(name="train_name")
+
+    newest_version = reduce(
+        lambda x, y: max(x, y), map(lambda x: x.version, dataset_list)
+    )
+
+    return train_name, val_name, newest_version
+
+
 def get_data_asset_as_df(
     ml_client: MLClient, dataset_name: str, dataset_version: str
 ) -> pd.DataFrame:
@@ -192,7 +196,7 @@ def get_data_asset_as_df(
     return df
 
 
-def get_label_decoder(series: pd.Series) -> dict[int, str]:
+def get_label_decoder(series: pd.Series) -> Dict[int, str]:
     """
     A function that creates label_decoder dictionary from pandas.Series.
 
@@ -317,13 +321,11 @@ def main(args: argparse.Namespace) -> None:
         WORKSPACE_NAME,
     )
 
+    train_name, val_name, version = get_versioned_datasets()
+
     # getting datasets
-    train_data = get_data_asset_as_df(
-        ml_client, args.train_dataset_name, args.dataset_version
-    )
-    val_data = get_data_asset_as_df(
-        ml_client, args.val_dataset_name, args.dataset_version
-    )
+    train_data = get_data_asset_as_df(ml_client, train_name, version)
+    val_data = get_data_asset_as_df(ml_client, val_name, version)
 
     label_decoder = get_label_decoder(train_data["emotion"])
 
@@ -342,7 +344,7 @@ def main(args: argparse.Namespace) -> None:
     )
 
     model.save_pretrained(args.model_output_path)
-    with open(args.decoder_output_path, 'wb') as f:
+    with open(args.decoder_output_path, "wb") as f:
         pickle.dump(label_decoder, f)
 
 
