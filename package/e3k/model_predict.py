@@ -126,10 +126,6 @@ def predict(
     probabilities = tf.nn.softmax(logits, axis=-1).numpy()
     predicted_classes = np.argmax(probabilities, axis=1)
     highest_probabilities = np.max(probabilities, axis=1)
-
-    mt_logger.info(f"Probabilities: {probabilities}")
-    mt_logger.info(f"Predicted classes: {predicted_classes}")
-    mt_logger.info(f"Highest probabilities: {highest_probabilities}")
     
     text_labels = decode_labels(predicted_classes, emotion_decoder)
 
@@ -208,6 +204,6 @@ if __name__ == "__main__":
     mt_logger.info("Predictions made")
 
     # Print the predictions
-    for label, prob in zip(text_labels, highest_probabilities):
-        print(f"Predicted emotion: {label} with confidence: {prob:.2f}")
-    mt_logger.info("Results printed")
+    # for label, prob in zip(text_labels, highest_probabilities):
+    #     print(f"Predicted emotion: {label} with confidence: {prob:.2f}")
+    # mt_logger.info("Results printed")
