@@ -199,8 +199,8 @@ if __name__ == "__main__":
     mt_logger.info("Model loaded")
 
     # Load the emotion decoder
-    with open(args.decoder_path, 'r') as f:  # Open file as text
-        emotion_decoder = json.load(f)  # Use json.load instead of pickle.load
+    with open(args.decoder_path, 'r') as f:
+        emotion_decoder = json.load(f)
     mt_logger.info(f"Emotion decoder loaded with keys: {list(emotion_decoder.keys())}")
 
     # Make predictions
