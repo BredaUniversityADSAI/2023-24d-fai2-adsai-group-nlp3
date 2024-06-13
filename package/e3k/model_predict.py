@@ -3,6 +3,7 @@ import logging
 import os
 
 import joblib
+import json
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -74,7 +75,13 @@ def decode_labels(
         Max Meiners (214936)
     """
 
-    decoded_labels = list(map(lambda x: emotion_decoder[x], encoded_labels))
+    decoded_labels = []
+    for label in encoded_labels:
+        if str(label) in emotion_decoder:
+            decoded_labels.append(emotion_decoder[str(label)])
+        else:
+            mt_logger.warning(f"Class {label} not found in emotion_decoder.")
+            decoded_labels.append("unknown")
 
     return decoded_labels
 
@@ -119,11 +126,11 @@ def predict(
     probabilities = tf.nn.softmax(logits, axis=-1).numpy()
     predicted_classes = np.argmax(probabilities, axis=1)
     highest_probabilities = np.max(probabilities, axis=1)
-
+    
     text_labels = decode_labels(predicted_classes, emotion_decoder)
 
     mt_logger.info("Got predictions")
-
+    
     return text_labels, highest_probabilities
 
 
@@ -188,14 +195,15 @@ if __name__ == "__main__":
     mt_logger.info("Model loaded")
 
     # Load the emotion decoder
-    emotion_decoder = joblib.load(args.decoder_path)
-    mt_logger.info("Emotion decoder loaded")
+    with open(args.decoder_path, 'r') as f:
+        emotion_decoder = json.load(f)
+    mt_logger.info(f"Emotion decoder loaded with keys: {list(emotion_decoder.keys())}")
 
     # Make predictions
     text_labels, highest_probabilities = predict(model, tokens, masks, emotion_decoder)
     mt_logger.info("Predictions made")
 
     # Print the predictions
-    for label, prob in zip(text_labels, highest_probabilities):
-        print(f"Predicted emotion: {label} with confidence: {prob:.2f}")
-    mt_logger.info("Results printed")
+    # for label, prob in zip(text_labels, highest_probabilities):
+    #     print(f"Predicted emotion: {label} with confidence: {prob:.2f}")
+    # mt_logger.info("Results printed")

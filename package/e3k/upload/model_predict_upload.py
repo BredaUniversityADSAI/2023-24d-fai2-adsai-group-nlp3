@@ -1,6 +1,7 @@
 from azure.ai.ml import Input, MLClient, Output, command
 from azure.identity import InteractiveBrowserCredential
 from azureml.core import Workspace
+import os
 
 # Define the workspace
 subscription_id = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
@@ -19,7 +20,7 @@ credential = InteractiveBrowserCredential()
 
 ml_client = MLClient(credential, subscription_id, resource_group, workspace_name)
 
-environment = ml_client.environments.get(name="BlockD", version="1")
+environment = ml_client.environments.get(name="BlockD", version="2")
 
 # Define the compute target
 compute_name = "adsai0"
@@ -39,7 +40,10 @@ predict_component = command(
             type="uri_folder",
             description="Path to the model configuration and weights file",
         ),
-        "data_path": Input(type="uri_file", description="Data to be predicted"),
+        "data_path": Input(
+            type="uri_file", 
+            description="Data to be predicted"
+        ),
         "tokenizer_model": Input(
             type="string",
             description="Model to use for tokenization",
@@ -62,7 +66,7 @@ predict_component = command(
             description="Output predictions with confidence scores",
         )
     },
-    code="./package/e3k/model_predict.py",
+    code=os.path.abspath("./package/e3k/temp_folder"),
     command="""
     python model_predict.py
     --model_path ${{inputs.model_path}}

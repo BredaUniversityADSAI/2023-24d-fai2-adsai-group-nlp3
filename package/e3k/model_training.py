@@ -1,6 +1,7 @@
 import argparse
 import json
 import logging
+import pickle
 
 import mltable
 import pandas as pd
@@ -340,9 +341,9 @@ def main(args: argparse.Namespace) -> None:
         args.early_stopping_patience,
     )
 
-    model.save(args.model_output_path)
-    with open(args.decoder_output_path, "w") as f:
-        json.dump(label_decoder, f)
+    model.save_pretrained(args.model_output_path)
+    with open(args.decoder_output_path, 'wb') as f:
+        pickle.dump(label_decoder, f)
 
 
 if __name__ == "__main__":
