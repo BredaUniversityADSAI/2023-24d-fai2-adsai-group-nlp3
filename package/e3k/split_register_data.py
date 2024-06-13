@@ -7,6 +7,9 @@ import logging
 import os
 from azureml.core import Dataset, Datastore, Workspace
 from typing import Tuple, Dict
+from azureml.core.authentication import ServicePrincipalAuthentication
+import azureml
+import fsspec
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -16,10 +19,10 @@ subscription_id = '0a94de80-6d3b-49f2-b3e9-ec5818862801'
 resource_group = 'buas-y2'
 workspace_name = 'NLP3'
 tenant_id = '0a33589b-0036-4fe8-a829-3ed0926af886'
-client_id = '27157a5a-3927-4895-8478-9d4554697d25'
-client_secret = 'stf8Q~mP2cB923Mvz5K91ITcoYgvRXs4J1lysbfb'
+client_id = 'a2230f31-0fda-428d-8c5c-ec79e91a49f5'
+client_secret = 'Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C'
 
-def connect_to_azure_ml(subscription_id: str, resource_group: str, workspace_name: str, tenant_id: str, client_id: str, client_secret: str) -> MLClient:
+def connect_to_azure_ml(subscription_id: str, resource_group: str, workspace_name: str, tenant_id: str, client_id: str, client_secret: str) -> Tuple[MLClient, Workspace]:
     """
     Connects to the Azure Machine Learning workspace using client secret credentials.
     
@@ -33,6 +36,7 @@ def connect_to_azure_ml(subscription_id: str, resource_group: str, workspace_nam
     
     Returns:
     - ml_client (MLClient): The Azure Machine Learning client object.
+    - workspace (Workspace): The Azure Machine Learning workspace object.
 
     Author - Panna Pfandler
     """
@@ -41,16 +45,23 @@ def connect_to_azure_ml(subscription_id: str, resource_group: str, workspace_nam
     # Use client secret credentials
     credential = ClientSecretCredential(tenant_id, client_id, client_secret)
     
-    # Connect to the Azure Machine Learning workspace
+    # Connect to the Azure Machine Learning client
     ml_client = MLClient(subscription_id=subscription_id,
-        resource_group_name=resource_group,
-        credential=credential,
-        workspace_name=workspace_name)
+                         resource_group_name=resource_group,
+                         credential=credential,
+                         workspace_name=workspace_name)
+    
+    # Connect to the Azure Machine Learning workspace
+    service_principal = ServicePrincipalAuthentication(
+        tenant_id=tenant_id,
+        service_principal_id=client_id,
+        service_principal_password=client_secret,
+    )
+    workspace = Workspace(subscription_id, resource_group, workspace_name, auth=service_principal)
     
     mt_logger.info("Connected to Azure ML workspace.")
     
-    return ml_client
-
+    return ml_client, workspace
 
 def load_data(file_path: str) -> Tuple[pd.DataFrame, Dict[int, str]]:
     """
@@ -122,36 +133,50 @@ def main(args: argparse.Namespace):
 
     Author - Panna Pfandler
     """
+    mt_logger.info("Starting main function")
     local = args.local == "True"
+    
+    mt_logger.info(f"Local mode: {local}")
+    mt_logger.info(f"Data path: {args.data_path}")
+    mt_logger.info(f"Validation size: {args.val_size}")
+    
     if local:
         mt_logger.info("Processing data locally.")
         # Load data locally
         data_df, _ = load_data(args.data_path)
-        train_set, val_set = get_train_val_data(data_df)
+        train_set, val_set = get_train_val_data(data_df, args.val_size)
     else:
         mt_logger.info("Processing data from Azure.")
         # Access data from Azure
-        ml_client = connect_to_azure_ml(subscription_id, resource_group, workspace_name, tenant_id, client_id, client_secret)
-        workspace = Workspace.get(name=workspace_name, subscription_id=subscription_id, resource_group=resource_group)
+        ml_client, workspace = connect_to_azure_ml(subscription_id, resource_group, workspace_name, tenant_id, client_id, client_secret)
         datastore = Datastore.get(workspace, datastore_name='workspaceblobstore')
-        uri = f'azureml://subscriptions/{subscription_id}/resourcegroups/{resource_group}/workspaces/{workspace_name}/datastores/workspaceblobstore/paths/{args.data_path}'
+        #uri = f'azureml://subscriptions/{subscription_id}/resourcegroups/{resource_group}/workspaces/{workspace_name}/datastores/workspaceblobstore/paths/{args.data_path}'
         
+        #mt_logger.info(f"Reading data from Azure Blob Storage URI: {uri}")
         # Read data using pandas
-        data_df = pd.read_csv(uri)
+        
+        data_df = pd.read_csv(f'azureml://subscriptions/{subscription_id}/resourcegroups/{resource_group}/workspaces/{workspace_name}/datastores/workspaceblobstore/paths/{args.data_path}')
 
         # Split data
-        train_set, val_set = get_train_val_data(data_df)
+        train_set, val_set = get_train_val_data(data_df, args.val_size)
 
         # Register datasets
+        mt_logger.info("Registering training dataset in Azure")
         Dataset.Tabular.register_pandas_dataframe(dataframe=train_set, name='train_data', description='training data', target=datastore)
-        Dataset.Tabular.register_pandas_dataframe(dataframe=val_set, name='val_data', description='validation data',target=datastore)
+        mt_logger.info("Registering validation dataset in Azure")
+        Dataset.Tabular.register_pandas_dataframe(dataframe=val_set, name='val_data', description='validation data', target=datastore)
         
         mt_logger.info("Data processed and datasets registered in Azure.")
+        
+    mt_logger.info("Main function completed")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process data.")
     parser.add_argument("--local", type=str, default="True", choices=["True", "False"], help="Load data locally.")
     parser.add_argument("--data_path", type=str, help="Path to the data file.")
+    parser.add_argument("--val_size", type=float, default=0.2)
+    parser.add_argument("--train_data", type=str)
+    parser.add_argument("--val_data", type=str)
     args = parser.parse_args()
 
     main(args)
