@@ -8,6 +8,7 @@ import os
 from azureml.core import Dataset, Datastore, Workspace
 from typing import Tuple, Dict
 from azureml.core.authentication import ServicePrincipalAuthentication
+import azureml
 import fsspec
 
 # Configure logging

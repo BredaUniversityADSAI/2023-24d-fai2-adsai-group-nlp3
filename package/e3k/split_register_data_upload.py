@@ -12,7 +12,7 @@ client_secret = 'Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C'
 
 
 # Setup logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 mt_logger = logging.getLogger("azure_ml")
 
 # Authenticate and create an MLClient
@@ -29,7 +29,7 @@ except Exception as e:
     mt_logger.error(f"Error finding compute target: {str(e)}")
 
 # Get the environment
-environment = ml_client.environments.get(name="BlockD", version="2")
+environment = ml_client.environments.get(name="BlockD", version="8")
 
 # Define the split_register component
 split_register_component = command(
@@ -42,8 +42,8 @@ split_register_component = command(
         "val_size": Input(type="number", description="Validation data size as a proportion of the dataset", default=0.2)
     },
     outputs={
-        "train_data": Output(type="string", mode="rw_mount", description="Registered training dataset"),
-        "val_data": Output(type="string", mode="rw_mount", description="Registered validation dataset")
+        "train_data": Output(type="uri_folder", mode="rw_mount", description="Registered training dataset"),
+        "val_data": Output(type="uri_folder", mode="rw_mount", description="Registered validation dataset")
     },
     code="./split_register_data.py",
     command=(
@@ -66,3 +66,34 @@ try:
 except Exception as e:
     mt_logger.error(f"Failed to create or update the component: {str(e)}")
     print(f"Failed to create or update the component: {str(e)}")
+
+
+@dsl.pipeline(
+    name="split_register_data",
+    description="testing if the split_register_data works",
+    compute="adsai0",
+)
+
+def test_split_register_pipeline(
+    data_path: str,
+    local: str,
+    val_size: float
+) -> None:
+    # Using the split_register_component to split and register the dataset
+    split_step = split_register_component(
+        data_path=data_path,
+        local=local,
+        val_size=val_size
+    )
+
+# Instantiate the pipeline
+pipeline_instance = test_split_register_pipeline(
+    data_path="dataset_panna/dataset_panna.csv",
+    local="False",
+    val_size=0.3
+)
+
+# Submit the pipeline job
+pipeline_run = ml_client.jobs.create_or_update(pipeline_instance)
+print(f"Pipeline run submitted with ID: {pipeline_run.id}")
+
