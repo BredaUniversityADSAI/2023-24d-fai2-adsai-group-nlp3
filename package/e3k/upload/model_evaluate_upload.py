@@ -160,7 +160,7 @@ pipeline_instance = test_training_pipeline(
     learning_rate=1e-3,
     early_stopping_patience=3,
     test_data='dataset_wojciech/test_azure_data.csv',
-    model_name='testModel',
+    model_name="testModel",
     )
 
 pipeline_run = ml_client.jobs.create_or_update(pipeline_instance, experiment_name="Model_evaluation")

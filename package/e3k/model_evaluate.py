@@ -201,8 +201,8 @@ def register_model_and_encoding(
         datastore = Datastore(workspace, name='workspaceblobstore')
         
         emotion_decoder = datastore.upload(src_dir=os.path.dirname(label_decoder),
-                 target_path='labels_encodings',
-                 overwrite=True,
+                 target_path=f'labels_encodings/{model_name}',
+                 overwrite=False,
                  show_progress=True)
         
         mt_logger.info("Encodings saved")
@@ -357,8 +357,8 @@ if __name__ == "__main__":
         emotions, probabilities = predict(model, tokens, masks, label_decoder)
         accuracy, _ = evaluate(emotions, data)
         print(f"Test accuracy: {accuracy * 100:.2f}%")
-        register_model_and_encoding(args.model_path, args.label_decoder, accuracy,
-                                    args.model_name, workspace)
+        register_model_and_encoding(args.model_path, args.label_decoder, accuracy, 
+                                    workspace, args.model_name)
 
     else:
         mt_logger.info("local path")
