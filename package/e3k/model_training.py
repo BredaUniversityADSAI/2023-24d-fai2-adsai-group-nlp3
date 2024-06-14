@@ -146,15 +146,22 @@ def get_ml_client(
 
 
 def get_versioned_datasets(args, ml_client) -> Tuple[str, str, str]:
-    dataset_info = json.load(args.dataset_name_file)
+    with open(args.dataset_name_file, "r") as f:
+        dataset_info = json.load(f)
     train_name = dataset_info["train"]
     val_name = dataset_info["val"]
 
+    mt_logger.info("got datasets names")
+
     dataset_list = ml_client.data.list(name="train_name")
+
+    mt_logger.debug("got dataset list for versioning")
 
     newest_version = reduce(
         lambda x, y: max(x, y), map(lambda x: x.version, dataset_list)
     )
+
+    mt_logger.debug(f"got datasets version {newest_version}")
 
     return train_name, val_name, newest_version
 
@@ -321,7 +328,7 @@ def main(args: argparse.Namespace) -> None:
         WORKSPACE_NAME,
     )
 
-    train_name, val_name, version = get_versioned_datasets()
+    train_name, val_name, version = get_versioned_datasets(args, ml_client)
 
     # getting datasets
     train_data = get_data_asset_as_df(ml_client, train_name, version)

@@ -22,11 +22,16 @@ env = ml_client.environments.get("BlockD", version="2")
 compute = ml_client.compute.get("adsai0")
 
 splitting_component = ml_client.components.get(
-    name="split_register_component", version="2024-06-13-15-17-10-9036306"
+    name="split_register_component",
+    version="2024-06-13-15-17-10-9036306"
 )
-train_component = ml_client.components.get(name="train_component", version="1")
+train_component = ml_client.components.get(
+    name="train_component",
+    version="2024-06-14-14-26-40-1046836"
+)
 eval_component = ml_client.components.get(
-    name="evaluation", version="2024-06-12-17-43-31-7893751"
+    name="evaluation",
+    version="2024-06-12-17-43-31-7893751"
 )
 
 
@@ -63,14 +68,20 @@ def model_training(
     )
 
 
-training_pipeline = model_training(
-    data_path="dataset_panna/dataset_panna.csv",
-    val_size=0.2,
-    epochs=2,
-    learning_rate=1e-3,
-    early_stopping_patience=3,
-    test_data="dataset_wojciech/test_azure_data.csv",
-    model_name="training_test_model",
-)
+if __name__ == "__main__":
+    
+    # test pipeline on small dataset
+    training_pipeline = model_training(
+        data_path="dataset_panna/dataset_panna.csv",
+        val_size=0.2,
+        epochs=2,
+        learning_rate=1e-3,
+        early_stopping_patience=3,
+        test_data="dataset_wojciech/test_azure_data.csv",
+        model_name="training_test_model",
+    )
 
-training_pipeline_run = ml_client.jobs.create_or_update(training_pipeline)
+    training_pipeline_run = ml_client.jobs.create_or_update(
+        training_pipeline,
+        experiment_name="test_model_training_pipeline"
+    )

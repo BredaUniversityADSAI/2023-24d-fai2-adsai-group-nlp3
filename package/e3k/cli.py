@@ -1,16 +1,28 @@
 import argparse
 import logging
+import datetime
 
 import episode_preprocessing_pipeline as epp
 import model_evaluate as me
 import model_output_information as moi
 import model_predict as mp
 import model_training as mt
+from model_training_pipeline import model_training as mt_pipe
 import pandas as pd
 import preprocessing
-import splitting
+import split_register_data as splitting
 from tensorflow import config as tf_config
 from transformers import TFRobertaForSequenceClassification
+
+
+# const values for Azure connection
+SUBSCRIPTION_ID = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
+RESOURCE_GROUP = "buas-y2"
+WORKSPACE_NAME = "NLP3"
+TENANT_ID = "0a33589b-0036-4fe8-a829-3ed0926af886"
+CLIENT_ID = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
+CLIENT_SECRET = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
+
 
 # setting up logger
 logger = logging.getLogger("main")
@@ -83,10 +95,10 @@ def get_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--cloud",
-        type=bool,
-        choices=[True, False],
+        type=str,
+        choices=["True", "False"],
         help="""
-        bool, used to run either cloud flow, or the local flow.
+        string, used to run either cloud flow, or the local flow.
         """,
     )
 
@@ -194,7 +206,14 @@ def get_args() -> argparse.Namespace:
         required=False,
         type=str,
         default="new_test_data/train_eval_sample.csv",
-        help="Path to the validation data [CSV file (local) | dataset (cloud)]",
+        help="Path to the validation data [CSV file (local) | not used, val dataset created automaticaly from train data (cloud)]",
+    )
+    parser.add_argument(
+        "--val_size",
+        required=False,
+        type=float,
+        default=0.2,
+        help="Proportion of train data used as validation data to train the model",
     )
 
     # model_training args
@@ -247,6 +266,12 @@ def get_args() -> argparse.Namespace:
         type=str,
         default="new_test_data/train_eval_sample.csv",
         help="path to test data for model evaluation",
+    )
+    parser.add_argument(
+        "--model_name",
+        type=str,
+        default=str(datetime.datetime.now().date()),
+        help="name of the registered model (cloud only)",
     )
 
     # model_predict args (that are not in model_train already)
@@ -368,11 +393,11 @@ def model_training(
     Author - Wojciech Stachowiak
     """
 
-    train_data = splitting.load_data(args.train_data)
+    train_data, _ = splitting.load_data(args.train_data)
     if args.val_data == "":
         train_data, val_data = splitting.get_train_val_data(train_data, args.val_size)
     else:
-        val_data = splitting.load_data(args.val_data)
+        val_data, _ = splitting.load_data(args.val_data)
     label_decoder = mt.get_label_decoder(train_data["emotion"])
 
     train_dataset, val_dataset = preprocessing.preprocess_training_data(
@@ -412,7 +437,7 @@ def evaluate_model(
 
     Author - Wojciech Stachowiak
     """
-    data = me.load_data(args.test_data)
+    data, _ = me.load_data(args.test_data)
     tokens, masks = me.preprocess_prediction_data(data)
     emotions, _ = me.predict(model, tokens, masks, label_decoder)
     accuracy, _ = me.evaluate(emotions, data)
@@ -496,6 +521,39 @@ def main() -> None:
     cloud = args.cloud == "True"
     if cloud is True:
         logger.info("the pipeline will run in the cloud")
+
+        ml_client = mt.get_ml_client(
+            SUBSCRIPTION_ID,
+            TENANT_ID,
+            CLIENT_ID,
+            CLIENT_SECRET,
+            RESOURCE_GROUP,
+            WORKSPACE_NAME
+        )
+
+        if args.task == "train":
+            logger.info("entered task: train")
+
+            training_pipeline = mt_pipe(
+                data_path=args.train_data,
+                val_size=args.val_size,
+                epochs=args.epochs,
+                learning_rate=args.learning_rate,
+                early_stopping_patience=args.early_stopping_patience,
+                test_data=args.test_data,
+                model_name=args.model_name
+            )
+
+            _ = ml_client.jobs.create_or_update(
+                training_pipeline,
+                experiment_name="model_training"
+            )
+
+            logger.info("the pipeline is running in the cloud now")
+
+        if args.task == "predict":
+            logger.info("entered task: predict")
+            
     else:
         logger.info("the pipeline will run locally")
 

@@ -22,6 +22,7 @@ ml_client = MLClient(
 env = ml_client.environments.get("BlockD", version="2")
 compute = ml_client.compute.get("adsai0")
 
+# define the component
 train_component = command(
     name="train_component",
     display_name="Model training",
@@ -65,8 +66,10 @@ train_component = command(
     compute_target=compute.name,
 )
 
+# register the component
 ml_client.create_or_update(train_component.component)
 
+# running the component as a pipeline
 """
 @dsl.pipeline(
     name="test_model_training_pipeline",
