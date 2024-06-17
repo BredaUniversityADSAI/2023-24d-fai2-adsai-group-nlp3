@@ -14,20 +14,15 @@ from azure.identity import ClientSecretCredential
 from preprocessing import preprocess_training_data
 
 # setting up logger
-mt_logger = logging.getLogger("model_training")
+mt_logger = logging.getLogger("main.model_training")
 mt_logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-
-file_handler = logging.FileHandler("logs.log")
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
 
 stream_handler = logging.StreamHandler()
 stream_handler.setLevel(logging.DEBUG)
 stream_handler.setFormatter(formatter)
 
-mt_logger.addHandler(file_handler)
-mt_logger.addHandler(stream_handler)
+# mt_logger.addHandler(stream_handler)
 
 
 # const values for Azure connection
@@ -39,7 +34,7 @@ CLIENT_ID = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
 CLIENT_SECRET = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
 
 
-mt_logger.info(f"devices: {tf.config.list_physical_devices()}")
+# mt_logger.info(f"devices: {tf.config.list_physical_devices()}")
 
 
 def get_args() -> argparse.Namespace:
@@ -55,7 +50,7 @@ def get_args() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser()
 
-    mt_logger.debug("collecting CLI args")
+    # mt_logger.debug("collecting CLI args")
 
     parser.add_argument(
         "--cloud",
@@ -92,13 +87,13 @@ def get_args() -> argparse.Namespace:
         help="path where the label_decoder will be saved",
     )
 
-    mt_logger.info("collected CLI args")
+    # mt_logger.info("collected CLI args")
 
-    mt_logger.debug("parsing args")
+    # mt_logger.debug("parsing args")
 
     args = parser.parse_args()
 
-    mt_logger.debug("parsed args")
+    # mt_logger.debug("parsed args")
 
     return args
 
@@ -128,10 +123,10 @@ def get_ml_client(
 
     Author - Wojciech Stachowiak
     """
-    mt_logger.debug("getting credentials")
+    # mt_logger.debug("getting credentials")
     credential = ClientSecretCredential(tenant_id, client_id, client_secret)
 
-    mt_logger.debug("building MLClient")
+    # mt_logger.debug("building MLClient")
 
     ml_client = MLClient(
         subscription_id=subscription_id,
@@ -140,28 +135,29 @@ def get_ml_client(
         workspace_name=workspace_name,
     )
 
-    mt_logger.info("got MLClient")
+    # mt_logger.info("got MLClient")
 
     return ml_client
 
 
 def get_versioned_datasets(args, ml_client) -> Tuple[str, str, str]:
-    with open(args.dataset_name_file, "r") as f:
+    with open(args.dataset_name_file) as f:
         dataset_info = json.load(f)
+
     train_name = dataset_info["train"]
     val_name = dataset_info["val"]
 
-    mt_logger.info("got datasets names")
+    # mt_logger.info("got datasets names")
 
     dataset_list = ml_client.data.list(name="train_name")
 
-    mt_logger.debug("got dataset list for versioning")
+    # mt_logger.debug("got dataset list for versioning")
 
     newest_version = reduce(
         lambda x, y: max(x, y), map(lambda x: x.version, dataset_list)
     )
 
-    mt_logger.debug(f"got datasets version {newest_version}")
+    # mt_logger.debug(f"got datasets version {newest_version}")
 
     return train_name, val_name, newest_version
 
@@ -184,21 +180,21 @@ def get_data_asset_as_df(
     """
 
     # fetching dataset
-    mt_logger.debug(f"getting dataset: {dataset_name} version {dataset_version}")
+    # mt_logger.debug(f"getting dataset: {dataset_name} version {dataset_version}")
     data_asset = ml_client.data.get(dataset_name, version=dataset_version)
-    mt_logger.debug("got dataset")
+    # mt_logger.debug("got dataset")
 
     path = {"folder": data_asset.path}
 
     # loading data as mltable
-    mt_logger.debug("reading into table")
+    # mt_logger.debug("reading into table")
     table = mltable.from_delimited_files(paths=[path])
-    mt_logger.debug("table loaded")
+    # mt_logger.debug("table loaded")
 
     # converting to pd.DataFrame
-    mt_logger.debug("getting dataframe")
+    # mt_logger.debug("getting dataframe")
     df = table.to_pandas_dataframe()
-    mt_logger.debug("got dataframe")
+    # mt_logger.debug("got dataframe")
 
     return df
 
@@ -216,9 +212,9 @@ def get_label_decoder(series: pd.Series) -> Dict[int, str]:
 
     Author - Wojciech Stachowiak
     """
-    mt_logger.info("getting label decoder from training data")
+    # mt_logger.info("getting label decoder from training data")
     label_decoder = {i: label for i, label in enumerate(series.unique())}
-    mt_logger.debug(f"detected {len(label_decoder)} classes")
+    # mt_logger.debug(f"detected {len(label_decoder)} classes")
 
     return label_decoder
 
@@ -238,14 +234,14 @@ def get_new_model(num_classes: int) -> transformers.TFRobertaForSequenceClassifi
         Max Meiners (214936)
     """
 
-    mt_logger.debug("loading model")
+    # mt_logger.debug("loading model")
     model_configuration = transformers.RobertaConfig.from_pretrained(
         "roberta-base", num_labels=num_classes
     )
     model = transformers.TFRobertaForSequenceClassification.from_pretrained(
         "roberta-base", config=model_configuration
     )
-    mt_logger.info("loaded model")
+    # mt_logger.info("loaded model")
 
     return model
 
@@ -276,7 +272,7 @@ def train_model(
         Max Meiners (214936)
     """
 
-    mt_logger.info("compiling model")
+    # mt_logger.info("compiling model")
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
@@ -291,7 +287,7 @@ def train_model(
         restore_best_weights=True,
     )
 
-    mt_logger.info("training model")
+    # mt_logger.info("training model")
 
     model.fit(
         training_dataset,
@@ -300,7 +296,7 @@ def train_model(
         callbacks=[early_stopping],
     )
 
-    mt_logger.info("training finished")
+    # mt_logger.info("training finished")
 
     return model
 

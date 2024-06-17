@@ -1,19 +1,19 @@
 import argparse
-import logging
 import datetime
+import logging
 
 import episode_preprocessing_pipeline as epp
 import model_evaluate as me
 import model_output_information as moi
 import model_predict as mp
 import model_training as mt
-from model_training_pipeline import model_training as mt_pipe
 import pandas as pd
 import preprocessing
 import split_register_data as splitting
+from model_training_pipeline import model_training as mt_pipe
 from tensorflow import config as tf_config
+# from tensorflow.python.platform import tf_logging
 from transformers import TFRobertaForSequenceClassification
-
 
 # const values for Azure connection
 SUBSCRIPTION_ID = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
@@ -23,15 +23,16 @@ TENANT_ID = "0a33589b-0036-4fe8-a829-3ed0926af886"
 CLIENT_ID = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
 CLIENT_SECRET = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
 
-
+# tf_logging._logging.getLogger().propagate = False
 # setting up logger
 logger = logging.getLogger("main")
+logger.propagate = False
+# attach handlers
 logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-# logger.setLevel(logging.INFO)
-file_handler = logging.FileHandler("logs.log")
-file_handler.setLevel(logging.INFO)
+file_handler = logging.FileHandler("logs.log", mode="w")
+file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 
 stream_handler = logging.StreamHandler()
@@ -206,7 +207,8 @@ def get_args() -> argparse.Namespace:
         required=False,
         type=str,
         default="new_test_data/train_eval_sample.csv",
-        help="Path to the validation data [CSV file (local) | not used, val dataset created automaticaly from train data (cloud)]",
+        help="""Path to the validation data [CSV file (local) | not used,
+        val dataset created automaticaly from train data (cloud)]""",
     )
     parser.add_argument(
         "--val_size",
@@ -281,7 +283,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--label_decoder_path",
         type=str,
-        help="path to the file/folder (TODO check cloud) with label_decoder data",
+        help="path to the file with label_decoder data",
     )
     parser.add_argument(
         "--tokenizer_model",
@@ -394,6 +396,7 @@ def model_training(
     """
 
     train_data, _ = splitting.load_data(args.train_data)
+
     if args.val_data == "":
         train_data, val_data = splitting.get_train_val_data(train_data, args.val_size)
     else:
@@ -437,7 +440,7 @@ def evaluate_model(
 
     Author - Wojciech Stachowiak
     """
-    data, _ = me.load_data(args.test_data)
+    data = me.load_data(args.test_data)
     tokens, masks = me.preprocess_prediction_data(data)
     emotions, _ = me.predict(model, tokens, masks, label_decoder)
     accuracy, _ = me.evaluate(emotions, data)
@@ -528,7 +531,7 @@ def main() -> None:
             CLIENT_ID,
             CLIENT_SECRET,
             RESOURCE_GROUP,
-            WORKSPACE_NAME
+            WORKSPACE_NAME,
         )
 
         if args.task == "train":
@@ -541,19 +544,18 @@ def main() -> None:
                 learning_rate=args.learning_rate,
                 early_stopping_patience=args.early_stopping_patience,
                 test_data=args.test_data,
-                model_name=args.model_name
+                model_name=args.model_name,
             )
 
             _ = ml_client.jobs.create_or_update(
-                training_pipeline,
-                experiment_name="model_training"
+                training_pipeline, experiment_name="model_training"
             )
 
             logger.info("the pipeline is running in the cloud now")
 
         if args.task == "predict":
             logger.info("entered task: predict")
-            
+
     else:
         logger.info("the pipeline will run locally")
 

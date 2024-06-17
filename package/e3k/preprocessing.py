@@ -6,7 +6,7 @@ import pandas as pd
 import tensorflow as tf
 import transformers
 
-mt_logger = logging.getLogger("main.preprocessing")
+pre_logger = logging.getLogger("main.preprocessing")
 
 
 def get_tokenizer(model_name: str = "roberta-base") -> transformers.AutoTokenizer:
