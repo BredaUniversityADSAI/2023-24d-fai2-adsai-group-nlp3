@@ -60,7 +60,7 @@ train_component = command(
         "model_path": Output(type="uri_folder", mode="upload"),
         "label_decoder": Output(type="uri_file", mode="upload"),
     },
-    code="./package/e3k/Components",
+    code="./package/e3k/",
     command=(
         "python model_training.py "
         "--cloud True "
@@ -101,17 +101,23 @@ evaluate_component = command(
             type="string",
             description="Name to register the model"
         ),
+
+        "threshold": Input(
+            type="number",
+            description="Min accuracy for the model to be considered good"
+        )
         
     },
     
-    code="./package/e3k/Components",
+    code="./package/e3k/",
     command=(
         "python model_evaluate.py "
         "--cloud True "
         "--test_data_name ${{inputs.test_data}} "
         "--model_path ${{inputs.model_path}} "
         "--label_decoder ${{inputs.label_decoder}} "
-        "--model_name ${{inputs.model_name}}"
+        "--model_name ${{inputs.model_name}} "
+        "--threshold ${{inputs.threshold}}"
     ),
     environment=env,
     compute_target=compute.name,
@@ -120,7 +126,7 @@ evaluate_component = command(
 
 ml_client.create_or_update(evaluate_component.component)
 
-
+"""
 @dsl.pipeline(
     name="test_model_evaluation_pipeline",
     description="testing if model_evaluation part works",
@@ -164,3 +170,4 @@ pipeline_instance = test_training_pipeline(
     )
 
 pipeline_run = ml_client.jobs.create_or_update(pipeline_instance, experiment_name="Model_evaluation")
+"""

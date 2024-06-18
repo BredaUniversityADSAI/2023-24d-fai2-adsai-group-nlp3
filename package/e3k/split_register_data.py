@@ -1,6 +1,6 @@
 import argparse
 import logging
-# import os
+import os
 from typing import Dict, Tuple
 
 # import azureml
@@ -12,16 +12,24 @@ from azureml.core import Dataset, Datastore, Workspace
 from azureml.core.authentication import ServicePrincipalAuthentication
 from sklearn.model_selection import train_test_split
 
-# Configure logging
-split_logger = logging.getLogger("main.split_register_data")
-split_logger.setLevel(logging.DEBUG)
+# setting up logger
+split_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-stream_handler = logging.StreamHandler()
-stream_handler.setLevel(logging.DEBUG)
-stream_handler.setFormatter(formatter)
+file_handler = logging.FileHandler("logs.log", mode="a")
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
 
-# split_logger.addHandler(stream_handler)
+split_logger.addHandler(file_handler)
+
+if len(split_logger.handlers) == 0:
+    split_logger.setLevel(logging.DEBUG)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.DEBUG)
+    stream_handler.setFormatter(formatter)
+
+    split_logger.addHandler(stream_handler)
 
 
 subscription_id = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
@@ -57,7 +65,7 @@ def connect_to_azure_ml(
 
     Author - Panna Pfandler
     """
-    # split_logger.info("Connecting to Azure ML workspace.")
+    split_logger.info("Connecting to Azure ML workspace.")
 
     # Use client secret credentials
     credential = ClientSecretCredential(tenant_id, client_id, client_secret)
@@ -80,7 +88,7 @@ def connect_to_azure_ml(
         subscription_id, resource_group, workspace_name, auth=service_principal
     )
 
-    # split_logger.info("Connected to Azure ML workspace.")
+    split_logger.info("Connected to Azure ML workspace.")
 
     return ml_client, workspace
 
@@ -100,15 +108,14 @@ def load_data(file_path: str) -> Tuple[pd.DataFrame, Dict[int, str]]:
 
     Author - Max Meiners
     """
-    # split_logger.info(f"Loading data from {file_path}")
-    df = pd.read_csv(file_path, header=0)[["sentence", "emotion"]]
-    # .dropna()
+    split_logger.info(f"Loading data from {file_path}")
+    df = pd.read_csv(file_path, header=0)[["sentence", "emotion"]].dropna()
 
     # Create a dictionary with class labels
     emotion_decoder = {i: label for i, label in enumerate(df["emotion"].unique())}
 
     # Log message indicating data loaded
-    # split_logger.info(f"Loaded data: {os.path.basename(file_path)}")
+    split_logger.info(f"Loaded data: {os.path.basename(file_path)}")
 
     return df, emotion_decoder
 
@@ -131,7 +138,7 @@ def get_train_val_data(
 
     Author - Panna Pfandler
     """
-    # split_logger.info("Splitting data into train and validation")
+    split_logger.info("Splitting data into train and validation")
 
     X_train, X_val, y_train, y_val = train_test_split(
         data_df["sentence"],
@@ -149,7 +156,7 @@ def get_train_val_data(
         train_set = pd.DataFrame({"sentence": X_train, "emotion": y_train})
         val_set = pd.DataFrame({"sentence": X_val, "emotion": y_val})
 
-    # split_logger.info("Data split")
+    split_logger.info("Data split")
 
     return train_set, val_set
 
@@ -164,20 +171,20 @@ def main(args: argparse.Namespace):
 
     Author - Panna Pfandler
     """
-    # split_logger.info("Starting main function")
+    split_logger.info("Starting main function")
     local = args.local == "True"
 
-    # split_logger.info(f"Local mode: {local}")
-    # split_logger.info(f"Data path: {args.data_path}")
-    # split_logger.info(f"Validation size: {args.val_size}")
+    split_logger.info(f"Local mode: {local}")
+    split_logger.info(f"Data path: {args.data_path}")
+    split_logger.info(f"Validation size: {args.val_size}")
 
     if local:
-        # split_logger.info("Processing data locally.")
+        split_logger.info("Processing data locally.")
         # Load data locally
         data_df, _ = load_data(args.data_path)
         train_set, val_set = get_train_val_data(data_df, args.val_size)
     else:
-        # split_logger.info("Processing data from Azure.")
+        split_logger.info("Processing data from Azure.")
         # Access data from Azure
         ml_client, workspace = connect_to_azure_ml(
             subscription_id,
@@ -194,9 +201,9 @@ def main(args: argparse.Namespace):
 
         data_df = pd.read_csv(
             (
-                f"azureml://subscriptions/{subscription_id}/resourcegroups/
-                {resource_group}/workspaces/{workspace_name}/datastores/
-                workspaceblobstore/paths/{args.data_path}"
+                f"azureml://subscriptions/{subscription_id}/resourcegroups/"
+                f"{resource_group}/workspaces/{workspace_name}/datastores/"
+                f"workspaceblobstore/paths/{args.data_path}"
             )
         )
 
@@ -219,9 +226,9 @@ def main(args: argparse.Namespace):
             target=datastore,
         )
 
-        # split_logger.info("Data processed and datasets registered in Azure.")
+        split_logger.info("Data processed and datasets registered in Azure.")
 
-    # split_logger.info("Main function completed")
+    split_logger.info("Main function completed")
 
 
 if __name__ == "__main__":

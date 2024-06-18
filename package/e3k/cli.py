@@ -227,6 +227,13 @@ def get_args() -> argparse.Namespace:
         help="number of examples in one training batch",
     )
     parser.add_argument(
+        "--max_length",
+        required=False,
+        type=int,
+        default=128,
+        help="max number of tokens used from one input sentence"
+    )
+    parser.add_argument(
         "--epochs",
         required=False,
         type=int,
@@ -404,7 +411,11 @@ def model_training(
     label_decoder = mt.get_label_decoder(train_data["emotion"])
 
     train_dataset, val_dataset = preprocessing.preprocess_training_data(
-        train_data, val_data, label_decoder
+        train_data,
+        val_data,
+        label_decoder,
+        max_length=args.max_length,
+        batch_size=args.batch_size
     )
 
     model = mt.get_new_model(len(label_decoder))
@@ -414,7 +425,7 @@ def model_training(
         val_dataset,
         epochs=args.epochs,
         learning_rate=args.learning_rate,
-        early_stopping_patience=args.early_stopping_patience,
+        early_stopping_patience=args.early_stopping_patience
     )
 
     return model, label_decoder
@@ -544,6 +555,7 @@ def main() -> None:
                 learning_rate=args.learning_rate,
                 early_stopping_patience=args.early_stopping_patience,
                 test_data=args.test_data,
+                threshold=args.threshold,
                 model_name=args.model_name,
             )
 

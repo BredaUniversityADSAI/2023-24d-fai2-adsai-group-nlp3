@@ -13,7 +13,24 @@ from azureml.core.authentication import ServicePrincipalAuthentication
 from preprocessing import preprocess_prediction_data
 from sklearn.metrics import accuracy_score, classification_report
 
-eval_logger = logging.getLogger("main.model_evaluation")
+# setting up logger
+eval_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+file_handler = logging.FileHandler("logs.log", mode="a")
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+eval_logger.addHandler(file_handler)
+
+if len(eval_logger.handlers) == 0:
+    eval_logger.setLevel(logging.DEBUG)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.DEBUG)
+    stream_handler.setFormatter(formatter)
+
+    eval_logger.addHandler(stream_handler)
 
 
 # Loading data from local device
@@ -355,6 +372,14 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--threshold",
+        required=False,
+        type=float,
+        default=0.8,
+        help="Min accuracy for the model to be considered good"
+    )
+
+    parser.add_argument(
         "--model_name",
         required=False,
         type=str,
@@ -396,7 +421,12 @@ if __name__ == "__main__":
         accuracy, _ = evaluate(emotions, data)
         print(f"Test accuracy: {accuracy * 100:.2f}%")
         register_model_and_encoding(
-            args.model_path, args.label_decoder, accuracy, workspace, args.model_name
+            args.model_path,
+            args.label_decoder,
+            accuracy,
+            workspace,
+            args.model_name,
+            args.threshold
         )
 
     else:

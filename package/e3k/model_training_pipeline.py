@@ -22,13 +22,13 @@ env = ml_client.environments.get("BlockD", version="2")
 compute = ml_client.compute.get("adsai0")
 
 splitting_component = ml_client.components.get(
-    name="split_register_component", version="2024-06-13-15-17-10-9036306"
+    name="split_register_component", version="2024-06-18-13-38-20-4215950"
 )
 train_component = ml_client.components.get(
-    name="train_component", version="2024-06-17-07-48-47-0170307"
+    name="train_component", version="2024-06-18-13-35-31-0688003"
 )
 eval_component = ml_client.components.get(
-    name="evaluation", version="2024-06-12-17-43-31-7893751"
+    name="evaluation", version="2024-06-18-13-36-25-3281968"
 )
 
 
@@ -44,6 +44,7 @@ def model_training(
     learning_rate: float,
     early_stopping_patience: int,
     test_data: str,
+    threshold: float,
     model_name: str,
 ):
     splitting_step = splitting_component(
@@ -57,14 +58,13 @@ def model_training(
         early_stopping_patience=early_stopping_patience,
     )
 
-    eval_step = eval_component(
+    _ = eval_component(
         model_path=train_step.outputs.model,
         label_decoder=train_step.outputs.label_decoder,
         test_data=test_data,
+        threshold=threshold,
         model_name=model_name,
     )
-
-    return eval_step.outputs.results
 
 
 if __name__ == "__main__":
@@ -76,6 +76,7 @@ if __name__ == "__main__":
         learning_rate=1e-3,
         early_stopping_patience=3,
         test_data="dataset_wojciech/test_azure_data.csv",
+        threshold=0.0,
         model_name="training_test_model",
     )
 

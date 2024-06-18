@@ -67,7 +67,7 @@ except Exception as e:
     mt_logger.error(f"Failed to create or update the component: {str(e)}")
     print(f"Failed to create or update the component: {str(e)}")
 
-
+"""
 @dsl.pipeline(
     name="split_register_data",
     description="testing if the split_register_data works",
@@ -96,4 +96,4 @@ pipeline_instance = test_split_register_pipeline(
 # Submit the pipeline job
 pipeline_run = ml_client.jobs.create_or_update(pipeline_instance)
 print(f"Pipeline run submitted with ID: {pipeline_run.id}")
-
+"""
