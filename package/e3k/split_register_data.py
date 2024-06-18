@@ -10,6 +10,7 @@ from typing import Tuple, Dict
 from azureml.core.authentication import ServicePrincipalAuthentication
 import azureml
 import fsspec
+import json
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -151,10 +152,9 @@ def main(args: argparse.Namespace):
         ml_client, workspace = connect_to_azure_ml(subscription_id, resource_group, workspace_name, tenant_id, client_id, client_secret)
         datastore = Datastore.get(workspace, datastore_name='workspaceblobstore')
         #uri = f'azureml://subscriptions/{subscription_id}/resourcegroups/{resource_group}/workspaces/{workspace_name}/datastores/workspaceblobstore/paths/{args.data_path}'
+        # mt_logger.info(f"Reading data from Azure Blob Storage URI: {uri}")
         
-        #mt_logger.info(f"Reading data from Azure Blob Storage URI: {uri}")
         # Read data using pandas
-        
         data_df = pd.read_csv(f'azureml://subscriptions/{subscription_id}/resourcegroups/{resource_group}/workspaces/{workspace_name}/datastores/workspaceblobstore/paths/{args.data_path}')
 
         # Split data
@@ -165,6 +165,18 @@ def main(args: argparse.Namespace):
         Dataset.Tabular.register_pandas_dataframe(dataframe=train_set, name='train_data', description='training data', target=datastore)
         mt_logger.info("Registering validation dataset in Azure")
         Dataset.Tabular.register_pandas_dataframe(dataframe=val_set, name='val_data', description='validation data', target=datastore)
+
+        # Prepare dictionary to save as JSON
+    datasets_info = {
+        "train_data": "train_data",
+        "val_data": "val_data"
+    }
+
+    # Save dictionary to JSON file
+    if args.json_path:
+        with open(args.json_path, 'w') as json_file:
+            json.dump(datasets_info, json_file)
+            mt_logger.info(f"Dataset information saved to {args.json_path}")
         
         mt_logger.info("Data processed and datasets registered in Azure.")
         
@@ -175,8 +187,7 @@ if __name__ == "__main__":
     parser.add_argument("--local", type=str, default="True", choices=["True", "False"], help="Load data locally.")
     parser.add_argument("--data_path", type=str, help="Path to the data file.")
     parser.add_argument("--val_size", type=float, default=0.2)
-    parser.add_argument("--train_data", type=str)
-    parser.add_argument("--val_data", type=str)
+    parser.add_argument("--json_path", type=str)
     args = parser.parse_args()
 
     main(args)
