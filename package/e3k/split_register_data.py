@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 from typing import Dict, Tuple
+import json
 
 # import azureml
 # import fsspec
@@ -16,11 +17,6 @@ from sklearn.model_selection import train_test_split
 split_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-file_handler = logging.FileHandler("logs.log", mode="a")
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
-
-split_logger.addHandler(file_handler)
 
 if len(split_logger.handlers) == 0:
     split_logger.setLevel(logging.DEBUG)
@@ -31,6 +27,11 @@ if len(split_logger.handlers) == 0:
 
     split_logger.addHandler(stream_handler)
 
+file_handler = logging.FileHandler("logs.log", mode="a")
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+split_logger.addHandler(file_handler)
 
 subscription_id = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
 resource_group = "buas-y2"
@@ -227,7 +228,20 @@ def main(args: argparse.Namespace):
         )
 
         split_logger.info("Data processed and datasets registered in Azure.")
+    # Prepare dictionary to save as JSON
+    datasets_info = {
+        "train_data": "train_data",
+        "val_data": "val_data"
+    }
 
+    # Save dictionary to JSON file
+    if args.json_path:
+        with open(args.json_path, 'w') as json_file:
+            json.dump(datasets_info, json_file)
+            split_logger.info(f"Dataset information saved to {args.json_path}")
+        
+        split_logger.info("Data processed and datasets registered in Azure.")
+        
     split_logger.info("Main function completed")
 
 
@@ -244,6 +258,7 @@ if __name__ == "__main__":
     parser.add_argument("--val_size", type=float, default=0.2)
     parser.add_argument("--train_data", type=str)
     parser.add_argument("--val_data", type=str)
+    parser.add_argument("--json_path", type=str)
     args = parser.parse_args()
 
     main(args)

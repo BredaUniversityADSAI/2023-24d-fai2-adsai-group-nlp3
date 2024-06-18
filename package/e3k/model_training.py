@@ -17,12 +17,6 @@ from preprocessing import preprocess_training_data
 mt_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-file_handler = logging.FileHandler("logs.log", mode="a")
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
-
-mt_logger.addHandler(file_handler)
-
 if len(mt_logger.handlers) == 0:
     mt_logger.setLevel(logging.DEBUG)
 
@@ -31,6 +25,13 @@ if len(mt_logger.handlers) == 0:
     stream_handler.setFormatter(formatter)
 
     mt_logger.addHandler(stream_handler)
+
+file_handler = logging.FileHandler("logs.log", mode="a")
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+mt_logger.addHandler(file_handler)
+
 
 
 # const values for Azure connection

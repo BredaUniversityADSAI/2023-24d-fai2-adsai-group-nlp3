@@ -42,17 +42,15 @@ split_register_component = command(
         "val_size": Input(type="number", description="Validation data size as a proportion of the dataset", default=0.2)
     },
     outputs={
-        "train_data": Output(type="uri_folder", mode="rw_mount", description="Registered training dataset"),
-        "val_data": Output(type="uri_folder", mode="rw_mount", description="Registered validation dataset")
+        "json_path": Output(type="uri_file", mode="rw_mount", description="Path to the json file")
     },
-    code="./split_register_data.py",
+    code="./package/e3k/",
     command=(
     "python split_register_data.py "
     "--data_path ${{inputs.data_path}} "
     "--local ${{inputs.local}} "
     "--val_size ${{inputs.val_size}} "
-    "--train_data ${{outputs.train_data}} "
-    "--val_data ${{outputs.val_data}}"
+    "--json_path ${{outputs.json_path}} "
     ),
     environment=environment,
     compute=compute_name,

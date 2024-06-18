@@ -22,13 +22,13 @@ env = ml_client.environments.get("BlockD", version="2")
 compute = ml_client.compute.get("adsai0")
 
 splitting_component = ml_client.components.get(
-    name="split_register_component", version="2024-06-18-13-38-20-4215950"
+    name="split_register_component", version="2024-06-18-16-14-15-3695360"
 )
 train_component = ml_client.components.get(
-    name="train_component", version="2024-06-18-13-35-31-0688003"
+    name="train_component", version="2024-06-18-16-15-39-1901929"
 )
 eval_component = ml_client.components.get(
-    name="evaluation", version="2024-06-18-13-36-25-3281968"
+    name="evaluation", version="2024-06-18-16-16-07-7286457"
 )
 
 
