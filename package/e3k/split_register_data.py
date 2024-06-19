@@ -156,13 +156,8 @@ def get_train_val_data(
         stratify=data_df["emotion"],
     )
 
-    local = args.local == "True"
-    if local:
-        train_set = (X_train, y_train)
-        val_set = (X_val, y_val)
-    else:
-        train_set = pd.DataFrame({"sentence": X_train, "emotion": y_train})
-        val_set = pd.DataFrame({"sentence": X_val, "emotion": y_val})
+    train_set = pd.DataFrame({"sentence": X_train, "emotion": y_train})
+    val_set = pd.DataFrame({"sentence": X_val, "emotion": y_val})
 
     split_logger.info("Data split")
 
