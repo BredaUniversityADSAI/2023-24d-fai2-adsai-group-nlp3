@@ -2,6 +2,7 @@ import datetime
 import io
 import logging
 import wave
+import os 
 
 import librosa
 import numpy as np
@@ -12,6 +13,9 @@ import webrtcvad
 import whisper
 from pydub import AudioSegment
 from tqdm import tqdm
+
+from azureml.core import Workspace, Datastore, Dataset
+from azureml.core.authentication import ServicePrincipalAuthentication
 
 epp_logger = logging.getLogger("main.episode_preprocessing_pipeline")
 
@@ -501,7 +505,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
+        "--cloud",
+        type=bool,
+        choices=[True, False],
+        help="whether the code will execute on Azure or locally",
+    )
+    parser.add_argument(
         "--input_path",
+        required=True,
+        type=str,
+        help="string, file path to the audio file",
+    )
+    parser.add_argument(
+        "--input_uri",
         required=True,
         type=str,
         help="string, file path to the audio file",
@@ -571,15 +587,70 @@ if __name__ == "__main__":
         """,
     )
 
+    parser.add_argument(
+        "--subscription_id",
+        required=False,
+        type=str,
+        default="0a94de80-6d3b-49f2-b3e9-ec5818862801",
+        help="Subscription ID from Azure ML",
+    )
+
+    parser.add_argument(
+        "--resource_group",
+        required=False,
+        type=str,
+        default="buas-y2",
+        help="Resource group from Azure ML",
+    )
+
+    parser.add_argument(
+        "--workspace_name",
+        required=False,
+        type=str,
+        default="NLP3",
+        help="Workspace name from Azure ML",
+    )
+
     args = parser.parse_args()
+
+    cloud = str(args.cloud) == "True"
 
     # get segment length in frames
     segment_frames_length = segment_number_to_frames(
         1, sample_rate=args.target_sr, segment_seconds_length=args.segment_length
     )
+    if cloud is True:
 
-    # load audio file and set sample rate to the chosen value
-    audio = load_audio(file_path=args.input_path, target_sample_rate=args.target_sr)
+        """
+        TENANT_ID = "0a33589b-0036-4fe8-a829-3ed0926af886"
+        CLIENT_ID = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
+        CLIENT_SECRET = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
+        svc_pr = ServicePrincipalAuthentication(
+                tenant_id=TENANT_ID,
+                service_principal_id=CLIENT_ID,
+                service_principal_password=CLIENT_SECRET
+                )
+        workspace = Workspace(subscription_id=args.subscription_id, 
+                    resource_group=args.resource_group, 
+                    workspace_name=args.workspace_name,
+                    auth = svc_pr,
+                    )
+        datastore = Datastore(workspace, name="workspaceblobstore")
+
+        audio = Dataset.File.from_files(path=(datastore, args.input_path))
+        
+
+        for filename in os.listdir(args.input_uri):
+            if filename.endswith(".mp3") or filename.endswith(".mov"):
+                
+                audio_path = os.path.join(args.input_uri, filename)
+"""
+        audio = load_audio(file_path=args.input_uri, target_sample_rate=args.target_sr)
+
+
+    else:
+        # load audio file and set sample rate to the chosen value
+        audio = load_audio(file_path=args.input_path, target_sample_rate=args.target_sr)
 
     # get full audio length in frames
     full_audio_length_frames = len(audio)
