@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import soundfile as sf
 import spacy
+import typeguard
 import webrtcvad
 import whisper
 from pydub import AudioSegment
@@ -23,6 +24,7 @@ and when used in order, provide the video or audio to sentences pipeline.
 """
 
 
+@typeguard.typechecked
 def load_audio(file_path: str, target_sample_rate: int) -> np.array:
     """
     A function that loads audio data from video file
@@ -58,6 +60,7 @@ def load_audio(file_path: str, target_sample_rate: int) -> np.array:
     return audio
 
 
+@typeguard.typechecked
 def get_segments_for_vad(
     audio: np.array, sample_rate: int, segment_seconds_length: float
 ) -> list[np.array]:
@@ -95,6 +98,7 @@ def get_segments_for_vad(
     return segments
 
 
+@typeguard.typechecked
 def get_vad_per_segment(
     segments: list[np.array],
     vad_aggressiveness: int,
@@ -156,6 +160,7 @@ def get_vad_per_segment(
     return segments_is_speech
 
 
+@typeguard.typechecked
 def get_frame_segments_from_vad_output(
     speech_array: np.array,
     sample_rate: int,
@@ -241,6 +246,7 @@ def get_frame_segments_from_vad_output(
     return cut_fragments_frames
 
 
+@typeguard.typechecked
 def transcribe_translate_fragments(
     audio: np.array,
     cut_fragments_frames: list[tuple[int, int]],
@@ -300,6 +306,7 @@ def transcribe_translate_fragments(
     return data
 
 
+@typeguard.typechecked
 def save_data(
     df: pd.DataFrame,
     output_path: str = "output.csv",
@@ -342,6 +349,7 @@ and are an abstraction over some more complex parts of above pipeline functions.
 """
 
 
+@typeguard.typechecked
 def segment_number_to_frames(
     segment_number: int, sample_rate: int, segment_seconds_length: float
 ) -> int:
@@ -365,6 +373,7 @@ def segment_number_to_frames(
     return int(sample_rate * segment_seconds_length * segment_number)
 
 
+@typeguard.typechecked
 def get_target_length_frames(min_length_seconds: int, sample_rate: int) -> int:
     """
     A function that converts duration in seconds into number of frames
@@ -383,6 +392,7 @@ def get_target_length_frames(min_length_seconds: int, sample_rate: int) -> int:
     return min_length_seconds * sample_rate
 
 
+@typeguard.typechecked
 def adjust_fragment_start_frame(start_fragment_frame: int, sample_rate: int) -> int:
     """
     A function that moves the start of the larger fragment (a couple of minutes)
@@ -404,6 +414,7 @@ def adjust_fragment_start_frame(start_fragment_frame: int, sample_rate: int) -> 
     return start_fragment_frame
 
 
+@typeguard.typechecked
 def adjust_fragment_end_frame(
     end_fragment_frame: int, sample_rate: int, full_audio_length_frames: int
 ) -> int:
@@ -428,6 +439,7 @@ def adjust_fragment_end_frame(
     return end_fragment_frame
 
 
+@typeguard.typechecked
 def clean_transcript_df(
     df: pd.DataFrame,
     sample_rate: int,

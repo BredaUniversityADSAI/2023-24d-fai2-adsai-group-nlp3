@@ -8,6 +8,7 @@ import config
 # import azureml
 # import fsspec
 import pandas as pd
+import typeguard
 from azure.ai.ml import MLClient
 from azure.identity import ClientSecretCredential
 from azureml.core import Dataset, Datastore, Workspace
@@ -44,6 +45,7 @@ client_id = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
 client_secret = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
 
 
+@typeguard.typechecked
 def connect_to_azure_ml(
     subscription_id: str,
     resource_group: str,
@@ -97,6 +99,7 @@ def connect_to_azure_ml(
     return ml_client, workspace
 
 
+@typeguard.typechecked
 def load_data(file_path: str) -> Tuple[pd.DataFrame, Dict[int, str]]:
     """
     Load the dataset from a CSV file and return the DataFrame and
@@ -124,6 +127,7 @@ def load_data(file_path: str) -> Tuple[pd.DataFrame, Dict[int, str]]:
     return df, emotion_decoder
 
 
+@typeguard.typechecked
 def get_train_val_data(
     data_df: pd.DataFrame, val_size: float = 0.2
 ) -> Tuple[Tuple[pd.DataFrame, pd.Series], Tuple[pd.DataFrame, pd.Series]]:
@@ -165,6 +169,7 @@ def get_train_val_data(
     return train_set, val_set
 
 
+@typeguard.typechecked
 def main(args: argparse.Namespace):
     """
     Main function to process data either locally or from Azure,

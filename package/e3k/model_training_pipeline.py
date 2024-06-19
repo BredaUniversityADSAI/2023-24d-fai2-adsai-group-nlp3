@@ -1,4 +1,5 @@
 import config
+import typeguard
 from azure.ai.ml import MLClient, dsl
 from azure.identity import ClientSecretCredential
 
@@ -23,20 +24,21 @@ ml_client = MLClient(
     credential=credential,
 )
 
-env = ml_client.environments.get("BlockD", version="2")
+env = ml_client.environments.get("BlockD", version="10")
 compute = ml_client.compute.get("adsai0")
 
 splitting_component = ml_client.components.get(
     name="split_register_component", version="2024-06-18-16-14-15-3695360"
 )
 train_component = ml_client.components.get(
-    name="train_component", version="2024-06-18-16-15-39-1901929"
+    name="train_component", version="2024-06-19-11-59-35-8727374"
 )
 eval_component = ml_client.components.get(
     name="evaluation", version="2024-06-18-16-16-07-7286457"
 )
 
 
+@typeguard.typechecked
 @dsl.pipeline(
     name="model_training_pipeline",
     description="pipeline used to train new models",

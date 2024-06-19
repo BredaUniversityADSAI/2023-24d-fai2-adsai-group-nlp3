@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 import transformers
+import typeguard
 from preprocessing import preprocess_prediction_data
 
 # setting up logger
@@ -32,6 +33,7 @@ if len(pred_logger.handlers) == 0:
     pred_logger.addHandler(stream_handler)
 
 
+@typeguard.typechecked
 def get_model(
     model_path: str,
 ) -> tuple[transformers.TFRobertaForSequenceClassification, dict[int, str]]:
@@ -75,6 +77,7 @@ def get_model(
     return model, emotion_dict
 
 
+@typeguard.typechecked
 def decode_labels(
     encoded_labels: list[int], emotion_decoder: dict[int, str]
 ) -> list[str]:
@@ -104,6 +107,7 @@ def decode_labels(
     return decoded_labels
 
 
+@typeguard.typechecked
 def predict(
     model: transformers.TFRobertaForSequenceClassification,
     token_array: np.array,

@@ -10,11 +10,11 @@ import model_training as mt
 import pandas as pd
 import preprocessing
 import split_register_data as splitting
+import typeguard
 from config import config
 from model_training_pipeline import model_training as mt_pipe
 from tensorflow import config as tf_config
 from transformers import TFRobertaForSequenceClassification
-
 
 # setting up logger
 logger = logging.getLogger("main")
@@ -35,6 +35,7 @@ logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
 
 
+@typeguard.typechecked
 def get_args() -> argparse.Namespace:
     """
     A function that groups all positional and optional arguments from command line,
@@ -290,6 +291,7 @@ def get_args() -> argparse.Namespace:
     return args
 
 
+@typeguard.typechecked
 def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
     """
     Function that follows the episode_preprocessing_pipeline module.
@@ -359,6 +361,7 @@ def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
     return data_df
 
 
+@typeguard.typechecked
 def model_training(
     args: argparse.Namespace,
 ) -> tuple[
@@ -409,6 +412,7 @@ def model_training(
     return model, label_decoder
 
 
+@typeguard.typechecked
 def evaluate_model(
     args: argparse.Namespace,
     model: TFRobertaForSequenceClassification,
@@ -437,6 +441,7 @@ def evaluate_model(
     me.save_model(model, label_decoder, args.model_save_path, accuracy, args.threshold)
 
 
+@typeguard.typechecked
 def predict(
     args: argparse.Namespace, data: pd.DataFrame
 ) -> tuple[list[str], list[float]]:
@@ -469,6 +474,7 @@ def predict(
     return emotions, probabilities
 
 
+@typeguard.typechecked
 def model_output_information(
     predicted_emotions: list[str], confidence_scores: list[float]
 ) -> None:
@@ -490,6 +496,7 @@ def model_output_information(
     moi.calculate_episode_confidence(confidence_scores)
 
 
+@typeguard.typechecked
 def main() -> None:
     """
     A function that handles the correct execution of different modules given

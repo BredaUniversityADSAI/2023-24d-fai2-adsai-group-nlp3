@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 import transformers
+import typeguard
 from azureml.core import Dataset, Datastore, Model, Workspace
 from azureml.core.authentication import ServicePrincipalAuthentication
 from preprocessing import preprocess_prediction_data
@@ -37,6 +38,7 @@ eval_logger.addHandler(file_handler)
 
 
 # Loading data from local device
+@typeguard.typechecked
 def load_data(file_path: str) -> pd.DataFrame:
     """
     Load the dataset from a CSV file and return
@@ -62,6 +64,7 @@ def load_data(file_path: str) -> pd.DataFrame:
 
 
 # Loading data from Azure ML datastore
+@typeguard.typechecked
 def load_data_from_azure(
     workspace,
     datastore_name,
@@ -95,6 +98,7 @@ def load_data_from_azure(
     return test_data
 
 
+@typeguard.typechecked
 def predict(
     model: transformers.TFRobertaForSequenceClassification,
     token_array: np.array,
@@ -143,6 +147,7 @@ def predict(
     return text_labels, highest_probabilities
 
 
+@typeguard.typechecked
 def evaluate(
     pred_labels,
     data,
@@ -176,6 +181,7 @@ def evaluate(
     return accuracy, report
 
 
+@typeguard.typechecked
 def register_model_and_encoding(
     model_path, label_decoder, accuracy, workspace, model_name, threshold=0.5
 ):
@@ -232,6 +238,7 @@ def register_model_and_encoding(
         )
 
 
+@typeguard.typechecked
 def save_model(
     model: transformers.TFRobertaForSequenceClassification,
     label_decoder: dict[int, str],
@@ -273,6 +280,7 @@ Util functions (only used in other functions)
 """
 
 
+@typeguard.typechecked
 def decode_labels(
     encoded_labels: list[int], emotion_decoder: dict[int, str]
 ) -> list[str]:
@@ -296,6 +304,7 @@ def decode_labels(
     return decoded_labels
 
 
+@typeguard.typechecked
 def load_label_decoder(label_decoder_path: str):
     # Load the emotion_decoder using pickle
     with open(label_decoder_path, "rb") as f:
