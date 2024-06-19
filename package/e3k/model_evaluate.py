@@ -324,6 +324,12 @@ if __name__ == "__main__":
         help="Name to register the model",
     )
 
+    parser.add_argument(
+        "--results",
+        required=False,
+        help="Results of model evaluation",
+    )
+
     args = parser.parse_args()
 
     cloud = str(args.cloud) == "True"
@@ -357,6 +363,13 @@ if __name__ == "__main__":
         emotions, probabilities = predict(model, tokens, masks, label_decoder)
         accuracy, _ = evaluate(emotions, data)
         print(f"Test accuracy: {accuracy * 100:.2f}%")
+        # Create the string in the desired format
+        output_string = f"{args.model_name}: {accuracy}"
+
+        # Save the string to a text file
+        with open(args.results, "w") as file:
+            file.write(output_string)
+
         register_model_and_encoding(args.model_path, args.label_decoder, accuracy, 
                                     workspace, args.model_name)
 

@@ -67,7 +67,6 @@ def plot_emotion_distribution(predicted_emotions: list[str]) -> None:
 
     plt.axis("equal")  # Ensures the pie chart is a circle.
     plt.title("Overall Emotion Distribution in the Episode")
-    #plt.show()
 
     moi_logger.info("Successfully plotted the emotion distribution.")
     return fig
