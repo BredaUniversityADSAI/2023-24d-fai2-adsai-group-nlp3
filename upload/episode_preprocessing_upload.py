@@ -28,18 +28,15 @@ episode_preprocessing_component = command(
     display_name="Episode Preprocessing",
     description="Preprocess episode for prediction",
     inputs={
-        "episode_file": Input(
-            type="uri_file", description="episdode file"
-        ),
+        "episode_file": Input(type="uri_file", description="episdode file"),
     },
     outputs={
-        "transcription": Output(
-            type="uri_folder", mode="rw_mount"),
+        "transcription": Output(type="uri_folder", mode="rw_mount"),
     },
     code="./package/e3k",
     command=(
         "python episode_preprocessing_pipeline.py "
-        #"--cloud True "
+        # "--cloud True "
         "--input_path ${{inputs.episode_file}} "
         "--decoder_output_path ${{outputs.transcription}}"
     ),

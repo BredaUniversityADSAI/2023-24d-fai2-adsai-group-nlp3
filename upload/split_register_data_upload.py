@@ -1,14 +1,15 @@
-from azure.ai.ml import MLClient, command, Input, Output, dsl
-from azure.identity import ClientSecretCredential
 import logging
 
+from azure.ai.ml import Input, MLClient, Output, command
+from azure.identity import ClientSecretCredential
+
 # Define the workspace parameters
-subscription_id = '0a94de80-6d3b-49f2-b3e9-ec5818862801'
-resource_group = 'buas-y2'
-workspace_name = 'NLP3'
-tenant_id = '0a33589b-0036-4fe8-a829-3ed0926af886'
-client_id = 'a2230f31-0fda-428d-8c5c-ec79e91a49f5'
-client_secret = 'Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C'
+subscription_id = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
+resource_group = "buas-y2"
+workspace_name = "NLP3"
+tenant_id = "0a33589b-0036-4fe8-a829-3ed0926af886"
+client_id = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
+client_secret = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
 
 
 # Setup logging
@@ -35,22 +36,32 @@ environment = ml_client.environments.get(name="BlockD", version="8")
 split_register_component = command(
     name="split_register_component",
     display_name="Data Split and Register",
-    description="Splits the dataset into training and validation sets and registers them in Azure ML",
+    description="""
+    Splits the dataset into training and validation sets and registers them in Azure ML
+    """,
     inputs={
         "data_path": Input(type="string", description="Path to the data file"),
-        "local": Input(type="string", description="Load data locally or from Azure", default="True"),
-        "val_size": Input(type="number", description="Validation data size as a proportion of the dataset", default=0.2)
+        "local": Input(
+            type="string", description="Load data locally or from Azure", default="True"
+        ),
+        "val_size": Input(
+            type="number",
+            description="Validation data size as a proportion of the dataset",
+            default=0.2,
+        ),
     },
     outputs={
-        "json_path": Output(type="uri_file", mode="rw_mount", description="Path to the json file")
+        "json_path": Output(
+            type="uri_file", mode="rw_mount", description="Path to the json file"
+        )
     },
     code="./package/e3k/",
     command=(
-    "python split_register_data.py "
-    "--data_path ${{inputs.data_path}} "
-    "--local ${{inputs.local}} "
-    "--val_size ${{inputs.val_size}} "
-    "--json_path ${{outputs.json_path}} "
+        "python split_register_data.py "
+        "--data_path ${{inputs.data_path}} "
+        "--local ${{inputs.local}} "
+        "--val_size ${{inputs.val_size}} "
+        "--json_path ${{outputs.json_path}} "
     ),
     environment=environment,
     compute=compute_name,
