@@ -10,6 +10,8 @@ import mltable
 import pandas as pd
 import tensorflow as tf
 import transformers
+import mlflow
+import matplotlib.pyplot as plt
 from azure.ai.ml import MLClient
 from azure.identity import ClientSecretCredential
 from preprocessing import preprocess_training_data
@@ -269,6 +271,10 @@ def train_model(
         Max Meiners (214936)
     """
 
+    # Start MLflow Run
+    # mlflow.start_run()
+    # mlflow.tensorflow.autolog()
+
     mt_logger.info("compiling model")
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
@@ -286,14 +292,37 @@ def train_model(
 
     mt_logger.info("training model")
 
-    model.fit(
+    history = model.fit(
         training_dataset,
         validation_data=validation_dataset,
         epochs=epochs,
         callbacks=[early_stopping],
     )
 
+    # Log model summary to MLflow
+    mlflow.log_text("model_summary.txt", str(model.summary()))
+
+    # Log model metrics to MLflow
+    mlflow.log_metric("train_loss", history.history["loss"][-1])
+    mlflow.log_metric("train_accuracy", history.history["accuracy"][-1])
+    mlflow.log_metric("val_loss", history.history["val_loss"][-1])
+    mlflow.log_metric("val_accuracy", history.history["val_accuracy"][-1])
+
+    # Plot training and validation loss to MLflow
+    fig = plt.figure()
+    plt.plot(history.history["loss"], label="train_loss")
+    plt.plot(history.history["val_loss"], label="val_loss")
+    plt.plot(history.history["accuracy"], label="train_accuracy")
+    plt.plot(history.history["val_accuracy"], label="val_accuracy")
+    plt.title("Training Loss and Accuracy")
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss/Accuracy")
+    plt.legend(loc="lower left")
+    mlflow.log_figure(fig, "model_metrics.png")
+
     mt_logger.info("training finished")
+
+    # mlflow.end_run()
 
     return model
 
@@ -311,6 +340,21 @@ def main(args: argparse.Namespace) -> None:
         model: saved in a folder under the specified path
         label_decoder: dumped to a file under the specified path using json.dump
     """
+
+    # Start MLflow run
+    mlflow.start_run()
+    # mlflow.tensorflow.autolog()
+
+    # Log parameters to MLflow
+    mlflow.log_params({
+        "cloud": args.cloud,
+        "dataset_name_file": args.dataset_name_file,
+        "epochs": args.epochs,
+        "learning_rate": args.learning_rate,
+        "early_stopping_patience": args.early_stopping_patience,
+        "model_output_path": args.model_output_path,
+        "decoder_output_path": args.decoder_output_path
+    })
 
     ml_client = get_ml_client(
         config.config["subscription_id"],
@@ -347,6 +391,12 @@ def main(args: argparse.Namespace) -> None:
     with open(args.decoder_output_path, "wb") as f:
         pickle.dump(label_decoder, f)
 
+    # Log output paths to MLflow
+    mlflow.log_artifact(args.model_output_path, "model")
+    mlflow.log_artifact(args.decoder_output_path, "label_decoder")
+
+    # End MLflow run
+    mlflow.end_run()
 
 if __name__ == "__main__":
     args = get_args()
