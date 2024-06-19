@@ -24,14 +24,14 @@ ml_client = MLClient(
     credential=credential,
 )
 
-env = ml_client.environments.get("BlockD", version="10")
+env = ml_client.environments.get("BlockD", version="12")
 compute = ml_client.compute.get("adsai0")
 
 splitting_component = ml_client.components.get(
     name="split_register_component", version="2024-06-18-16-14-15-3695360"
 )
 train_component = ml_client.components.get(
-    name="train_component", version="2024-06-19-11-59-35-8727374"
+    name="train_component", version="2024-06-19-14-14-49-6423447"
 )
 eval_component = ml_client.components.get(
     name="evaluation", version="2024-06-18-16-16-07-7286457"
