@@ -1,0 +1,42 @@
+2024-06-19 09:53:27,097 - model_training - INFO - devices: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU'), PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+2024-06-19 09:54:33,296 - model_training - INFO - getting label decoder from training data
+2024-06-19 09:54:33,296 - model_training - DEBUG - detected 5 classes
+2024-06-19 09:54:35,496 - model_training - DEBUG - loading model
+2024-06-19 09:54:37,855 - model_training - INFO - loaded model
+2024-06-19 09:54:37,855 - model_training - INFO - compiling model
+2024-06-19 09:54:37,878 - model_training - INFO - training model
+2024-06-19 09:55:17,475 - model_training - INFO - training finished
+2024-06-19 10:03:41,337 - model_training - INFO - devices: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU'), PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+2024-06-19 10:04:59,057 - model_training - INFO - getting label decoder from training data
+2024-06-19 10:04:59,060 - model_training - DEBUG - detected 5 classes
+2024-06-19 10:05:00,334 - model_training - DEBUG - loading model
+2024-06-19 10:05:02,270 - model_training - INFO - loaded model
+2024-06-19 10:05:02,270 - model_training - INFO - compiling model
+2024-06-19 10:05:02,286 - model_training - INFO - training model
+2024-06-19 10:05:37,423 - model_training - INFO - training finished
+2024-06-19 11:32:19,481 - model_training - INFO - devices: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU'), PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+2024-06-19 11:34:22,430 - model_training - INFO - devices: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU'), PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+2024-06-19 11:39:51,709 - model_training - INFO - devices: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU'), PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+2024-06-19 11:45:01,495 - model_training - INFO - devices: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU'), PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+2024-06-19 11:59:18,883 - model_training - INFO - devices: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU'), PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+2024-06-19 12:04:03,686 - model_training - INFO - devices: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU'), PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+2024-06-19 12:07:46,092 - model_training - INFO - devices: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU'), PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+2024-06-19 12:09:50,211 - model_training - INFO - devices: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU'), PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+2024-06-19 12:24:53,074 - model_training - INFO - getting label decoder from training data
+2024-06-19 12:24:53,078 - model_training - DEBUG - detected 4 classes
+2024-06-19 12:24:53,806 - model_training - DEBUG - loading model
+2024-06-19 12:24:56,174 - model_training - INFO - loaded model
+2024-06-19 12:24:56,174 - model_training - INFO - compiling model
+2024-06-19 12:24:56,195 - model_training - INFO - training model
+2024-06-19 12:25:29,367 - model_training - INFO - training finished
+2024-06-19 14:01:39,580 - model_training - INFO - devices: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU'), PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+2024-06-19 14:08:42,070 - model_training - INFO - devices: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU'), PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+2024-06-19 14:33:13,545 - model_training - INFO - devices: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU'), PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+2024-06-19 14:37:57,587 - model_training - INFO - getting label decoder from training data
+2024-06-19 14:37:57,588 - model_training - DEBUG - detected 4 classes
+2024-06-19 14:37:57,844 - model_training - DEBUG - loading model
+2024-06-19 14:38:00,194 - model_training - INFO - loaded model
+2024-06-19 14:38:00,194 - model_training - INFO - compiling model
+2024-06-19 14:38:00,217 - model_training - INFO - training model
+2024-06-19 14:38:34,819 - model_training - INFO - training finished
+2024-06-19 15:30:09,343 - model_training - INFO - devices: [PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU'), PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
