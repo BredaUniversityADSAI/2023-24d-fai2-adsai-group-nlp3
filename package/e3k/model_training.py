@@ -343,7 +343,7 @@ def main(args: argparse.Namespace) -> None:
 
     # Start MLflow run
     mlflow.start_run()
-    mlflow.tensorflow.autolog()
+    # mlflow.tensorflow.autolog()
 
     # Log parameters to MLflow
     mlflow.log_params({
