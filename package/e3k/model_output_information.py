@@ -42,9 +42,10 @@ def plot_emotion_distribution(predicted_emotions: list[str]) -> None:
     # Generate color intensities based on the number of emotions
     color_shades = blues(np.linspace(0.2, 0.8, len(emotion_counts)))
 
+    # Create a figure object
+    fig, ax = plt.subplots(figsize=(8, 6))
     # Plotting the pie chart
-    plt.figure(figsize=(8, 6))
-    wedges, texts, autotexts = plt.pie(
+    wedges, texts, autotexts = ax.pie(
         sizes,
         labels=labels,
         autopct="%1.1f%%",
@@ -52,6 +53,7 @@ def plot_emotion_distribution(predicted_emotions: list[str]) -> None:
         colors=color_shades,
         textprops={"color": "black"},
     )
+
 
     # Highlight the most dominant emotion
     for text, auto_text in zip(texts, autotexts):
@@ -65,9 +67,10 @@ def plot_emotion_distribution(predicted_emotions: list[str]) -> None:
 
     plt.axis("equal")  # Ensures the pie chart is a circle.
     plt.title("Overall Emotion Distribution in the Episode")
-    plt.show()
+    #plt.show()
 
     moi_logger.info("Successfully plotted the emotion distribution.")
+    return fig
 
 
 def calculate_episode_confidence(scores: list[float]) -> float:
