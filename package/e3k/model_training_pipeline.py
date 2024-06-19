@@ -2,7 +2,7 @@ import config
 import typeguard
 from azure.ai.ml import MLClient, dsl
 from azure.identity import ClientSecretCredential
-from azure.sweep import Choice, LogUniform, Uniform
+from azure.sweep import Choice, Uniform
 
 # const values for Azure connection
 SUBSCRIPTION_ID = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
@@ -58,12 +58,10 @@ def model_training(
 
     train_step = train_component(
         dataset_name_file=splitting_step.outputs.json_path,
-        epochs=Uniform(min_value=2, max_value=10),
-        learning_rate=LogUniform(min_value=1e-5, max_value=1e-1),
-        early_stopping_patience=Choice([3, 5, 7]),
+        learning_rate=Uniform(min_value=1e-5, max_value=1e-1),
         batch_size=Choice([16, 32, 64, 128]),
     ).sweep(sampling_algorithm="bayesian", primary_metric="val_loss", goal="minimize")
-    train_step.set_limits(max_total_trials=3, max_concurrent_trials=3, timeout=7200)
+    train_step.set_limits(max_total_trials=5, max_concurrent_trials=3, timeout=7200)
 
     _ = eval_component(
         model_path=train_step.outputs.model,
@@ -79,9 +77,6 @@ if __name__ == "__main__":
     training_pipeline = model_training(
         data_path="dataset_panna/dataset_panna.csv",
         val_size=0.2,
-        epochs=2,
-        learning_rate=1e-3,
-        early_stopping_patience=3,
         test_data="dataset_wojciech/test_azure_data.csv",
         threshold=0.0,
         model_name="training_test_model",
