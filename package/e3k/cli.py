@@ -15,6 +15,7 @@ from model_training_pipeline import model_training as mt_pipe
 from tensorflow import config as tf_config
 from transformers import TFRobertaForSequenceClassification
 
+
 # setting up logger
 logger = logging.getLogger("main")
 logger.propagate = False
