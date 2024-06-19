@@ -271,9 +271,9 @@ def train_model(
         Max Meiners (214936)
     """
 
-    # Start MLflow tracking
-    mlflow.start_run()
-    mlflow.tensorflow.autolog()
+    # Start MLflow Run
+    # mlflow.start_run()
+    # mlflow.tensorflow.autolog()
 
     mt_logger.info("compiling model")
 
@@ -322,7 +322,7 @@ def train_model(
 
     mt_logger.info("training finished")
 
-    mlflow.end_run()
+    # mlflow.end_run()
 
     return model
 
@@ -343,6 +343,7 @@ def main(args: argparse.Namespace) -> None:
 
     # Start MLflow run
     mlflow.start_run()
+    mlflow.tensorflow.autolog()
 
     # Log parameters to MLflow
     mlflow.log_params({
