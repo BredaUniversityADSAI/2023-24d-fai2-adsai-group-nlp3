@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import logging
+import mlflow
 
 import episode_preprocessing_pipeline as epp
 import model_evaluate as me
@@ -505,9 +506,16 @@ def main() -> None:
 
     Author - Wojciech Stachowiak
     """
+
+    # Start MLflow run
+    mlflow.start_run()
+
     # get arguments from argparser
     args = get_args()
     logger.info("got command line arguments")
+
+    # Log parameters to MLflow
+    mlflow.log_params(vars(args))
 
     cloud = args.cloud == "True"
     if cloud is True:
@@ -537,7 +545,7 @@ def main() -> None:
             )
 
             _ = ml_client.jobs.create_or_update(
-                training_pipeline, experiment_name="model_training"
+                training_pipeline, experiment_name="model_training_mlflow_experiment"
             )
 
             logger.info("the pipeline is running in the cloud now")
@@ -581,6 +589,9 @@ def main() -> None:
 
             model, label_decoder = model_training(args)
             evaluate_model(args, model, label_decoder)
+
+    # End MLflow run
+    mlflow.end_run()
 
 
 if __name__ == "__main__":
