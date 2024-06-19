@@ -10,20 +10,11 @@ import model_training as mt
 import pandas as pd
 import preprocessing
 import split_register_data as splitting
+from config import config
 from model_training_pipeline import model_training as mt_pipe
 from tensorflow import config as tf_config
-# from tensorflow.python.platform import tf_logging
 from transformers import TFRobertaForSequenceClassification
 
-# const values for Azure connection
-SUBSCRIPTION_ID = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
-RESOURCE_GROUP = "buas-y2"
-WORKSPACE_NAME = "NLP3"
-TENANT_ID = "0a33589b-0036-4fe8-a829-3ed0926af886"
-CLIENT_ID = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
-CLIENT_SECRET = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
-
-# tf_logging._logging.getLogger().propagate = False
 # setting up logger
 logger = logging.getLogger("main")
 logger.propagate = False
@@ -41,20 +32,6 @@ stream_handler.setFormatter(formatter)
 
 logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
-
-# checking for available GPU
-detected_gpu = len(tf_config.list_physical_devices("GPU")) > 0
-if not detected_gpu:
-    logger.warning(
-        (
-            "No GPU detected, using CPU instead. "
-            "Preprocessing from audio/video will take significantly longer, "
-            "and training and predicting may not be a feasible task. "
-            "Consider switching to a GPU device."
-        )
-    )
-else:
-    logger.info("GPU detected")
 
 
 def get_args() -> argparse.Namespace:
@@ -208,7 +185,7 @@ def get_args() -> argparse.Namespace:
         type=str,
         default="new_test_data/train_eval_sample.csv",
         help="""Path to the validation data [CSV file (local) | not used,
-        val dataset created automaticaly from train data (cloud)]""",
+        val dataset created automatically from train data (cloud)]""",
     )
     parser.add_argument(
         "--val_size",
@@ -231,7 +208,7 @@ def get_args() -> argparse.Namespace:
         required=False,
         type=int,
         default=128,
-        help="max number of tokens used from one input sentence"
+        help="max number of tokens used from one input sentence",
     )
     parser.add_argument(
         "--epochs",
@@ -415,7 +392,7 @@ def model_training(
         val_data,
         label_decoder,
         max_length=args.max_length,
-        batch_size=args.batch_size
+        batch_size=args.batch_size,
     )
 
     model = mt.get_new_model(len(label_decoder))
@@ -425,7 +402,7 @@ def model_training(
         val_dataset,
         epochs=args.epochs,
         learning_rate=args.learning_rate,
-        early_stopping_patience=args.early_stopping_patience
+        early_stopping_patience=args.early_stopping_patience,
     )
 
     return model, label_decoder
@@ -537,12 +514,12 @@ def main() -> None:
         logger.info("the pipeline will run in the cloud")
 
         ml_client = mt.get_ml_client(
-            SUBSCRIPTION_ID,
-            TENANT_ID,
-            CLIENT_ID,
-            CLIENT_SECRET,
-            RESOURCE_GROUP,
-            WORKSPACE_NAME,
+            config["subscription_id"],
+            config["tenant_id"],
+            config["client_id"],
+            config["client_secret"],
+            config["resource_group"],
+            config["workspace_name"],
         )
 
         if args.task == "train":
@@ -570,6 +547,20 @@ def main() -> None:
 
     else:
         logger.info("the pipeline will run locally")
+
+        # checking for available GPU
+        detected_gpu = len(tf_config.list_physical_devices("GPU")) > 0
+        if not detected_gpu:
+            logger.warning(
+                (
+                    "No GPU detected, using CPU instead. "
+                    "Preprocessing from audio/video will take significantly longer, "
+                    "and training and predicting may not be a feasible task. "
+                    "Consider switching to a GPU device."
+                )
+            )
+        else:
+            logger.info("GPU detected")
 
         # handle episode preprocessing
         if args.task in ["preprocess", "predict"]:

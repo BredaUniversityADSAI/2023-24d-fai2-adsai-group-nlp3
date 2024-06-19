@@ -5,6 +5,7 @@ import pickle
 from functools import reduce
 from typing import Dict, Tuple
 
+import config
 import mltable
 import pandas as pd
 import tensorflow as tf
@@ -31,19 +32,6 @@ file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 
 mt_logger.addHandler(file_handler)
-
-
-
-# const values for Azure connection
-SUBSCRIPTION_ID = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
-RESOURCE_GROUP = "buas-y2"
-WORKSPACE_NAME = "NLP3"
-TENANT_ID = "0a33589b-0036-4fe8-a829-3ed0926af886"
-CLIENT_ID = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
-CLIENT_SECRET = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
-
-
-mt_logger.info(f"devices: {tf.config.list_physical_devices()}")
 
 
 def get_args() -> argparse.Namespace:
@@ -325,12 +313,12 @@ def main(args: argparse.Namespace) -> None:
     """
 
     ml_client = get_ml_client(
-        SUBSCRIPTION_ID,
-        TENANT_ID,
-        CLIENT_ID,
-        CLIENT_SECRET,
-        RESOURCE_GROUP,
-        WORKSPACE_NAME,
+        config.config["subscription_id"],
+        config.config["tenant_id"],
+        config.config["client_id"],
+        config.config["client_secret"],
+        config.config["resource_group"],
+        config.config["workspace_name"],
     )
 
     train_name, val_name, version = get_versioned_datasets(args, ml_client)

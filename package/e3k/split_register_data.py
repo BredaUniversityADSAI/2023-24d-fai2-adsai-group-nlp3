@@ -1,9 +1,10 @@
 import argparse
+import json
 import logging
 import os
 from typing import Dict, Tuple
-import json
 
+import config
 # import azureml
 # import fsspec
 import pandas as pd
@@ -14,7 +15,9 @@ from azureml.core.authentication import ServicePrincipalAuthentication
 from sklearn.model_selection import train_test_split
 
 # setting up logger
-split_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
+split_logger = logging.getLogger(
+    f"{'main.' if __name__ != '__main__' else ''}{__name__}"
+)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 
@@ -75,8 +78,8 @@ def connect_to_azure_ml(
     ml_client = MLClient(
         subscription_id=subscription_id,
         resource_group_name=resource_group,
-        credential=credential,
         workspace_name=workspace_name,
+        credential=credential,
     )
 
     # Connect to the Azure Machine Learning workspace
@@ -188,12 +191,12 @@ def main(args: argparse.Namespace):
         split_logger.info("Processing data from Azure.")
         # Access data from Azure
         ml_client, workspace = connect_to_azure_ml(
-            subscription_id,
-            resource_group,
-            workspace_name,
-            tenant_id,
-            client_id,
-            client_secret,
+            config.config["subscription_id"],
+            config.config["resource_group"],
+            config.config["workspace_name"],
+            config.config["tenant_id"],
+            config.config["client_id"],
+            config.config["client_secret"],
         )
         datastore = Datastore.get(workspace, datastore_name="workspaceblobstore")
 
@@ -202,9 +205,10 @@ def main(args: argparse.Namespace):
 
         data_df = pd.read_csv(
             (
-                f"azureml://subscriptions/{subscription_id}/resourcegroups/"
-                f"{resource_group}/workspaces/{workspace_name}/datastores/"
-                f"workspaceblobstore/paths/{args.data_path}"
+                f"azureml://subscriptions/{config.config['subscription_id']}/"
+                f"resourcegroups/{config.config['resource_group']}/workspaces/"
+                f"{config.config['workspace_name']}/datastores/workspaceblobstore/"
+                f"paths/{args.data_path}"
             )
         )
 
@@ -229,19 +233,16 @@ def main(args: argparse.Namespace):
 
         split_logger.info("Data processed and datasets registered in Azure.")
     # Prepare dictionary to save as JSON
-    datasets_info = {
-        "train_data": "train_data",
-        "val_data": "val_data"
-    }
+    datasets_info = {"train_data": "train_data", "val_data": "val_data"}
 
     # Save dictionary to JSON file
     if args.json_path:
-        with open(args.json_path, 'w') as json_file:
+        with open(args.json_path, "w") as json_file:
             json.dump(datasets_info, json_file)
             split_logger.info(f"Dataset information saved to {args.json_path}")
-        
+
         split_logger.info("Data processed and datasets registered in Azure.")
-        
+
     split_logger.info("Main function completed")
 
 

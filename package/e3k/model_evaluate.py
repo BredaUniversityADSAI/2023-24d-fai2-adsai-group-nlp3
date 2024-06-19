@@ -4,6 +4,7 @@ import logging
 import os
 import pickle
 
+import config
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -14,7 +15,9 @@ from preprocessing import preprocess_prediction_data
 from sklearn.metrics import accuracy_score, classification_report
 
 # setting up logger
-eval_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
+eval_logger = logging.getLogger(
+    f"{'main.' if __name__ != '__main__' else ''}{__name__}"
+)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 if len(eval_logger.handlers) == 0:
@@ -31,7 +34,6 @@ file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 
 eval_logger.addHandler(file_handler)
-
 
 
 # Loading data from local device
@@ -377,7 +379,7 @@ if __name__ == "__main__":
         required=False,
         type=float,
         default=0.8,
-        help="Min accuracy for the model to be considered good"
+        help="Min accuracy for the model to be considered good",
     )
 
     parser.add_argument(
@@ -398,20 +400,15 @@ if __name__ == "__main__":
 
     if cloud is True:
         # Load the workspace
-        eval_logger.info("cloud path")
-        TENANT_ID = "0a33589b-0036-4fe8-a829-3ed0926af886"
-        CLIENT_ID = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
-        CLIENT_SECRET = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
-
         svc_pr = ServicePrincipalAuthentication(
-            tenant_id=TENANT_ID,
-            service_principal_id=CLIENT_ID,
-            service_principal_password=CLIENT_SECRET,
+            tenant_id=config.config["tenant_id"],
+            service_principal_id=config.config["client_id"],
+            service_principal_password=config.config["client_secret"],
         )
         workspace = Workspace(
-            subscription_id=args.subscription_id,
-            resource_group=args.resource_group,
-            workspace_name=args.workspace_name,
+            subscription_id=config.config["subscription_id"],
+            resource_group=config.config["resource_group"],
+            workspace_name=config.config["workspace_name"],
             auth=svc_pr,
         )
         # change
@@ -427,7 +424,7 @@ if __name__ == "__main__":
             accuracy,
             workspace,
             args.model_name,
-            args.threshold
+            args.threshold,
         )
 
     else:

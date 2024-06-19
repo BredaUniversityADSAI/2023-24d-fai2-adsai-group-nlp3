@@ -1,9 +1,9 @@
 import argparse
+import json
 import logging
 import os
 
 import joblib
-import json
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -11,23 +11,25 @@ import transformers
 from preprocessing import preprocess_prediction_data
 
 # setting up logger
-mt_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
+pred_logger = logging.getLogger(
+    f"{'main.' if __name__ != '__main__' else ''}{__name__}"
+)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 file_handler = logging.FileHandler("logs.log", mode="a")
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 
-mt_logger.addHandler(file_handler)
+pred_logger.addHandler(file_handler)
 
-if len(mt_logger.handlers) == 0:
-    mt_logger.setLevel(logging.DEBUG)
+if len(pred_logger.handlers) == 0:
+    pred_logger.setLevel(logging.DEBUG)
 
     stream_handler = logging.StreamHandler()
     stream_handler.setLevel(logging.DEBUG)
     stream_handler.setFormatter(formatter)
 
-    mt_logger.addHandler(stream_handler)
+    pred_logger.addHandler(stream_handler)
 
 
 def get_model(
@@ -55,7 +57,7 @@ def get_model(
     weights_path = os.path.join(model_path, "tf_model.h5")
     dict_path = os.path.join(model_path, "emotion_dict.joblib")
 
-    mt_logger.info(f"Loading model configuration")
+    pred_logger.info(f"Loading model configuration")
 
     # load an existing model
     config = transformers.RobertaConfig.from_pretrained(config_path)
@@ -63,10 +65,10 @@ def get_model(
         "roberta-base", config=config
     )
 
-    mt_logger.info("Loading model weights")
+    pred_logger.info("Loading model weights")
     model.load_weights(weights_path)
 
-    mt_logger.info("Model loaded")
+    pred_logger.info("Model loaded")
 
     emotion_dict = joblib.load(dict_path)
 
@@ -96,7 +98,7 @@ def decode_labels(
         if str(label) in emotion_decoder:
             decoded_labels.append(emotion_decoder[str(label)])
         else:
-            mt_logger.warning(f"Class {label} not found in emotion_decoder.")
+            pred_logger.warning(f"Class {label} not found in emotion_decoder.")
             decoded_labels.append("unknown")
 
     return decoded_labels
@@ -129,7 +131,7 @@ def predict(
         Max Meiners (214936)
     """
 
-    mt_logger.info("Predicting")
+    pred_logger.info("Predicting")
 
     input = {
         "input_ids": token_array,
@@ -142,11 +144,11 @@ def predict(
     probabilities = tf.nn.softmax(logits, axis=-1).numpy()
     predicted_classes = np.argmax(probabilities, axis=1)
     highest_probabilities = np.max(probabilities, axis=1)
-    
+
     text_labels = decode_labels(predicted_classes, emotion_decoder)
 
-    mt_logger.info("Got predictions")
-    
+    pred_logger.info("Got predictions")
+
     return text_labels, highest_probabilities
 
 
@@ -192,34 +194,36 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    mt_logger.info("Arguments parsed")
+    pred_logger.info("Arguments parsed")
 
     # Load the data
     data = pd.read_csv(args.data_path)
-    mt_logger.info("Data loaded")
+    pred_logger.info("Data loaded")
 
     # Call the preprocess_prediction_data function to get the preprocessed data
     tokens, masks = preprocess_prediction_data(
         data, args.tokenizer_model, args.max_length
     )
-    mt_logger.info("Data preprocessed")
+    pred_logger.info("Data preprocessed")
 
     # Load the model
     model = transformers.TFRobertaForSequenceClassification.from_pretrained(
         args.model_path
     )
-    mt_logger.info("Model loaded")
+    pred_logger.info("Model loaded")
 
     # Load the emotion decoder
-    with open(args.decoder_path, 'r') as f:
+    with open(args.decoder_path, "r") as f:
         emotion_decoder = json.load(f)
-    mt_logger.info(f"Emotion decoder loaded with keys: {list(emotion_decoder.keys())}")
+    pred_logger.info(
+        f"Emotion decoder loaded with keys: {list(emotion_decoder.keys())}"
+    )
 
     # Make predictions
     text_labels, highest_probabilities = predict(model, tokens, masks, emotion_decoder)
-    mt_logger.info("Predictions made")
+    pred_logger.info("Predictions made")
 
     # Print the predictions
     # for label, prob in zip(text_labels, highest_probabilities):
     #     print(f"Predicted emotion: {label} with confidence: {prob:.2f}")
-    # mt_logger.info("Results printed")
+    # pred_logger.info("Results printed")
