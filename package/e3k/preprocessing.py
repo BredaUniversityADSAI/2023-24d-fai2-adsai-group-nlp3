@@ -29,8 +29,8 @@ if len(pre_logger.handlers) == 0:
 
 @typeguard.typechecked
 def get_tokenizer(
-    model_name: str = "roberta-base"
-    ) -> transformers.models.roberta.tokenization_roberta_fast.RobertaTokenizerFast:
+    model_name: str = "roberta-base",
+) -> transformers.models.roberta.tokenization_roberta_fast.RobertaTokenizerFast:
     """
     Get the tokenizer for a specified model.
 

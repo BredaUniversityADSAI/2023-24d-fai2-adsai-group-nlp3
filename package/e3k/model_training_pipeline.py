@@ -2,6 +2,7 @@ import config
 import typeguard
 from azure.ai.ml import MLClient, dsl
 from azure.identity import ClientSecretCredential
+from azure.sweep import Choice, LogUniform, Uniform
 
 # const values for Azure connection
 SUBSCRIPTION_ID = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
@@ -31,7 +32,7 @@ splitting_component = ml_client.components.get(
     name="split_register_component", version="2024-06-18-16-14-15-3695360"
 )
 train_component = ml_client.components.get(
-    name="train_component", version="2024-06-19-14-14-49-6423447"
+    name="train_component", version="2024-06-19-13-08-33-7643142"
 )
 eval_component = ml_client.components.get(
     name="evaluation", version="2024-06-18-16-16-07-7286457"
@@ -47,9 +48,6 @@ eval_component = ml_client.components.get(
 def model_training(
     data_path: str,
     val_size: float,
-    epochs: int,
-    learning_rate: float,
-    early_stopping_patience: int,
     test_data: str,
     threshold: float,
     model_name: str,
@@ -60,10 +58,12 @@ def model_training(
 
     train_step = train_component(
         dataset_name_file=splitting_step.outputs.json_path,
-        epochs=epochs,
-        learning_rate=learning_rate,
-        early_stopping_patience=early_stopping_patience,
-    )
+        epochs=Uniform(min_value=2, max_value=10),
+        learning_rate=LogUniform(min_value=1e-5, max_value=1e-1),
+        early_stopping_patience=Choice([3, 5, 7]),
+        batch_size=Choice([16, 32, 64, 128]),
+    ).sweep(sampling_algorithm="bayesian", primary_metric="val_loss", goal="minimize")
+    train_step.set_limits(max_total_trials=3, max_concurrent_trials=3, timeout=7200)
 
     _ = eval_component(
         model_path=train_step.outputs.model,
