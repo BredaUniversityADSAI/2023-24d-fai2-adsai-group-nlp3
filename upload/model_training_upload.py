@@ -46,12 +46,17 @@ train_component = command(
             description="patience parameter of the early stopping callback",
             default=3,
         ),
+        "batch_size": Input(
+            type="integer",
+            description="number of examples the model learns from at one time",
+            default=8,
+        ),
     },
     outputs={
         "model": Output(type="uri_folder", mode="rw_mount"),
         "label_decoder": Output(type="uri_file", mode="rw_mount"),
     },
-    code="../package/e3k",
+    code="./package/e3k",
     command=(
         "python model_training.py "
         "--cloud True "
@@ -59,6 +64,7 @@ train_component = command(
         "--epochs ${{inputs.epochs}} "
         "--learning_rate ${{inputs.learning_rate}} "
         "--early_stopping_patience ${{inputs.early_stopping_patience}} "
+        "--batch_size ${{inputs.batch_size}} "
         "--model_output_path ${{outputs.model}} "
         "--decoder_output_path ${{outputs.label_decoder}}"
     ),

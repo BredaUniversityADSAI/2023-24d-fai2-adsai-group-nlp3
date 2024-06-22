@@ -6,12 +6,12 @@ from functools import reduce
 from typing import Dict, Tuple
 
 import config
+import matplotlib.pyplot as plt
+import mlflow
 import mltable
 import pandas as pd
 import tensorflow as tf
 import transformers
-import mlflow
-import matplotlib.pyplot as plt
 from azure.ai.ml import MLClient
 from azure.identity import ClientSecretCredential
 from preprocessing import preprocess_training_data
@@ -64,17 +64,9 @@ def get_args() -> argparse.Namespace:
         help="name of registered dataset used to train the model",
     )
 
-    parser.add_argument(
-        "--epochs", 
-        type=int, 
-        help="number of training epochs "
-    )
+    parser.add_argument("--epochs", type=int, help="number of training epochs ")
 
-    parser.add_argument(
-    "--learning_rate", 
-    type=float, 
-    help="optimizer's learning rate"
-    )
+    parser.add_argument("--learning_rate", type=float, help="optimizer's learning rate")
 
     parser.add_argument(
         "--early_stopping_patience",
@@ -188,7 +180,9 @@ def get_data_asset_as_df(
     """
 
     # fetching dataset
-    mt_logger.debug(f"Getting dataset: {dataset_name}, with version {dataset_version}...")
+    mt_logger.debug(
+        f"Getting dataset: {dataset_name}, with version {dataset_version}..."
+    )
     data_asset = ml_client.data.get(dataset_name, version=dataset_version)
     mt_logger.debug("Got dataset.")
 
@@ -260,7 +254,7 @@ def train_model(
     validation_dataset: tf.data.Dataset,
     epochs: int,
     learning_rate: float,
-    early_stopping_patience: int
+    early_stopping_patience: int,
 ) -> transformers.TFRobertaForSequenceClassification:
     """
     Train the model using tensorflow datasets.
@@ -357,15 +351,17 @@ def main(args: argparse.Namespace) -> None:
     # mlflow.tensorflow.autolog()
 
     # Log parameters to MLflow
-    mlflow.log_params({
-        "cloud": args.cloud,
-        "dataset_name_file": args.dataset_name_file,
-        "epochs": args.epochs,
-        "learning_rate": args.learning_rate,
-        "early_stopping_patience": args.early_stopping_patience,
-        "model_output_path": args.model_output_path,
-        "decoder_output_path": args.decoder_output_path
-    })
+    mlflow.log_params(
+        {
+            "cloud": args.cloud,
+            "dataset_name_file": args.dataset_name_file,
+            "epochs": args.epochs,
+            "learning_rate": args.learning_rate,
+            "early_stopping_patience": args.early_stopping_patience,
+            "model_output_path": args.model_output_path,
+            "decoder_output_path": args.decoder_output_path,
+        }
+    )
 
     ml_client = get_ml_client(
         config.config["subscription_id"],
@@ -408,6 +404,7 @@ def main(args: argparse.Namespace) -> None:
 
     # End MLflow run
     mlflow.end_run()
+
 
 if __name__ == "__main__":
     args = get_args()
