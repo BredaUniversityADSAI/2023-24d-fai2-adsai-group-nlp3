@@ -1,7 +1,7 @@
 import config
 import typeguard
 from azure.ai.ml import MLClient, dsl
-from azure.ai.ml.sweep import Choice, Uniform
+from azure.ai.ml.sweep import Uniform, Choice
 from azure.identity import ClientSecretCredential
 
 # const values for Azure connection
@@ -32,7 +32,7 @@ splitting_component = ml_client.components.get(
     name="split_register_component", version="2024-06-18-16-14-15-3695360"
 )
 train_component = ml_client.components.get(
-    name="train_component", version="2024-06-22-11-58-30-5888376"
+    name="train_component", version="2024-06-20-14-50-42-8000239"
 )
 eval_component = ml_client.components.get(
     name="evaluation", version="2024-06-18-16-16-07-7286457"
@@ -63,15 +63,19 @@ def model_training(
         learning_rate=Uniform(min_value=1e-5, max_value=1e-1),
         batch_size=Choice([16, 32, 64, 128]),
         early_stopping_patience=3,
-    ).sweep(sampling_algorithm="bayesian", primary_metric="val_loss", goal="minimize")
-
-    train_step.set_limits(
-        max_total_trials=10,  # Number of trials for different hyperparameter sets
-        max_concurrent_trials=2,  # Number of trials to run concurrently
-        timeout=7200,  # Maximum allowed time for the sweep
+    ).sweep(
+        sampling_algorithm="random",
+        primary_metric="val_loss",
+        goal="minimize"
     )
 
-    _ = eval_component(
+    train_step.set_limits(
+        max_total_trials=20,  # Number of trials for different hyperparameter sets
+        max_concurrent_trials=10,  # Number of trials to run concurrently
+        timeout=7200  # Maximum allowed time for the sweep
+    )
+
+    eval_step = eval_component(
         model_path=train_step.outputs.model,
         label_decoder=train_step.outputs.label_decoder,
         test_data=test_data,
@@ -79,13 +83,10 @@ def model_training(
         model_name=model_name,
     )
 
-
-"""
     return {
         "model_path": train_step.outputs.model,
         "evaluation_results": eval_step.outputs.results,
     }
-"""
 
 if __name__ == "__main__":
     # test pipeline on small dataset

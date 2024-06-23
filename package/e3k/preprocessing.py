@@ -47,7 +47,9 @@ def get_tokenizer(
 
 @typeguard.typechecked
 def tokenize_text_data(
-    data: pd.Series, tokenizer: transformers.AutoTokenizer, max_length: int = 128
+    data: pd.Series, 
+    tokenizer: transformers.models.roberta.tokenization_roberta_fast.RobertaTokenizerFast,
+    max_length: int = 128
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Tokenize text data using the provided tokenizer.
