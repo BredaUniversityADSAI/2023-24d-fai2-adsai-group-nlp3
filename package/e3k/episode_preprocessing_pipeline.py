@@ -23,7 +23,7 @@ and when used in order, provide the video or audio to sentences pipeline.
 """
 
 
-def load_audio(file_path: str, target_sample_rate: int) -> np.array:
+def load_audio(file_path: str, file_name: str, target_sample_rate: int) -> np.array:
     """
     A function that loads audio data from video file
     or directly loads audio from input.
@@ -43,7 +43,7 @@ def load_audio(file_path: str, target_sample_rate: int) -> np.array:
     epp_logger.info("loading audio file")
 
     # load audio from the file
-    audio = AudioSegment.from_file(file_path)
+    audio = AudioSegment.from_file(f"{file_path}/{file_name}")
 
     # export the audio to in-memory object
     wav_file = io.BytesIO()
@@ -299,19 +299,18 @@ def transcribe_translate_fragments(
 
     return data
 
-
 def save_data(
     df: pd.DataFrame,
     output_path: str = "output.csv",
 ) -> None:
     """
-    A function that abstracts pd.DataFrame's saving funcitons with
-    an option to chose json or scv format. If output path is not provided,
+    A function that abstracts pd.DataFrame's saving functions with
+    an option to choose json or csv format. If output path is not provided,
     the default path is "output.csv" in the current directory.
 
     Input:
         df (pd.DataFrame): dataframe to save
-        output_format (str): file path to the saved file,
+        output_path (str): file path to the saved file,
             default: "output.csv"
 
     Output: None
@@ -322,17 +321,27 @@ def save_data(
     # Check if there is no data to save
     if df.empty:
         epp_logger.warning("No data to save.")
+        return
 
     epp_logger.info("saving to file")
 
-    format = output_path.split(".")[1]
+    # Default to csv if no extension is provided
+    if "." not in output_path:
+        epp_logger.warning("No file extension provided, defaulting to '.csv'.")
+        output_path += ".csv"
+
+    format = output_path.split(".")[-1]
 
     if format == "json":
         df.to_json(output_path, index=False)
-    else:
+    elif format == "csv":
         df.to_csv(output_path, index=False)
+    else:
+        epp_logger.error(f"Unsupported file format '{format}'. Please use '.csv' or '.json'.")
+        return
 
-    epp_logger.info("done")
+    epp_logger.info(f"File saved successfully to {output_path}")
+
 
 
 """
@@ -501,11 +510,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--input_path",
+        "--input_folder",
         required=True,
         type=str,
         help="string, file path to the audio file",
     )
+
+    parser.add_argument(
+        "--input_filename",
+        required=True,
+        type=str,
+        help="string, file path to the audio file",
+    )
+
     parser.add_argument(
         "--output_path",
         required=False,
@@ -564,10 +581,10 @@ if __name__ == "__main__":
         "--transcript_model_size",
         required=False,
         type=str,
-        default="large",
+        default="tiny",
         help="""
         string, size of whisper model used for transcription and translation,
-        see: https://pypi.org/project/openai-whisper/. default: large
+        see: https://pypi.org/project/openai-whisper/. default: tiny
         """,
     )
 
@@ -579,7 +596,7 @@ if __name__ == "__main__":
     )
 
     # load audio file and set sample rate to the chosen value
-    audio = load_audio(file_path=args.input_path, target_sample_rate=args.target_sr)
+    audio = load_audio(file_path=args.input_folder, file_name=args.input_filename, target_sample_rate=args.target_sr)
 
     # get full audio length in frames
     full_audio_length_frames = len(audio)
