@@ -71,9 +71,9 @@ def get_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-    "--learning_rate", 
-    type=float, 
-    help="optimizer's learning rate"
+        "--learning_rate", 
+        type=float, 
+        help="optimizer's learning rate"
     )
 
     parser.add_argument(
