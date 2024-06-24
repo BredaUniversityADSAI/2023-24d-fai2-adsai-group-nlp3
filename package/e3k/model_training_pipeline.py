@@ -70,8 +70,8 @@ def model_training(
     )
 
     train_step.set_limits(
-        max_total_trials=3,  # Number of trials for different hyperparameter sets
-        max_concurrent_trials=2,  # Number of trials to run concurrently
+        max_total_trials=10,  # Number of trials for different hyperparameter sets
+        max_concurrent_trials=5,  # Number of trials to run concurrently
         timeout=7200  # Maximum allowed time for the sweep
     )
 
