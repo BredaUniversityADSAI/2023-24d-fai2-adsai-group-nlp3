@@ -3,6 +3,7 @@ import pandas as pd
 import pytest
 import argparse
 import tensorflow as tf
+import numpy as np
 from sklearn.preprocessing import LabelEncoder
 from transformers import RobertaTokenizer, TFRobertaForSequenceClassification
 
@@ -34,7 +35,10 @@ class TestModelTraining:
 
     def test_get_versioned_datasets(self, azure_credentials):
         # Path to the local JSON dataset info file
-        local_dataset_info_file = ("/Users/maxmeiners/Library/CloudStorage/OneDrive-BUas/Github/Year 2/Block D/test_files/pytest_args.json")
+        local_dataset_info_file = (
+            "/Users/maxmeiners/Library/CloudStorage/OneDrive-BUas"
+            "/Github/Year 2/Block D/test_files/pytest_args.json"
+            )
 
         # Mock args
         args = argparse.Namespace(dataset_name_file=local_dataset_info_file)
@@ -83,13 +87,15 @@ class TestModelTraining:
         num_classes = 6
         model = e3k.model_training.get_new_model(num_classes=num_classes)
         
-        # Load datasets (first 50 rows only)
+        # Load datasets
         training_dataset = pd.read_csv(
-            "/Users/maxmeiners/Library/CloudStorage/OneDrive-BUas/Github/Year 2/Block D/test_files/test_emotions",
+            "/Users/maxmeiners/Library/CloudStorage/OneDrive-BUas"
+            "/Github/Year 2/Block D/test_files/test_emotions",
             nrows=50
         )
         validation_dataset = pd.read_csv(
-            "/Users/maxmeiners/Library/CloudStorage/OneDrive-BUas/Github/Year 2/Block D/test_files/test_emotions_eval",
+            "/Users/maxmeiners/Library/CloudStorage/OneDrive-BUas"
+            "/Github/Year 2/Block D/test_files/test_emotions_eval",
             nrows=50
         )
 
@@ -111,9 +117,15 @@ class TestModelTraining:
             return_tensors="tf"
         )
 
-        # Convert labels to tensor
-        train_labels = tf.constant(training_dataset['emotion'].tolist())
-        val_labels = tf.constant(validation_dataset['emotion'].tolist())
+        # Convert labels to NumPy arrays and then to tensors
+        train_labels = tf.convert_to_tensor(np.array(training_dataset['label'].values))
+        val_labels = tf.convert_to_tensor(np.array(validation_dataset['label'].values))
+
+        # Print tensor shapes for debugging
+        print("Train encodings shape:", {k: v.shape for k, v in train_encodings.items()})
+        print("Validation encodings shape:", {k: v.shape for k, v in val_encodings.items()})
+        print("Train labels shape:", train_labels.shape)
+        print("Validation labels shape:", val_labels.shape)
 
         # Create TensorFlow datasets
         train_dataset = tf.data.Dataset.from_tensor_slices((
@@ -140,7 +152,6 @@ class TestModelTraining:
             learning_rate,
             early_stopping_patience
         )
-
         assert trained_model is not None
 
 
