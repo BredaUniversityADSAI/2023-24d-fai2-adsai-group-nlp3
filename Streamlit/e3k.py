@@ -1,7 +1,49 @@
 import streamlit as st
+import base64
+from streamlit_extras.stylable_container import stylable_container
 from azure_utils import get_azure_workspace, get_model, list_models
 from preprocessing import preprocess_prediction_data, preprocess_training_data
 
+
+# Inject custom CSS for background color
+st.markdown(
+    """
+<style>
+    .stApp {
+        background-color: lightblue;
+        padding: 20px; /* Optional: add some padding for better spacing */
+    }
+</style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Load the logo image (JPG)
+logo_image_path = "/Users/maxmeiners/Downloads/Screenshot_2024-06-20_at_17.49.24-removebg-preview.png"
+
+# Read and encode the image in base64
+def get_image_base64(image_path):
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode()
+
+logo_image_base64 = get_image_base64(logo_image_path)
+
+# Define styles for the title
+title_color = "#0D4A6F"  # Example color: blue
+title_font_size = "45px"  # Example font size
+header_font_size = "20px"  # Font size for headers
+subheader_font_size = "25px"  # Font size for subheaders
+
+# Display the logo at the top left of the main page with a specified width and title color
+logo_image_html = f"""
+<div style="display: flex; align-items: center;">
+    <img src="data:image/jpg;base64,{logo_image_base64}" width="100"/>
+    <h1 style="margin-left: 10px; color: {title_color}; font-size: {title_font_size};">
+        Emotion Detection Platform
+    </h1>
+</div>
+"""
+st.markdown(logo_image_html, unsafe_allow_html=True)
 
 # Define the page navigation function
 def navigate_to(page):
@@ -16,31 +58,66 @@ def add_home_button():
 # Define the Home page
 def home_page():
     st.title("Home")
-    st.write("Welcome to the Emotion Detection Platform!")
+    st.write("Welcome to the Emotion Detection Platform! "
+             "Please select an option below to get started.")
     col1, col2 = st.columns(2)
-    
+
+    # Styles for text and button in the first column
+    col1_css = """
+        button {
+            background-color: #5495D6;
+            color: white;
+            border-radius: 20px;
+            padding: 10px;
+        }
+        p {
+            color: #c0fdfb;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+    """
+
+    # Styles for text and button in the second column
+    col2_css = """
+        button {
+            background-color: #5495D6;
+            color: white;
+            border-radius: 20px;
+            padding: 10px;
+        }
+        p {
+            color: #c0fdfb;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+    """
+
     with col1:
-        if st.button("Go to Emotion Data Preprocessing"):
-            navigate_to("EDP")
-    
+        with stylable_container(key="edp_button", css_styles=col1_css):
+            st.markdown("<p></p>", unsafe_allow_html=True)
+            if st.button("Go to Emotion Data Preprocessing"):
+                navigate_to("EDP")
+
     with col2:
-        if st.button("Go to Model Training"):
-            navigate_to("Model Training")
+        with stylable_container(key="model_training_button", css_styles=col2_css):
+            st.markdown("<p></p>", unsafe_allow_html=True)
+            if st.button("Go to Model Training"):
+                navigate_to("Model Training")
 
 # Define the Model Training page
 def model_training_page():
-    st.title("Model Training")
+    st.markdown(f"<h2 style='font-size: {header_font_size};'>Model Training</h2>", unsafe_allow_html=True)
     st.write("This is the Model Training page.")
     add_home_button()
 
 # Define the EDP (Emotion Detection Predictor) page
 def edp_page():
-    st.title("Emotion Detection Predictor (EDP)")
+    st.markdown(f"<h2 style='font-size: {header_font_size};'>Emotion Detection Predictor (EDP)</h2>", unsafe_allow_html=True)
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.header("Upload your audio or video file")
+        st.markdown(f"<h3 style='font-size: {subheader_font_size};'>Upload your audio or video file</h3>", unsafe_allow_html=True)
         uploaded_file = st.file_uploader("Choose a file", type=["mp3", "mov"])
         
         if "ws" not in st.session_state:
@@ -56,7 +133,7 @@ def edp_page():
             st.write(result)
     
     with col2:
-        st.header("Prediction Output")
+        st.markdown(f"<h3 style='font-size: {subheader_font_size};'>Prediction Output</h3>", unsafe_allow_html=True)
         # This space will show the prediction results
     
     add_home_button()
@@ -82,9 +159,10 @@ def process_and_predict(uploaded_file, selected_model):
     
     except Exception as e:
         return f"An error occurred: {e}"
+
 # Define the Prediction Result page
 def prediction_result_page():
-    st.title("Prediction Result")
+    st.markdown(f"<h2 style='font-size: {header_font_size};'>Prediction Result</h2>", unsafe_allow_html=True)
     st.write("This is the Prediction Result page.")
     add_home_button()
 
