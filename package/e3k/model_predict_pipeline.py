@@ -1,4 +1,5 @@
-from azure.ai.ml import MLClient, dsl, Input
+import config
+from azure.ai.ml import Input, MLClient, dsl
 from azure.identity import ClientSecretCredential
 
 # Const values for Azure connection
@@ -9,12 +10,16 @@ TENANT_ID = "0a33589b-0036-4fe8-a829-3ed0926af886"
 CLIENT_ID = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
 CLIENT_SECRET = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
 
-credential = ClientSecretCredential(TENANT_ID, CLIENT_ID, CLIENT_SECRET)
+credential = ClientSecretCredential(
+    config.config["tenant_id"],
+    config.config["client_id"],
+    config.config["client_secret"],
+)
 
 ml_client = MLClient(
-    subscription_id=SUBSCRIPTION_ID,
-    resource_group_name=RESOURCE_GROUP,
-    workspace_name=WORKSPACE_NAME,
+    subscription_id=config.config["subscription_id"],
+    resource_group_name=config.config["resource_group"],
+    workspace_name=config.config["workspace_name"],
     credential=credential,
 )
 

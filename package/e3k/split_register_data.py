@@ -1,9 +1,10 @@
 import argparse
+import json
 import logging
 import os
 from typing import Dict, Tuple
-import json
 
+import config
 # import azureml
 # import fsspec
 import pandas as pd
@@ -14,7 +15,9 @@ from azureml.core.authentication import ServicePrincipalAuthentication
 from sklearn.model_selection import train_test_split
 
 # setting up logger
-split_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
+split_logger = logging.getLogger(
+    f"{'main.' if __name__ != '__main__' else ''}{__name__}"
+)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 
@@ -188,12 +191,12 @@ def main(args: argparse.Namespace):
         split_logger.info("Processing data from Azure.")
         # Access data from Azure
         ml_client, workspace = connect_to_azure_ml(
-            subscription_id,
-            resource_group,
-            workspace_name,
-            tenant_id,
-            client_id,
-            client_secret,
+            config.config["subscription_id"],
+            config.config["resource_group"],
+            config.config["workspace_name"],
+            config.config["tenant_id"],
+            config.config["client_id"],
+            config.config["client_secret"],
         )
         datastore = Datastore.get(workspace, datastore_name="workspaceblobstore")
 

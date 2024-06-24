@@ -4,6 +4,7 @@ import logging
 import os
 import pickle
 
+import config
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -404,14 +405,14 @@ if __name__ == "__main__":
         CLIENT_SECRET = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
 
         svc_pr = ServicePrincipalAuthentication(
-            tenant_id=TENANT_ID,
-            service_principal_id=CLIENT_ID,
-            service_principal_password=CLIENT_SECRET,
+            tenant_id=config.config["tenant_id"],
+            service_principal_id=config.config["client_id"],
+            service_principal_password=config.config["client_secret"],
         )
         workspace = Workspace(
-            subscription_id=args.subscription_id,
-            resource_group=args.resource_group,
-            workspace_name=args.workspace_name,
+            subscription_id=config.config["subscription_id"],
+            resource_group=config.config["resource_group"],
+            workspace_name=config.config["workspace_name"],
             auth=svc_pr,
         )
         # change
