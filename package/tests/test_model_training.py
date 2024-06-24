@@ -86,40 +86,43 @@ class TestModelTraining:
     def test_train_model(self):
         num_classes = 6
         model = e3k.model_training.get_new_model(num_classes=num_classes)
-        
-        # Load datasets
+
+        # Load datasets (first 50 rows only)
         training_dataset = pd.read_csv(
-            "/Users/maxmeiners/Library/CloudStorage/OneDrive-BUas"
-            "/Github/Year 2/Block D/test_files/test_emotions",
+            "package/tests/test_files/test_emotions",
             nrows=50
         )
         validation_dataset = pd.read_csv(
-            "/Users/maxmeiners/Library/CloudStorage/OneDrive-BUas"
-            "/Github/Year 2/Block D/test_files/test_emotions_eval",
+            "package/tests/test_files/test_emotions_eval",
             nrows=50
         )
+
+        # Encode labels to numeric values
+        label_encoder = LabelEncoder()
+        training_dataset['label'] = label_encoder.fit_transform(training_dataset['emotion'])
+        validation_dataset['label'] = label_encoder.transform(validation_dataset['emotion'])
 
         tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
 
         # Inline tokenization
         train_encodings = tokenizer(
-            training_dataset['sentence'].tolist(), 
-            padding=True, 
-            truncation=True, 
+            training_dataset['sentence'].tolist(),
+            padding='max_length',
+            truncation=True,
             max_length=16,
             return_tensors="tf"
         )
         val_encodings = tokenizer(
-            validation_dataset['sentence'].tolist(), 
-            padding=True, 
-            truncation=True, 
+            validation_dataset['sentence'].tolist(),
+            padding='max_length',
+            truncation=True,
             max_length=16,
             return_tensors="tf"
         )
 
         # Convert labels to NumPy arrays and then to tensors
-        train_labels = tf.convert_to_tensor(np.array(training_dataset['label'].values))
-        val_labels = tf.convert_to_tensor(np.array(validation_dataset['label'].values))
+        train_labels = tf.convert_to_tensor(np.array(training_dataset['label'].values), dtype=tf.int32)
+        val_labels = tf.convert_to_tensor(np.array(validation_dataset['label'].values), dtype=tf.int32)
 
         # Print tensor shapes for debugging
         print("Train encodings shape:", {k: v.shape for k, v in train_encodings.items()})
@@ -151,8 +154,9 @@ class TestModelTraining:
             epochs,
             learning_rate,
             early_stopping_patience
-        )
+            )
         assert trained_model is not None
+
 
 
 if __name__ == "__main__":
