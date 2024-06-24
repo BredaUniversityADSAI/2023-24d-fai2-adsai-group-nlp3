@@ -5,10 +5,13 @@ import pickle
 from functools import reduce
 from typing import Dict, Tuple
 
+import config
 import mltable
 import pandas as pd
 import tensorflow as tf
 import transformers
+import optuna
+import mlflow
 from azure.ai.ml import MLClient
 from azure.identity import ClientSecretCredential
 from preprocessing import preprocess_training_data
@@ -31,19 +34,6 @@ file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 
 mt_logger.addHandler(file_handler)
-
-
-
-# const values for Azure connection
-SUBSCRIPTION_ID = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
-RESOURCE_GROUP = "buas-y2"
-WORKSPACE_NAME = "NLP3"
-TENANT_ID = "0a33589b-0036-4fe8-a829-3ed0926af886"
-CLIENT_ID = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
-CLIENT_SECRET = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
-
-
-mt_logger.info(f"devices: {tf.config.list_physical_devices()}")
 
 
 def get_args() -> argparse.Namespace:
@@ -324,41 +314,81 @@ def main(args: argparse.Namespace) -> None:
         label_decoder: dumped to a file under the specified path using json.dump
     """
 
-    ml_client = get_ml_client(
-        SUBSCRIPTION_ID,
-        TENANT_ID,
-        CLIENT_ID,
-        CLIENT_SECRET,
-        RESOURCE_GROUP,
-        WORKSPACE_NAME,
-    )
+    def objective(trial):
+        params = {
+            'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1e-1),
+            'epochs': trial.suggest_int('epochs', 1, 10),
+        }
 
-    train_name, val_name, version = get_versioned_datasets(args, ml_client)
+        try:
+            mlflow.start_run()
 
-    # getting datasets
-    train_data = get_data_asset_as_df(ml_client, train_name, version)
-    val_data = get_data_asset_as_df(ml_client, val_name, version)
+            # Log parameters to MLflow
+            mlflow.log_params(params)
+            mlflow.log_params({
+                "cloud": args.cloud,
+                "dataset_name_file": args.dataset_name_file,
+                "early_stopping_patience": args.early_stopping_patience,
+                "model_output_path": args.model_output_path,
+                "decoder_output_path": args.decoder_output_path
+            })
 
-    label_decoder = get_label_decoder(train_data["emotion"])
+            ml_client = get_ml_client(
+                config.config["subscription_id"],
+                config.config["tenant_id"],
+                config.config["client_id"],
+                config.config["client_secret"],
+                config.config["resource_group"],
+                config.config["workspace_name"],
+            )
 
-    train_tf_data, val_tf_data = preprocess_training_data(
-        train_data, val_data, label_decoder
-    )
+            train_name, val_name, version = get_versioned_datasets(args, ml_client)
 
-    model = get_new_model(num_classes=len(label_decoder))
-    model = train_model(
-        model,
-        train_tf_data,
-        val_tf_data,
-        args.epochs,
-        args.learning_rate,
-        args.early_stopping_patience,
-    )
+            # getting datasets
+            train_data = get_data_asset_as_df(ml_client, train_name, version)
+            val_data = get_data_asset_as_df(ml_client, val_name, version)
 
-    model.save_pretrained(args.model_output_path)
-    with open(args.decoder_output_path, "wb") as f:
-        pickle.dump(label_decoder, f)
+            label_decoder = get_label_decoder(train_data["emotion"])
 
+            train_tf_data, val_tf_data = preprocess_training_data(
+                train_data, val_data, label_decoder
+            )
+
+            model = get_new_model(num_classes=len(label_decoder))
+            model = train_model(
+                model,
+                train_tf_data,
+                val_tf_data,
+                params,
+                args.early_stopping_patience,
+            )
+
+            loss, accuracy = model.evaluate(val_tf_data)
+
+            # Log metrics to MLflow
+            mlflow.log_metric("val_loss", loss)
+            mlflow.log_metric("val_accuracy", accuracy)
+
+            # Save and log the model
+            model.save_pretrained(args.model_output_path)
+            mlflow.log_artifact(args.model_output_path, "model")
+
+            with open(args.decoder_output_path, "wb") as f:
+                pickle.dump(label_decoder, f)
+            mlflow.log_artifact(args.decoder_output_path, "label_decoder")
+            
+        finally:
+            # Ensure that the MLflow run is ended properly
+            mlflow.end_run()
+
+        return loss
+
+    # Define and optimize the study
+    study = optuna.create_study(direction="minimize", study_name="model_optimization")
+    study.optimize(objective, n_trials=10)
+
+    print(f"Best trial: {study.best_trial.value}")
+    print(f"Best params: {study.best_trial.params}")
 
 if __name__ == "__main__":
     args = get_args()
