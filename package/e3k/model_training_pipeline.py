@@ -75,18 +75,13 @@ def model_training(
         timeout=7200  # Maximum allowed time for the sweep
     )
 
-    eval_step = eval_component(
+    _ = eval_component(
         model_path=train_step.outputs.model,
         label_decoder=train_step.outputs.label_decoder,
         test_data=test_data,
         threshold=threshold,
         model_name=model_name,
     )
-
-    return {
-        "model_path": train_step.outputs.model,
-        "evaluation_results": eval_step.outputs.results,
-    }
 
 if __name__ == "__main__":
     # test pipeline on small dataset
