@@ -66,16 +66,16 @@ predict_component = command(
             description="Output predictions with confidence scores",
         )
     },
-    code=os.path.abspath("./package/e3k/temp_folder"),
-    command="""
-    python model_predict.py
-    --model_path ${{inputs.model_path}}
-    --data_path ${{inputs.data_path}}
-    --tokenizer_model ${{inputs.tokenizer_model}}
-    --max_length ${{inputs.max_length}}
-    --decoder_path ${{inputs.decoder_path}}
-    --output_path ${{outputs.predictions}}
-    """,
+    code="./package/e3k/",
+    command=(
+        "python3 model_predict.py "
+        "--model_path ${{inputs.model_path}} "
+        "--data_path ${{inputs.data_path}} "
+        "--tokenizer_model ${{inputs.tokenizer_model}} "
+        "--max_length ${{inputs.max_length}} "
+        "--decoder_path ${{inputs.decoder_path}}"
+ #       "--output_path ${{outputs.predictions}}"
+    ),
     environment=environment,
     compute=compute_name,
 )

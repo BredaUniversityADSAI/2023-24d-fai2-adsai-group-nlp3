@@ -55,12 +55,19 @@ def model_predict(
         decoder_path=decoder_path,
     )
 # Retrieve the model from the workspace
-model_name = "RoBERTa_model"
+model_name = "training_test_model"
 model_version = "1"
 model = ml_client.models.get(
     name=model_name, 
     version=model_version
 )
+
+decoder_folder_path = (
+    "azureml://subscriptions/0a94de80-6d3b-49f2-b3e9-ec5818862801/"
+    "resourcegroups/buas-y2/workspaces/NLP3/datastores/workspaceblobstore/"
+    f"paths/labels_encodings/{model_name}/label_decoder"
+)
+
 model_path = model.path
 if __name__ == "__main__":
     

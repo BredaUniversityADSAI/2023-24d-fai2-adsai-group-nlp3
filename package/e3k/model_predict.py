@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import pickle
 
 import joblib
 import json
@@ -211,8 +212,8 @@ if __name__ == "__main__":
     mt_logger.info("Model loaded")
 
     # Load the emotion decoder
-    with open(args.decoder_path, 'r') as f:
-        emotion_decoder = json.load(f)
+    with open(args.decoder_path, "rb") as f:
+        emotion_decoder = pickle.load(f)
     mt_logger.info(f"Emotion decoder loaded with keys: {list(emotion_decoder.keys())}")
 
     # Make predictions
