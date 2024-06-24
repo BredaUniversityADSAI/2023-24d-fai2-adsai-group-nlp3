@@ -19,7 +19,7 @@ st.markdown(
 )
 
 # Load the logo image (JPG)
-logo_image_path = "/Users/maxmeiners/Downloads/Screenshot_2024-06-20_at_17.49.24-removebg-preview.png"
+logo_image_path = "/Users/pannapfandler/Documents/GitHub/2023-24d-fai2-adsai-group-nlp3/Streamlit/images/Screenshot_2024-06-20_at_17.49.24-removebg-preview.png"
 
 # Read and encode the image in base64
 def get_image_base64(image_path):
@@ -55,11 +55,15 @@ def add_home_button():
     if st.button("🏠 Home"):
         navigate_to("Home")
 
-# Define the Home page
 def home_page():
     st.title("Home")
-    st.write("Welcome to the Emotion Detection Platform! "
-             "Please select an option below to get started.")
+    welcome_text = """
+        <div style="color: black;">
+            Welcome to the Emotion Detection Platform! 
+            Please select an option below to get started.
+        </div>
+    """
+    st.markdown(welcome_text, unsafe_allow_html=True)
     col1, col2 = st.columns(2)
 
     # Styles for text and button in the first column
@@ -103,6 +107,7 @@ def home_page():
             st.markdown("<p></p>", unsafe_allow_html=True)
             if st.button("Go to Model Training"):
                 navigate_to("Model Training")
+
 
 # Define the Model Training page
 def model_training_page():
