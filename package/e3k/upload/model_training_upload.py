@@ -19,7 +19,7 @@ ml_client = MLClient(
     credential=credential,
 )
 
-env = ml_client.environments.get("BlockD", version="2")
+env = ml_client.environments.get("BlockD", version="21")
 compute = ml_client.compute.get("adsai0")
 
 # define the component
@@ -41,6 +41,11 @@ train_component = command(
             description="learning rate of the model's optimizer",
             default=1e-3,
         ),
+        "batch_size": Input(
+            type="integer",
+            description="batch size for training the model",
+            default=32,
+        ),
         "early_stopping_patience": Input(
             type="integer",
             description="patience parameter of the early stopping callback",
@@ -51,13 +56,14 @@ train_component = command(
         "model": Output(type="uri_folder", mode="rw_mount"),
         "label_decoder": Output(type="uri_file", mode="rw_mount"),
     },
-    code="./package/e3k",
+    code="../",
     command=(
         "python model_training.py "
         "--cloud True "
         "--dataset_name_file ${{inputs.dataset_name_file}} "
         "--epochs ${{inputs.epochs}} "
         "--learning_rate ${{inputs.learning_rate}} "
+        "--batch_size ${{inputs.batch_size}} "
         "--early_stopping_patience ${{inputs.early_stopping_patience}} "
         "--model_output_path ${{outputs.model}} "
         "--decoder_output_path ${{outputs.label_decoder}}"

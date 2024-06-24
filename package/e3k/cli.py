@@ -3,6 +3,7 @@ import datetime
 import logging
 
 import episode_preprocessing_pipeline as epp
+import mlflow
 import model_evaluate as me
 import model_output_information as moi
 import model_predict as mp
@@ -10,6 +11,7 @@ import model_training as mt
 import pandas as pd
 import preprocessing
 import split_register_data as splitting
+import typeguard
 from config import config
 from model_training_pipeline import model_training as mt_pipe
 from tensorflow import config as tf_config
@@ -33,21 +35,8 @@ stream_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
 
-# checking for available GPU
-detected_gpu = len(tf_config.list_physical_devices("GPU")) > 0
-if not detected_gpu:
-    logger.warning(
-        (
-            "No GPU detected, using CPU instead. "
-            "Preprocessing from audio/video will take significantly longer, "
-            "and training and predicting may not be a feasible task. "
-            "Consider switching to a GPU device."
-        )
-    )
-else:
-    logger.info("GPU detected")
 
-
+@typeguard.typechecked
 def get_args() -> argparse.Namespace:
     """
     A function that groups all positional and optional arguments from command line,
@@ -78,7 +67,7 @@ def get_args() -> argparse.Namespace:
         type=str,
         choices=["preprocess", "train", "predict", "add"],
         help="""
-        string, task that has to be performed (preprocess/train/predict).
+        string, task that has to be performed (preprocess/train/predict/add).
         preprocess: from video/audio to sentences,
         train: get new model from existing data,
         predict: get emotions from new episode
@@ -87,6 +76,7 @@ def get_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--cloud",
+        required=True,
         type=str,
         choices=["True", "False"],
         help="""
@@ -119,7 +109,7 @@ def get_args() -> argparse.Namespace:
         choices=[True, False],
         help="""
         bool, whether to save the processed video episode as a csv file.
-        (local only, default: False")
+        (local only, default: False)
         """,
     )
     parser.add_argument(
@@ -199,7 +189,7 @@ def get_args() -> argparse.Namespace:
         type=str,
         default="new_test_data/train_eval_sample.csv",
         help="""Path to the validation data [CSV file (local) | not used,
-        val dataset created automaticaly from train data (cloud)]""",
+        val dataset created automatically from train data (cloud)]""",
     )
     parser.add_argument(
         "--val_size",
@@ -222,7 +212,7 @@ def get_args() -> argparse.Namespace:
         required=False,
         type=int,
         default=128,
-        help="max number of tokens used from one input sentence"
+        help="max number of tokens used from one input sentence",
     )
     parser.add_argument(
         "--epochs",
@@ -249,7 +239,7 @@ def get_args() -> argparse.Namespace:
         "--model_save_path",
         required=False,
         type=str,
-        default="new_test_data/new_saved_model",
+        default="new_model",
         help="""
         path to the directory where the trained model will be saved (local only)
         """,
@@ -259,19 +249,17 @@ def get_args() -> argparse.Namespace:
         required=False,
         type=float,
         default=0.8,
-        help="accuracy threshold for the model to be considered good",
+        help="accuracy threshold for the model to be saved or register",
     )
     parser.add_argument(
-        "--test_data",
-        type=str,
-        default="new_test_data/train_eval_sample.csv",
-        help="path to test data for model evaluation",
+        "--test_data", type=str, help="path to test data for model evaluation"
     )
     parser.add_argument(
         "--model_name",
+        required=False,
         type=str,
         default=str(datetime.datetime.now().date()),
-        help="name of the registered model (cloud only)",
+        help="name of the registered/saved model",
     )
 
     # model_predict args (that are not in model_train already)
@@ -303,6 +291,7 @@ def get_args() -> argparse.Namespace:
     return args
 
 
+@typeguard.typechecked
 def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
     """
     Function that follows the episode_preprocessing_pipeline module.
@@ -316,7 +305,8 @@ def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
             holds the information about positional and optional arguments
             from command line
 
-    Output (pd.DataFrame): result of episode_preprocessing_pipeline.
+    Output:
+        data_df (pd.DataFrame): result of episode_preprocessing_pipeline,
         pd.DataFrame with sentences from the audio/video.
 
     Author - Wojciech Stachowiak
@@ -372,11 +362,10 @@ def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
     return data_df
 
 
+@typeguard.typechecked
 def model_training(
     args: argparse.Namespace,
-) -> tuple[
-    TFRobertaForSequenceClassification, tuple[list[str], list[float], float, str]
-]:
+) -> tuple[TFRobertaForSequenceClassification, dict[int, str]]:
     """
     A function that follows the model_training module.
     It loads and pre-processes the data for model training, creates a new model,
@@ -389,26 +378,31 @@ def model_training(
 
     Output:
         model: a trained roBERTa transformer model
+        label_decoder (dict[int, str]): a dictionary mapping numbers to
+            text representation of emotions
 
     Author - Wojciech Stachowiak
     """
-
+    # load data, and discard label decoder
     train_data, _ = splitting.load_data(args.train_data)
 
+    # if passed, load validation data
     if args.val_data == "":
         train_data, val_data = splitting.get_train_val_data(train_data, args.val_size)
     else:
         val_data, _ = splitting.load_data(args.val_data)
     label_decoder = mt.get_label_decoder(train_data["emotion"])
 
+    # get tf_datasets for model training
     train_dataset, val_dataset = preprocessing.preprocess_training_data(
         train_data,
         val_data,
         label_decoder,
         max_length=args.max_length,
-        batch_size=args.batch_size
+        batch_size=args.batch_size,
     )
 
+    # train newly created model
     model = mt.get_new_model(len(label_decoder))
     model = mt.train_model(
         model,
@@ -416,12 +410,13 @@ def model_training(
         val_dataset,
         epochs=args.epochs,
         learning_rate=args.learning_rate,
-        early_stopping_patience=args.early_stopping_patience
+        early_stopping_patience=args.early_stopping_patience,
     )
 
     return model, label_decoder
 
 
+@typeguard.typechecked
 def evaluate_model(
     args: argparse.Namespace,
     model: TFRobertaForSequenceClassification,
@@ -429,6 +424,7 @@ def evaluate_model(
 ) -> None:
     """
     A function that evaluates a trained model using a separate dataset.
+    The function saves the model if it's accuracy surpasses the threshold.
 
     Inputs:
         args (argparse.Namespace): Namespace object returned by get_args function.
@@ -443,13 +439,19 @@ def evaluate_model(
     Author - Wojciech Stachowiak
     """
     data = me.load_data(args.test_data)
+
+    # getting token ids and attention masks
     tokens, masks = me.preprocess_prediction_data(data)
+    # getting predictions and evaluating the model
     emotions, _ = me.predict(model, tokens, masks, label_decoder)
     accuracy, _ = me.evaluate(emotions, data)
     print(f"Test accuracy: {accuracy * 100:.2f}%")
+
+    # saving the model if the accuracy is high enough
     me.save_model(model, label_decoder, args.model_save_path, accuracy, args.threshold)
 
 
+@typeguard.typechecked
 def predict(
     args: argparse.Namespace, data: pd.DataFrame
 ) -> tuple[list[str], list[float]]:
@@ -482,6 +484,7 @@ def predict(
     return emotions, probabilities
 
 
+@typeguard.typechecked
 def model_output_information(
     predicted_emotions: list[str], confidence_scores: list[float]
 ) -> None:
@@ -503,6 +506,7 @@ def model_output_information(
     moi.calculate_episode_confidence(confidence_scores)
 
 
+@typeguard.typechecked
 def main() -> None:
     """
     A function that handles the correct execution of different modules given
@@ -519,9 +523,16 @@ def main() -> None:
 
     Author - Wojciech Stachowiak
     """
+
+    # Start MLflow run
+    mlflow.start_run()
+
     # get arguments from argparser
     args = get_args()
     logger.info("got command line arguments")
+
+    # Log parameters to MLflow
+    mlflow.log_params(vars(args))
 
     cloud = args.cloud == "True"
     if cloud is True:
@@ -551,12 +562,7 @@ def main() -> None:
             )
 
             _ = ml_client.jobs.create_or_update(
-                training_pipeline, experiment_name="model_training",
-                tags={
-                    "project": "Automated hyperparameter tuning",
-                    "purpose": "testing",
-                    "developer": "Max Meiners"
-                }
+                training_pipeline, experiment_name="model_training_mlflow_experiment"
             )
 
             logger.info("the pipeline is running in the cloud now")
@@ -566,6 +572,20 @@ def main() -> None:
 
     else:
         logger.info("the pipeline will run locally")
+
+        # checking for available GPU
+        detected_gpu = len(tf_config.list_physical_devices("GPU")) > 0
+        if not detected_gpu:
+            logger.warning(
+                (
+                    "No GPU detected, using CPU instead. "
+                    "Preprocessing from audio/video will take significantly longer, "
+                    "and training and predicting may not be a feasible task. "
+                    "Consider switching to a GPU device."
+                )
+            )
+        else:
+            logger.info("GPU detected")
 
         # handle episode preprocessing
         if args.task in ["preprocess", "predict"]:
@@ -586,6 +606,9 @@ def main() -> None:
 
             model, label_decoder = model_training(args)
             evaluate_model(args, model, label_decoder)
+
+    # End MLflow run
+    mlflow.end_run()
 
 
 if __name__ == "__main__":
