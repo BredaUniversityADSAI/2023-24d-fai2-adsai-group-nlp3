@@ -551,7 +551,12 @@ def main() -> None:
             )
 
             _ = ml_client.jobs.create_or_update(
-                training_pipeline, experiment_name="model_training"
+                training_pipeline, experiment_name="model_training",
+                tags={
+                    "project": "Automated hyperparameter tuning",
+                    "purpose": "testing",
+                    "developer": "Max Meiners"
+                }
             )
 
             logger.info("the pipeline is running in the cloud now")
