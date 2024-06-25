@@ -1,10 +1,16 @@
+"""
+Tests for episode_preprocessing_pipeline.py
+
+Author: Kornelia Flizik, 223643
+"""     
+
 import pytest
 import numpy as np
 import pandas as pd
 import os
 
 # Loading main functions
-from episode_preprocessing_pipeline import (
+from e3k.episode_preprocessing_pipeline import (
     load_audio,
     get_segments_for_vad,
     get_vad_per_segment,
@@ -14,7 +20,7 @@ from episode_preprocessing_pipeline import (
 )
 
 # Loading utils functions
-from episode_preprocessing_pipeline import (
+from e3k.episode_preprocessing_pipeline import (
     segment_number_to_frames,
     get_target_length_frames,
     adjust_fragment_start_frame,
@@ -24,13 +30,17 @@ from episode_preprocessing_pipeline import (
 
 @pytest.fixture
 def sample_file_path():
-    return "ER22_AFL01_audio.mp3"
+    return "test_data"
+
+def sample_file_name():
+    return "video_test.mov"
+
 
 class TestMain:
     @pytest.mark.parametrize("sample_rate", [32000])
-    def test_load_audio(self, sample_file_path, sample_rate):
+    def test_load_audio(self, sample_file_path, sample_file_name, sample_rate):
         # Call the function to load audio
-        audio = load_audio(sample_file_path, sample_rate)
+        audio = load_audio(sample_file_path, sample_file_name, sample_rate)
         
         # Assertions
         # Check if output is numpy array
@@ -41,10 +51,10 @@ class TestMain:
         assert len(audio) > 0
 
     @pytest.mark.parametrize("sample_rate, segment_seconds_length", [(32000, 0.03)])
-    def test_get_segments_for_vad(self, sample_file_path, sample_rate, 
-                                  segment_seconds_length):
+    def test_get_segments_for_vad(self, sample_file_path, sample_file_name,
+                                  sample_rate, segment_seconds_length):
         # Call the function to load audio
-        audio = load_audio(sample_file_path, sample_rate)
+        audio = load_audio(sample_file_path, sample_file_name, sample_rate)
         # Call the function to get segments
         segments = get_segments_for_vad(audio, sample_rate, segment_seconds_length)
         
@@ -61,10 +71,10 @@ class TestMain:
 
     @pytest.mark.parametrize("sample_rate, vad_aggressiveness, segment_seconds_length",
                              [(32000, 0, 0.03)])
-    def test_get_vad_per_segment(self, sample_file_path, sample_rate,
+    def test_get_vad_per_segment(self, sample_file_path, sample_file_name, sample_rate,
                                  vad_aggressiveness, segment_seconds_length):
         # Call the function to load audio
-        audio = load_audio(sample_file_path, sample_rate)
+        audio = load_audio(sample_file_path, sample_file_name, sample_rate)
         # Call the function to get segments
         segments = get_segments_for_vad(audio, sample_rate, segment_seconds_length)
         # Converting segment number to the number of frames
@@ -83,12 +93,13 @@ class TestMain:
 
     @pytest.mark.parametrize("sample_rate, vad_aggressiveness, segment_seconds_length,\
                               min_fragment_len", [(32000, 0, 0.03, 300)])
-    def test_get_frame_segments_from_vad_output(self, sample_file_path, sample_rate,
+    def test_get_frame_segments_from_vad_output(self, sample_file_path,
+                                                sample_file_name, sample_rate,
                                                 vad_aggressiveness,
                                                 segment_seconds_length, 
                                                 min_fragment_len):
         # Call the function to load audio
-        audio = load_audio(sample_file_path, sample_rate)
+        audio = load_audio(sample_file_path, sample_file_name, sample_rate)
         # Call the function to get segments
         segments = get_segments_for_vad(audio, sample_rate, segment_seconds_length)
         # Converting segment number to the number of frames
@@ -120,13 +131,14 @@ class TestMain:
                             output_path", 
                             [(32000, 0, 0.03, 300, True, "tiny", "output.csv")])
     def test_transcribe_translate_fragments_and_save(self, sample_file_path,
+                                                    sample_file_name,
                                                     sample_rate, vad_aggressiveness,
                                                     segment_seconds_length,
                                                     min_fragment_len, use_fp16,
                                                     transcript_model_size, 
                                                     output_path):
         # Call the function to load audio
-        audio = load_audio(sample_file_path, sample_rate)
+        audio = load_audio(sample_file_path, sample_file_name, sample_rate)
         # Call the function to get segments
         segments = get_segments_for_vad(audio, sample_rate, segment_seconds_length)
         # Converting segment number to the number of frames
