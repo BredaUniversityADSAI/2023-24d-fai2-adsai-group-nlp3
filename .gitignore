@@ -4,3 +4,12 @@ package/ep_1_10min.mp3
 package/tests/__pycache__/__init__.cpython-311.pyc
 package/tests/__pycache__/test_model_training.cpython-311-pytest-7.4.0.pyc
 package/tests/__pycache__/test_model_training.cpython-311.pyc
+package/e3k/__pycache__/__init__.cpython-311.pyc
+package/e3k/__pycache__/cli.cpython-311.pyc
+package/e3k/__pycache__/config.cpython-311.pyc
+package/e3k/__pycache__/episode_preprocessing_pipeline.cpython-311.pyc
+docs/build/doctrees/EDP.doctree
+package/e3k/__pycache__/model_evaluate.cpython-311.pyc
+package/e3k/__pycache__/model_output_information.cpython-311.pyc
+*.pyc
+package/tests/logs.log
