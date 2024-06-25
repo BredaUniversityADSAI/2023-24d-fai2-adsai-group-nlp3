@@ -6,24 +6,7 @@ import pandas as pd
 import tensorflow as tf
 import transformers
 
-# setting up logger
-pre_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-
-file_handler = logging.FileHandler("logs.log", mode="a")
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
-
-pre_logger.addHandler(file_handler)
-
-if len(pre_logger.handlers) == 0:
-    pre_logger.setLevel(logging.DEBUG)
-
-    stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.DEBUG)
-    stream_handler.setFormatter(formatter)
-
-    pre_logger.addHandler(stream_handler)
+mt_logger = logging.getLogger("main.preprocessing")
 
 
 def get_tokenizer(model_name: str = "roberta-base") -> transformers.AutoTokenizer:
@@ -171,5 +154,23 @@ def preprocess_prediction_data(
         attention_masks (np.ndarray): Attention masks for the tokenized sequences.
     """
     tokenizer = get_tokenizer(tokenizer_model)
+    tokens, masks = tokenize_text_data(data["sentence"], tokenizer, max_length)
+    return tokens, masks
+
+def preprocess_prediction_data_no_tokenizer(
+    data: pd.DataFrame, tokenizer , max_length: int = 128
+):
+    """
+    Preprocess data for prediction.
+
+    Input:
+        data (pd.DataFrame): Data with 'sentence' column.
+        tokenizer_model (str): Model name for the tokenizer. Default is 'roberta-base'.
+        max_length (int): Maximum length for tokenized sequences. Default is 128.
+
+    Output:
+        input_ids (np.ndarray): Tokenized input IDs.
+        attention_masks (np.ndarray): Attention masks for the tokenized sequences.
+    """
     tokens, masks = tokenize_text_data(data["sentence"], tokenizer, max_length)
     return tokens, masks
