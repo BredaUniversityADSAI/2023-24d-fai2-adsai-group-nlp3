@@ -6,3 +6,4 @@ package/tests/__pacache__/
 package/tests/__pycache__/__init__.cpython-311.pyc
 package/tests/__pycache__/test_model_training.cpython-311-pytest-7.4.0.pyc
 package/tests/__pycache__/test_model_training.cpython-311.pyc
+package/e3k/model_training_pipeline_hptuning_max.py
