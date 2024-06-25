@@ -1,8 +1,12 @@
+"""
+Tests for model_evaluate.py.
+
+Author: Kornelia Flizik, 223643
+"""     
+
 from e3k import model_evaluate
-import pandas as pd
 import pytest
-from sklearn.preprocessing import LabelEncoder
-from transformers import RobertaTokenizer, TFRobertaForSequenceClassification, RobertaConfig
+from transformers import TFRobertaForSequenceClassification, RobertaConfig
 
 
 @pytest.fixture(autouse=True)
