@@ -2,6 +2,7 @@ import datetime
 import io
 import logging
 import wave
+import os 
 
 import librosa
 import numpy as np
@@ -12,7 +13,9 @@ import webrtcvad
 import whisper
 from pydub import AudioSegment
 from tqdm import tqdm
-from typing import List, Tuple
+
+from azureml.core import Workspace, Datastore, Dataset
+from azureml.core.authentication import ServicePrincipalAuthentication
 
 epp_logger = logging.getLogger("main.episode_preprocessing_pipeline")
 
@@ -24,7 +27,7 @@ and when used in order, provide the video or audio to sentences pipeline.
 """
 
 
-def load_audio(file_path: str, file_name: str, target_sample_rate: int) -> np.array:
+def load_audio(file_path: str, target_sample_rate: int) -> np.array:
     """
     A function that loads audio data from video file
     or directly loads audio from input.
@@ -44,7 +47,7 @@ def load_audio(file_path: str, file_name: str, target_sample_rate: int) -> np.ar
     epp_logger.info("loading audio file")
 
     # load audio from the file
-    audio = AudioSegment.from_file(f"{file_path}/{file_name}")
+    audio = AudioSegment.from_file(file_path)
 
     # export the audio to in-memory object
     wav_file = io.BytesIO()
@@ -61,7 +64,7 @@ def load_audio(file_path: str, file_name: str, target_sample_rate: int) -> np.ar
 
 def get_segments_for_vad(
     audio: np.array, sample_rate: int, segment_seconds_length: float
-) -> List[np.array]:
+) -> list[np.array]:
     """
     A function that adapts the audio file so that it is compatible with
     webrtcvad.Vad object. The sample rate must be 8kHz, 16kHz, or 32kHz, and
@@ -97,7 +100,7 @@ def get_segments_for_vad(
 
 
 def get_vad_per_segment(
-    segments: List[np.array],
+    segments: list[np.array],
     vad_aggressiveness: int,
     sample_rate: int,
     segment_frames_length: int,
@@ -163,7 +166,7 @@ def get_frame_segments_from_vad_output(
     min_fragment_length_seconds: int,
     segment_seconds_length: float,
     full_audio_length_frames: int,
-) -> List[Tuple[int, int]]:
+) -> list[tuple[int, int]]:
     """
     A function that connects the small segments (10/20/30ms) into larger (5-6 min)
     fragments based on the results from get_vad_per_segment function.
@@ -244,7 +247,7 @@ def get_frame_segments_from_vad_output(
 
 def transcribe_translate_fragments(
     audio: np.array,
-    cut_fragments_frames: List[Tuple[int, int]],
+    cut_fragments_frames: list[tuple[int, int]],
     sample_rate: int,
     use_fp16: bool = True,
     transcription_model_size: str = "base",
@@ -300,18 +303,19 @@ def transcribe_translate_fragments(
 
     return data
 
+
 def save_data(
     df: pd.DataFrame,
     output_path: str = "output.csv",
 ) -> None:
     """
-    A function that abstracts pd.DataFrame's saving functions with
-    an option to choose json or csv format. If output path is not provided,
+    A function that abstracts pd.DataFrame's saving funcitons with
+    an option to chose json or scv format. If output path is not provided,
     the default path is "output.csv" in the current directory.
 
     Input:
         df (pd.DataFrame): dataframe to save
-        output_path (str): file path to the saved file,
+        output_format (str): file path to the saved file,
             default: "output.csv"
 
     Output: None
@@ -322,27 +326,17 @@ def save_data(
     # Check if there is no data to save
     if df.empty:
         epp_logger.warning("No data to save.")
-        return
 
     epp_logger.info("saving to file")
 
-    # Default to csv if no extension is provided
-    if "." not in output_path:
-        epp_logger.warning("No file extension provided, defaulting to '.csv'.")
-        output_path += ".csv"
-
-    format = output_path.split(".")[-1]
+    format = output_path.split(".")[1]
 
     if format == "json":
         df.to_json(output_path, index=False)
-    elif format == "csv":
-        df.to_csv(output_path, index=False)
     else:
-        epp_logger.error(f"Unsupported file format '{format}'. Please use '.csv' or '.json'.")
-        return
+        df.to_csv(output_path, index=False)
 
-    epp_logger.info(f"File saved successfully to {output_path}")
-
+    epp_logger.info("done")
 
 
 """
@@ -511,19 +505,23 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--input_folder",
-        required=True,
-        type=str,
-        help="string, file path to the audio file",
+        "--cloud",
+        type=bool,
+        choices=[True, False],
+        help="whether the code will execute on Azure or locally",
     )
-
     parser.add_argument(
-        "--input_filename",
+        "--input_path",
         required=True,
         type=str,
         help="string, file path to the audio file",
     )
-
+    parser.add_argument(
+        "--input_uri",
+        required=True,
+        type=str,
+        help="string, file path to the audio file",
+    )
     parser.add_argument(
         "--output_path",
         required=False,
@@ -582,22 +580,77 @@ if __name__ == "__main__":
         "--transcript_model_size",
         required=False,
         type=str,
-        default="tiny",
+        default="large",
         help="""
         string, size of whisper model used for transcription and translation,
-        see: https://pypi.org/project/openai-whisper/. default: tiny
+        see: https://pypi.org/project/openai-whisper/. default: large
         """,
     )
 
+    parser.add_argument(
+        "--subscription_id",
+        required=False,
+        type=str,
+        default="0a94de80-6d3b-49f2-b3e9-ec5818862801",
+        help="Subscription ID from Azure ML",
+    )
+
+    parser.add_argument(
+        "--resource_group",
+        required=False,
+        type=str,
+        default="buas-y2",
+        help="Resource group from Azure ML",
+    )
+
+    parser.add_argument(
+        "--workspace_name",
+        required=False,
+        type=str,
+        default="NLP3",
+        help="Workspace name from Azure ML",
+    )
+
     args = parser.parse_args()
+
+    cloud = str(args.cloud) == "True"
 
     # get segment length in frames
     segment_frames_length = segment_number_to_frames(
         1, sample_rate=args.target_sr, segment_seconds_length=args.segment_length
     )
+    if cloud is True:
 
-    # load audio file and set sample rate to the chosen value
-    audio = load_audio(file_path=args.input_folder, file_name=args.input_filename, target_sample_rate=args.target_sr)
+        """
+        TENANT_ID = "0a33589b-0036-4fe8-a829-3ed0926af886"
+        CLIENT_ID = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
+        CLIENT_SECRET = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
+        svc_pr = ServicePrincipalAuthentication(
+                tenant_id=TENANT_ID,
+                service_principal_id=CLIENT_ID,
+                service_principal_password=CLIENT_SECRET
+                )
+        workspace = Workspace(subscription_id=args.subscription_id, 
+                    resource_group=args.resource_group, 
+                    workspace_name=args.workspace_name,
+                    auth = svc_pr,
+                    )
+        datastore = Datastore(workspace, name="workspaceblobstore")
+
+        audio = Dataset.File.from_files(path=(datastore, args.input_path))
+        
+
+        for filename in os.listdir(args.input_uri):
+            if filename.endswith(".mp3") or filename.endswith(".mov"):
+                
+                audio_path = os.path.join(args.input_uri, filename)
+"""
+        audio = load_audio(file_path=args.input_uri, target_sample_rate=args.target_sr)
+
+
+    else:
+        # load audio file and set sample rate to the chosen value
+        audio = load_audio(file_path=args.input_path, target_sample_rate=args.target_sr)
 
     # get full audio length in frames
     full_audio_length_frames = len(audio)
