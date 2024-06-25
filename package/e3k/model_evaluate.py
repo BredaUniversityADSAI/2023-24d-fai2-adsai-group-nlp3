@@ -3,20 +3,23 @@ import json
 import logging
 import os
 import pickle
+from typing import Dict, List, Tuple
 
 import config
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 import transformers
+import typeguard
 from azureml.core import Dataset, Datastore, Model, Workspace
 from azureml.core.authentication import ServicePrincipalAuthentication
 from preprocessing import preprocess_prediction_data
 from sklearn.metrics import accuracy_score, classification_report
-from typing import Dict, List, Tuple
 
 # setting up logger
-eval_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
+eval_logger = logging.getLogger(
+    f"{'main.' if __name__ != '__main__' else ''}{__name__}"
+)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 if len(eval_logger.handlers) == 0:
@@ -35,8 +38,8 @@ file_handler.setFormatter(formatter)
 eval_logger.addHandler(file_handler)
 
 
-
 # Loading data from local device
+@typeguard.typechecked
 def load_data(file_path: str) -> pd.DataFrame:
     """
     Load the dataset from a CSV file and return
@@ -53,8 +56,8 @@ def load_data(file_path: str) -> pd.DataFrame:
         Max Meiners (214936)
     """
 
-    df = pd.read_csv(file_path)[["sentence", "emotion"]]
-    # .dropna()
+    # get only necessary columns
+    df = pd.read_csv(file_path)[["sentence", "emotion"]].dropna()
 
     eval_logger.info(f"loaded data: {os.path.basename(file_path)}")
 
@@ -62,6 +65,7 @@ def load_data(file_path: str) -> pd.DataFrame:
 
 
 # Loading data from Azure ML datastore
+# TODO type annotations + typeguard
 def load_data_from_azure(
     workspace,
     datastore_name,
@@ -95,6 +99,7 @@ def load_data_from_azure(
     return test_data
 
 
+@typeguard.typechecked
 def predict(
     model: transformers.TFRobertaForSequenceClassification,
     token_array: np.array,
@@ -124,14 +129,17 @@ def predict(
 
     eval_logger.info("predicting")
 
+    # get input from tokens and masks
     input = {
         "input_ids": token_array,
         "attention_mask": mask_array,
     }
 
+    # get predictions
     preds = model(input)
     logits = preds.logits
 
+    # get classes and confidence
     probabilities = tf.nn.softmax(logits, axis=-1).numpy()
     predicted_classes = np.argmax(probabilities, axis=1)
     highest_probabilities = np.max(probabilities, axis=1)
@@ -143,6 +151,7 @@ def predict(
     return text_labels, highest_probabilities
 
 
+# TODO type annotations + typeguard
 def evaluate(
     pred_labels,
     data,
@@ -168,17 +177,21 @@ def evaluate(
 
     true_labels = data["emotion"].to_list()
 
+    # get model's accuracy
     accuracy = accuracy_score(true_labels, pred_labels)
     eval_logger.info(f"model accuracy: {accuracy}")
 
+    # create classification report
     report = classification_report(true_labels, pred_labels)
 
     return accuracy, report
 
 
+# TODO type annotations + typeguard
 def register_model_and_encoding(
     model_path, label_decoder, accuracy, workspace, model_name, threshold=0.5
 ):
+    # TODO update docstring
     """
     Registers a machine learning model and its label encodings to Azure ML workspace
     if the accuracy exceeds a specified threshold.
@@ -232,6 +245,7 @@ def register_model_and_encoding(
         )
 
 
+@typeguard.typechecked
 def save_model(
     model: transformers.TFRobertaForSequenceClassification,
     label_decoder: Dict[int, str],
@@ -239,6 +253,7 @@ def save_model(
     accuracy: float,
     threshold: float,
 ) -> None:
+    # TODO update docstring
     """
     A function that saves trained model and it's emotion mapping to a file.
 
@@ -257,6 +272,7 @@ def save_model(
     if accuracy >= threshold:
         eval_logger.info("Model accuracy is above threshold, saving model.")
 
+        # TODO change to pickle
         dict_path = os.path.join(model_path, "emotion_dict.json")
 
         model.save_pretrained(model_path)
@@ -273,6 +289,7 @@ Util functions (only used in other functions)
 """
 
 
+@typeguard.typechecked
 def decode_labels(
     encoded_labels: List[int], emotion_decoder: Dict[int, str]
 ) -> List[str]:
@@ -296,7 +313,9 @@ def decode_labels(
     return decoded_labels
 
 
-def load_label_decoder(label_decoder_path: str):
+# TODO docstring
+@typeguard.typechecked
+def load_label_decoder(label_decoder_path: str) -> Dict[int, str]:
     # Load the emotion_decoder using pickle
     with open(label_decoder_path, "rb") as f:
         emotion_decoder = pickle.load(f)
@@ -379,7 +398,7 @@ if __name__ == "__main__":
         required=False,
         type=float,
         default=0.8,
-        help="Min accuracy for the model to be considered good"
+        help="Min accuracy for the model to be considered good",
     )
 
     parser.add_argument(
@@ -429,7 +448,7 @@ if __name__ == "__main__":
             accuracy,
             workspace,
             args.model_name,
-            args.threshold
+            args.threshold,
         )
 
     else:

@@ -6,12 +6,13 @@ from functools import reduce
 from typing import Dict, Tuple
 
 import config
+import matplotlib.pyplot as plt
+import mlflow
 import mltable
 import pandas as pd
 import tensorflow as tf
 import transformers
-import mlflow
-import matplotlib.pyplot as plt
+import typeguard
 from azure.ai.ml import MLClient
 from azure.identity import ClientSecretCredential
 from preprocessing import preprocess_training_data
@@ -36,6 +37,7 @@ file_handler.setFormatter(formatter)
 mt_logger.addHandler(file_handler)
 
 
+@typeguard.typechecked
 def get_args() -> argparse.Namespace:
     """
     A function that instantiates argument parser and collects CLI arguments.
@@ -64,17 +66,9 @@ def get_args() -> argparse.Namespace:
         help="name of registered dataset used to train the model",
     )
 
-    parser.add_argument(
-        "--epochs", 
-        type=int, 
-        help="number of training epochs "
-    )
+    parser.add_argument("--epochs", type=int, help="number of training epochs ")
 
-    parser.add_argument(
-        "--learning_rate", 
-        type=float, 
-        help="optimizer's learning rate"
-    )
+    parser.add_argument("--learning_rate", type=float, help="optimizer's learning rate")
 
     parser.add_argument(
         "--batch_size",
@@ -111,6 +105,7 @@ def get_args() -> argparse.Namespace:
     return args
 
 
+@typeguard.typechecked
 def get_ml_client(
     subscription_id: str,
     tenant_id: str,
@@ -153,7 +148,23 @@ def get_ml_client(
     return ml_client
 
 
+# TODO type annotations + typeguard
 def get_versioned_datasets(args, ml_client) -> Tuple[str, str, str]:
+    """
+    A function that finds the newest versions of train and validation datasets,
+    and returns those values.
+
+    Input:
+        args (argparse.Namespace): namespace object with CLI arguments
+        ml_client (azure.ai.ml.MLClient): Azure object used to interact with Azure
+
+    Output:
+        train_name (str): name of the train dataset
+        val_name (str): name of the validation dataset
+        newest_version (str): newest version of the dataset
+
+    Author - Wojciech Stachowiak
+    """
     mt_logger.debug("Getting datasets names...")
     with open(args.dataset_name_file) as f:
         dataset_info = json.load(f)
@@ -163,10 +174,12 @@ def get_versioned_datasets(args, ml_client) -> Tuple[str, str, str]:
 
     mt_logger.info("Got datasets names. Getting dataset list for versioning...")
 
+    # get list of datasets with this name
     dataset_list = ml_client.data.list(name=train_name)
 
     mt_logger.debug("Got dataset list for versioning.")
 
+    # get highest version frm the list
     newest_version = reduce(
         lambda x, y: max(x, y), map(lambda x: x.version, dataset_list)
     )
@@ -176,6 +189,7 @@ def get_versioned_datasets(args, ml_client) -> Tuple[str, str, str]:
     return train_name, val_name, newest_version
 
 
+@typeguard.typechecked
 def get_data_asset_as_df(
     ml_client: MLClient, dataset_name: str, dataset_version: str
 ) -> pd.DataFrame:
@@ -194,7 +208,9 @@ def get_data_asset_as_df(
     """
 
     # fetching dataset
-    mt_logger.debug(f"Getting dataset: {dataset_name}, with version {dataset_version}...")
+    mt_logger.debug(
+        f"Getting dataset: {dataset_name}, with version {dataset_version}..."
+    )
     data_asset = ml_client.data.get(dataset_name, version=dataset_version)
     mt_logger.debug("Got dataset.")
 
@@ -213,6 +229,7 @@ def get_data_asset_as_df(
     return df
 
 
+@typeguard.typechecked
 def get_label_decoder(series: pd.Series) -> Dict[int, str]:
     """
     A function that creates label_decoder dictionary from pandas.Series.
@@ -233,7 +250,9 @@ def get_label_decoder(series: pd.Series) -> Dict[int, str]:
     return label_decoder
 
 
+@typeguard.typechecked
 def get_new_model(num_classes: int) -> transformers.TFRobertaForSequenceClassification:
+    # TODO update docstring
     """
     Create or load a RoBERTa model with the specified number of output classes.
 
@@ -260,13 +279,14 @@ def get_new_model(num_classes: int) -> transformers.TFRobertaForSequenceClassifi
     return model
 
 
+@typeguard.typechecked
 def train_model(
     model: transformers.TFRobertaForSequenceClassification,
     training_dataset: tf.data.Dataset,
     validation_dataset: tf.data.Dataset,
     epochs: int,
     learning_rate: float,
-    early_stopping_patience: int
+    early_stopping_patience: int,
 ) -> transformers.TFRobertaForSequenceClassification:
     """
     Train the model using tensorflow datasets.
@@ -338,6 +358,7 @@ def train_model(
     return model
 
 
+@typeguard.typechecked
 def main(args: argparse.Namespace) -> None:
     """
     An aggregate function for the model_training module.
@@ -357,15 +378,17 @@ def main(args: argparse.Namespace) -> None:
     # mlflow.tensorflow.autolog()
 
     # Log parameters to MLflow
-    mlflow.log_params({
-        "cloud": args.cloud,
-        "dataset_name_file": args.dataset_name_file,
-        "epochs": args.epochs,
-        "learning_rate": args.learning_rate,
-        "early_stopping_patience": args.early_stopping_patience,
-        "model_output_path": args.model_output_path,
-        "decoder_output_path": args.decoder_output_path
-    })
+    mlflow.log_params(
+        {
+            "cloud": args.cloud,
+            "dataset_name_file": args.dataset_name_file,
+            "epochs": args.epochs,
+            "learning_rate": args.learning_rate,
+            "early_stopping_patience": args.early_stopping_patience,
+            "model_output_path": args.model_output_path,
+            "decoder_output_path": args.decoder_output_path,
+        }
+    )
 
     ml_client = get_ml_client(
         config.config["subscription_id"],
@@ -408,6 +431,7 @@ def main(args: argparse.Namespace) -> None:
 
     # End MLflow run
     mlflow.end_run()
+
 
 if __name__ == "__main__":
     args = get_args()

@@ -6,6 +6,7 @@ from typing import Dict, Tuple
 
 import config
 import pandas as pd
+import typeguard
 from azure.ai.ml import MLClient
 from azure.identity import ClientSecretCredential
 from azureml.core import Dataset, Datastore, Workspace
@@ -37,6 +38,7 @@ file_handler.setFormatter(formatter)
 
 split_logger.addHandler(file_handler)
 
+# TODO use config file to do this
 subscription_id = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
 resource_group = "buas-y2"
 workspace_name = "NLP3"
@@ -45,6 +47,7 @@ client_id = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
 client_secret = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
 
 
+@typeguard.typechecked
 def connect_to_azure_ml(
     subscription_id: str,
     resource_group: str,
@@ -98,6 +101,7 @@ def connect_to_azure_ml(
     return ml_client, workspace
 
 
+@typeguard.typechecked
 def load_data(file_path: str) -> Tuple[pd.DataFrame, Dict[int, str]]:
     """
     Load the dataset from a CSV file and return the DataFrame and
@@ -125,6 +129,7 @@ def load_data(file_path: str) -> Tuple[pd.DataFrame, Dict[int, str]]:
     return df, emotion_decoder
 
 
+@typeguard.typechecked
 def get_train_val_data(
     data_df: pd.DataFrame, val_size: float = 0.2
 ) -> Tuple[Tuple[pd.DataFrame, pd.Series], Tuple[pd.DataFrame, pd.Series]]:
@@ -152,6 +157,7 @@ def get_train_val_data(
         random_state=42,
         stratify=data_df["emotion"],
     )
+    # TODO deal with this
     """
     local = args.local == "True"
     if local:
@@ -167,6 +173,7 @@ def get_train_val_data(
     return train_set, val_set
 
 
+@typeguard.typechecked
 def main(args: argparse.Namespace):
     """
     Main function to process data either locally or from Azure,
@@ -192,7 +199,7 @@ def main(args: argparse.Namespace):
     else:
         split_logger.info("Processing data from Azure.")
         # Access data from Azure
-        ml_client, workspace = connect_to_azure_ml(
+        _, workspace = connect_to_azure_ml(
             config.config["subscription_id"],
             config.config["resource_group"],
             config.config["workspace_name"],

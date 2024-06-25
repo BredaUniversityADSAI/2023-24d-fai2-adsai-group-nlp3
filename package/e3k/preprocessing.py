@@ -5,10 +5,14 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 import transformers
+import typeguard
 
+# TODO change logging to new one
 mt_logger = logging.getLogger("main.preprocessing")
 
 
+# TODO author
+@typeguard.typechecked
 def get_tokenizer(model_name: str = "roberta-base") -> transformers.AutoTokenizer:
     """
     Get the tokenizer for a specified model.
@@ -24,6 +28,8 @@ def get_tokenizer(model_name: str = "roberta-base") -> transformers.AutoTokenize
     return tokenizer
 
 
+# TODO author
+@typeguard.typechecked
 def tokenize_text_data(
     data: pd.Series, tokenizer: transformers.AutoTokenizer, max_length: int = 128
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -53,6 +59,8 @@ def tokenize_text_data(
     return input_ids, attention_masks
 
 
+# TODO author
+@typeguard.typechecked
 def encode_labels(labels: pd.Series, label_decoder: Dict[int, str]) -> np.ndarray:
     """
     Encode labels using the label decoder.
@@ -69,6 +77,8 @@ def encode_labels(labels: pd.Series, label_decoder: Dict[int, str]) -> np.ndarra
     return encoded_labels
 
 
+# TODO author
+@typeguard.typechecked
 def create_tf_dataset(
     input_ids: np.ndarray,
     attention_masks: np.ndarray,
@@ -94,6 +104,8 @@ def create_tf_dataset(
     return dataset
 
 
+# TODO author + update type annotations
+@typeguard.typechecked
 def preprocess_training_data(
     train_data: pd.DataFrame,
     val_data: pd.DataFrame,
@@ -138,6 +150,8 @@ def preprocess_training_data(
     return train_dataset, val_dataset
 
 
+# TODO author + update type annotations
+@typeguard.typechecked
 def preprocess_prediction_data(
     data: pd.DataFrame, tokenizer_model: str = "roberta-base", max_length: int = 128
 ):
@@ -157,8 +171,11 @@ def preprocess_prediction_data(
     tokens, masks = tokenize_text_data(data["sentence"], tokenizer, max_length)
     return tokens, masks
 
+
+# TODO author + update type annotations
+@typeguard.typechecked
 def preprocess_prediction_data_no_tokenizer(
-    data: pd.DataFrame, tokenizer , max_length: int = 128
+    data: pd.DataFrame, tokenizer, max_length: int = 128
 ):
     """
     Preprocess data for prediction.

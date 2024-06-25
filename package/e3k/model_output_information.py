@@ -1,13 +1,15 @@
 import logging
 from collections import Counter
+from typing import List
 
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import List
+import typeguard
 
 moi_logger = logging.getLogger("main.model_output_information")
 
 
+@typeguard.typechecked
 def plot_emotion_distribution(predicted_emotions: List[str]) -> None:
     """
     Plot a pie chart of the overall emotion distribution based on a list of predicted
@@ -45,7 +47,7 @@ def plot_emotion_distribution(predicted_emotions: List[str]) -> None:
 
     # Plotting the pie chart
     plt.figure(figsize=(8, 6))
-    wedges, texts, autotexts = plt.pie(
+    _, texts, autotexts = plt.pie(
         sizes,
         labels=labels,
         autopct="%1.1f%%",
@@ -71,6 +73,7 @@ def plot_emotion_distribution(predicted_emotions: List[str]) -> None:
     moi_logger.info("Successfully plotted the emotion distribution.")
 
 
+@typeguard.typechecked
 def calculate_episode_confidence(scores: List[float]) -> float:
     """
     Calculate the overall confidence score for the episode by
