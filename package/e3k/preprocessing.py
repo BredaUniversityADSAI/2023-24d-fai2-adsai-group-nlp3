@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 import transformers
-import typeguard
 
 # setting up logger
 pre_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
@@ -27,10 +26,7 @@ if len(pre_logger.handlers) == 0:
     pre_logger.addHandler(stream_handler)
 
 
-@typeguard.typechecked
-def get_tokenizer(
-    model_name: str = "roberta-base",
-) -> transformers.models.roberta.tokenization_roberta_fast.RobertaTokenizerFast:
+def get_tokenizer(model_name: str = "roberta-base") -> transformers.AutoTokenizer:
     """
     Get the tokenizer for a specified model.
 
@@ -45,7 +41,6 @@ def get_tokenizer(
     return tokenizer
 
 
-@typeguard.typechecked
 def tokenize_text_data(
     data: pd.Series, tokenizer: transformers.AutoTokenizer, max_length: int = 128
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -75,7 +70,6 @@ def tokenize_text_data(
     return input_ids, attention_masks
 
 
-@typeguard.typechecked
 def encode_labels(labels: pd.Series, label_decoder: Dict[int, str]) -> np.ndarray:
     """
     Encode labels using the label decoder.
@@ -92,7 +86,6 @@ def encode_labels(labels: pd.Series, label_decoder: Dict[int, str]) -> np.ndarra
     return encoded_labels
 
 
-@typeguard.typechecked
 def create_tf_dataset(
     input_ids: np.ndarray,
     attention_masks: np.ndarray,
@@ -118,7 +111,6 @@ def create_tf_dataset(
     return dataset
 
 
-@typeguard.typechecked
 def preprocess_training_data(
     train_data: pd.DataFrame,
     val_data: pd.DataFrame,
@@ -163,7 +155,6 @@ def preprocess_training_data(
     return train_dataset, val_dataset
 
 
-@typeguard.typechecked
 def preprocess_prediction_data(
     data: pd.DataFrame, tokenizer_model: str = "roberta-base", max_length: int = 128
 ):

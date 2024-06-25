@@ -554,7 +554,6 @@ def main() -> None:
                 data_path=args.train_data,
                 val_size=args.val_size,
                 epochs=args.epochs,
-                learning_rate=args.learning_rate,
                 early_stopping_patience=args.early_stopping_patience,
                 test_data=args.test_data,
                 threshold=args.threshold,

@@ -1,6 +1,7 @@
 import config
 import typeguard
 from azure.ai.ml import MLClient, dsl
+from azure.ai.ml.sweep import Uniform, Choice
 from azure.identity import ClientSecretCredential
 
 # const values for Azure connection
@@ -24,14 +25,14 @@ ml_client = MLClient(
     credential=credential,
 )
 
-env = ml_client.environments.get("BlockD", version="10")
+env = ml_client.environments.get("BlockD", version="21")
 compute = ml_client.compute.get("adsai0")
 
 splitting_component = ml_client.components.get(
     name="split_register_component", version="2024-06-18-16-14-15-3695360"
 )
 train_component = ml_client.components.get(
-    name="train_component", version="2024-06-19-16-07-57-9865401"
+    name="train_component", version="2024-06-20-14-50-42-8000239"
 )
 eval_component = ml_client.components.get(
     name="evaluation", version="2024-06-18-16-16-07-7286457"
@@ -48,8 +49,6 @@ def model_training(
     data_path: str,
     val_size: float,
     epochs: int,
-    learning_rate: float,
-    early_stopping_patience: int,
     test_data: str,
     threshold: float,
     model_name: str,
@@ -60,9 +59,20 @@ def model_training(
 
     train_step = train_component(
         dataset_name_file=splitting_step.outputs.json_path,
-        epochs=epochs,
-        learning_rate=learning_rate,
-        early_stopping_patience=early_stopping_patience,
+        epochs=epochs,  # Fixed for each trial
+        learning_rate=Uniform(min_value=1e-5, max_value=1e-1),
+        batch_size=Choice([16, 32, 64, 128]),
+        early_stopping_patience=3,
+    ).sweep(
+        sampling_algorithm="bayesian",
+        primary_metric="val_loss",
+        goal="minimize"
+    )
+
+    train_step.set_limits(
+        max_total_trials=3,  # Number of trials for different hyperparameter sets
+        max_concurrent_trials=3,  # Number of trials to run concurrently
+        timeout=7200  # Maximum allowed time for the sweep
     )
 
     _ = eval_component(
@@ -72,7 +82,6 @@ def model_training(
         threshold=threshold,
         model_name=model_name,
     )
-
 
 if __name__ == "__main__":
     # test pipeline on small dataset

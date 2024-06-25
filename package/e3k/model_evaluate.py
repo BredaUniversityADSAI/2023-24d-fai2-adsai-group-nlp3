@@ -9,16 +9,13 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 import transformers
-import typeguard
 from azureml.core import Dataset, Datastore, Model, Workspace
 from azureml.core.authentication import ServicePrincipalAuthentication
 from preprocessing import preprocess_prediction_data
 from sklearn.metrics import accuracy_score, classification_report
 
 # setting up logger
-eval_logger = logging.getLogger(
-    f"{'main.' if __name__ != '__main__' else ''}{__name__}"
-)
+eval_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 if len(eval_logger.handlers) == 0:
@@ -37,8 +34,8 @@ file_handler.setFormatter(formatter)
 eval_logger.addHandler(file_handler)
 
 
+
 # Loading data from local device
-@typeguard.typechecked
 def load_data(file_path: str) -> pd.DataFrame:
     """
     Load the dataset from a CSV file and return
@@ -64,7 +61,6 @@ def load_data(file_path: str) -> pd.DataFrame:
 
 
 # Loading data from Azure ML datastore
-@typeguard.typechecked
 def load_data_from_azure(
     workspace,
     datastore_name,
@@ -98,7 +94,6 @@ def load_data_from_azure(
     return test_data
 
 
-@typeguard.typechecked
 def predict(
     model: transformers.TFRobertaForSequenceClassification,
     token_array: np.array,
@@ -147,7 +142,6 @@ def predict(
     return text_labels, highest_probabilities
 
 
-@typeguard.typechecked
 def evaluate(
     pred_labels,
     data,
@@ -181,7 +175,6 @@ def evaluate(
     return accuracy, report
 
 
-@typeguard.typechecked
 def register_model_and_encoding(
     model_path, label_decoder, accuracy, workspace, model_name, threshold=0.5
 ):
@@ -238,7 +231,6 @@ def register_model_and_encoding(
         )
 
 
-@typeguard.typechecked
 def save_model(
     model: transformers.TFRobertaForSequenceClassification,
     label_decoder: dict[int, str],
@@ -280,7 +272,6 @@ Util functions (only used in other functions)
 """
 
 
-@typeguard.typechecked
 def decode_labels(
     encoded_labels: list[int], emotion_decoder: dict[int, str]
 ) -> list[str]:
@@ -304,7 +295,6 @@ def decode_labels(
     return decoded_labels
 
 
-@typeguard.typechecked
 def load_label_decoder(label_decoder_path: str):
     # Load the emotion_decoder using pickle
     with open(label_decoder_path, "rb") as f:
@@ -388,7 +378,7 @@ if __name__ == "__main__":
         required=False,
         type=float,
         default=0.8,
-        help="Min accuracy for the model to be considered good",
+        help="Min accuracy for the model to be considered good"
     )
 
     parser.add_argument(
@@ -409,6 +399,11 @@ if __name__ == "__main__":
 
     if cloud is True:
         # Load the workspace
+        eval_logger.info("cloud path")
+        TENANT_ID = "0a33589b-0036-4fe8-a829-3ed0926af886"
+        CLIENT_ID = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
+        CLIENT_SECRET = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
+
         svc_pr = ServicePrincipalAuthentication(
             tenant_id=config.config["tenant_id"],
             service_principal_id=config.config["client_id"],
@@ -433,7 +428,7 @@ if __name__ == "__main__":
             accuracy,
             workspace,
             args.model_name,
-            args.threshold,
+            args.threshold
         )
 
     else:

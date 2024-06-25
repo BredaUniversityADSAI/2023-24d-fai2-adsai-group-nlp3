@@ -1,39 +1,36 @@
 import argparse
-import json
 import logging
 import os
+import pickle
 
 import joblib
+import json
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 import transformers
-import typeguard
 from preprocessing import preprocess_prediction_data
 
 # setting up logger
-pred_logger = logging.getLogger(
-    f"{'main.' if __name__ != '__main__' else ''}{__name__}"
-)
+mt_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 file_handler = logging.FileHandler("logs.log", mode="a")
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 
-pred_logger.addHandler(file_handler)
+mt_logger.addHandler(file_handler)
 
-if len(pred_logger.handlers) == 0:
-    pred_logger.setLevel(logging.DEBUG)
+if len(mt_logger.handlers) == 0:
+    mt_logger.setLevel(logging.DEBUG)
 
     stream_handler = logging.StreamHandler()
     stream_handler.setLevel(logging.DEBUG)
     stream_handler.setFormatter(formatter)
 
-    pred_logger.addHandler(stream_handler)
+    mt_logger.addHandler(stream_handler)
 
 
-@typeguard.typechecked
 def get_model(
     model_path: str,
 ) -> tuple[transformers.TFRobertaForSequenceClassification, dict[int, str]]:
@@ -59,7 +56,7 @@ def get_model(
     weights_path = os.path.join(model_path, "tf_model.h5")
     dict_path = os.path.join(model_path, "emotion_dict.joblib")
 
-    pred_logger.info(f"Loading model configuration")
+    mt_logger.info(f"Loading model configuration")
 
     # load an existing model
     config = transformers.RobertaConfig.from_pretrained(config_path)
@@ -67,17 +64,16 @@ def get_model(
         "roberta-base", config=config
     )
 
-    pred_logger.info("Loading model weights")
+    mt_logger.info("Loading model weights")
     model.load_weights(weights_path)
 
-    pred_logger.info("Model loaded")
+    mt_logger.info("Model loaded")
 
     emotion_dict = joblib.load(dict_path)
 
     return model, emotion_dict
 
 
-@typeguard.typechecked
 def decode_labels(
     encoded_labels: list[int], emotion_decoder: dict[int, str]
 ) -> list[str]:
@@ -101,13 +97,12 @@ def decode_labels(
         if str(label) in emotion_decoder:
             decoded_labels.append(emotion_decoder[str(label)])
         else:
-            pred_logger.warning(f"Class {label} not found in emotion_decoder.")
+            mt_logger.warning(f"Class {label} not found in emotion_decoder.")
             decoded_labels.append("unknown")
 
     return decoded_labels
 
 
-@typeguard.typechecked
 def predict(
     model: transformers.TFRobertaForSequenceClassification,
     token_array: np.array,
@@ -135,7 +130,7 @@ def predict(
         Max Meiners (214936)
     """
 
-    pred_logger.info("Predicting")
+    mt_logger.info("Predicting")
 
     input = {
         "input_ids": token_array,
@@ -148,11 +143,11 @@ def predict(
     probabilities = tf.nn.softmax(logits, axis=-1).numpy()
     predicted_classes = np.argmax(probabilities, axis=1)
     highest_probabilities = np.max(probabilities, axis=1)
-
+    
     text_labels = decode_labels(predicted_classes, emotion_decoder)
 
-    pred_logger.info("Got predictions")
-
+    mt_logger.info("Got predictions")
+    
     return text_labels, highest_probabilities
 
 
@@ -198,36 +193,34 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    pred_logger.info("Arguments parsed")
+    mt_logger.info("Arguments parsed")
 
     # Load the data
     data = pd.read_csv(args.data_path)
-    pred_logger.info("Data loaded")
+    mt_logger.info("Data loaded")
 
     # Call the preprocess_prediction_data function to get the preprocessed data
     tokens, masks = preprocess_prediction_data(
         data, args.tokenizer_model, args.max_length
     )
-    pred_logger.info("Data preprocessed")
+    mt_logger.info("Data preprocessed")
 
     # Load the model
     model = transformers.TFRobertaForSequenceClassification.from_pretrained(
         args.model_path
     )
-    pred_logger.info("Model loaded")
+    mt_logger.info("Model loaded")
 
     # Load the emotion decoder
-    with open(args.decoder_path, "r") as f:
-        emotion_decoder = json.load(f)
-    pred_logger.info(
-        f"Emotion decoder loaded with keys: {list(emotion_decoder.keys())}"
-    )
+    with open(args.decoder_path, "rb") as f:
+        emotion_decoder = pickle.load(f)
+    mt_logger.info(f"Emotion decoder loaded with keys: {list(emotion_decoder.keys())}")
 
     # Make predictions
     text_labels, highest_probabilities = predict(model, tokens, masks, emotion_decoder)
-    pred_logger.info("Predictions made")
+    mt_logger.info("Predictions made")
 
     # Print the predictions
     # for label, prob in zip(text_labels, highest_probabilities):
     #     print(f"Predicted emotion: {label} with confidence: {prob:.2f}")
-    # pred_logger.info("Results printed")
+    # mt_logger.info("Results printed")

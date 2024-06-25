@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 import soundfile as sf
 import spacy
-import typeguard
 import webrtcvad
 import whisper
 from pydub import AudioSegment
@@ -24,8 +23,7 @@ and when used in order, provide the video or audio to sentences pipeline.
 """
 
 
-@typeguard.typechecked
-def load_audio(file_path: str, target_sample_rate: int) -> np.array:
+def load_audio(file_path: str, file_name: str, target_sample_rate: int) -> np.array:
     """
     A function that loads audio data from video file
     or directly loads audio from input.
@@ -45,7 +43,7 @@ def load_audio(file_path: str, target_sample_rate: int) -> np.array:
     epp_logger.info("loading audio file")
 
     # load audio from the file
-    audio = AudioSegment.from_file(file_path)
+    audio = AudioSegment.from_file(f"{file_path}/{file_name}")
 
     # export the audio to in-memory object
     wav_file = io.BytesIO()
@@ -60,7 +58,6 @@ def load_audio(file_path: str, target_sample_rate: int) -> np.array:
     return audio
 
 
-@typeguard.typechecked
 def get_segments_for_vad(
     audio: np.array, sample_rate: int, segment_seconds_length: float
 ) -> list[np.array]:
@@ -98,7 +95,6 @@ def get_segments_for_vad(
     return segments
 
 
-@typeguard.typechecked
 def get_vad_per_segment(
     segments: list[np.array],
     vad_aggressiveness: int,
@@ -160,7 +156,6 @@ def get_vad_per_segment(
     return segments_is_speech
 
 
-@typeguard.typechecked
 def get_frame_segments_from_vad_output(
     speech_array: np.array,
     sample_rate: int,
@@ -246,7 +241,6 @@ def get_frame_segments_from_vad_output(
     return cut_fragments_frames
 
 
-@typeguard.typechecked
 def transcribe_translate_fragments(
     audio: np.array,
     cut_fragments_frames: list[tuple[int, int]],
@@ -305,20 +299,18 @@ def transcribe_translate_fragments(
 
     return data
 
-
-@typeguard.typechecked
 def save_data(
     df: pd.DataFrame,
     output_path: str = "output.csv",
 ) -> None:
     """
-    A function that abstracts pd.DataFrame's saving funcitons with
-    an option to chose json or scv format. If output path is not provided,
+    A function that abstracts pd.DataFrame's saving functions with
+    an option to choose json or csv format. If output path is not provided,
     the default path is "output.csv" in the current directory.
 
     Input:
         df (pd.DataFrame): dataframe to save
-        output_format (str): file path to the saved file,
+        output_path (str): file path to the saved file,
             default: "output.csv"
 
     Output: None
@@ -329,17 +321,27 @@ def save_data(
     # Check if there is no data to save
     if df.empty:
         epp_logger.warning("No data to save.")
+        return
 
     epp_logger.info("saving to file")
 
-    format = output_path.split(".")[1]
+    # Default to csv if no extension is provided
+    if "." not in output_path:
+        epp_logger.warning("No file extension provided, defaulting to '.csv'.")
+        output_path += ".csv"
+
+    format = output_path.split(".")[-1]
 
     if format == "json":
         df.to_json(output_path, index=False)
-    else:
+    elif format == "csv":
         df.to_csv(output_path, index=False)
+    else:
+        epp_logger.error(f"Unsupported file format '{format}'. Please use '.csv' or '.json'.")
+        return
 
-    epp_logger.info("done")
+    epp_logger.info(f"File saved successfully to {output_path}")
+
 
 
 """
@@ -349,7 +351,6 @@ and are an abstraction over some more complex parts of above pipeline functions.
 """
 
 
-@typeguard.typechecked
 def segment_number_to_frames(
     segment_number: int, sample_rate: int, segment_seconds_length: float
 ) -> int:
@@ -373,7 +374,6 @@ def segment_number_to_frames(
     return int(sample_rate * segment_seconds_length * segment_number)
 
 
-@typeguard.typechecked
 def get_target_length_frames(min_length_seconds: int, sample_rate: int) -> int:
     """
     A function that converts duration in seconds into number of frames
@@ -392,7 +392,6 @@ def get_target_length_frames(min_length_seconds: int, sample_rate: int) -> int:
     return min_length_seconds * sample_rate
 
 
-@typeguard.typechecked
 def adjust_fragment_start_frame(start_fragment_frame: int, sample_rate: int) -> int:
     """
     A function that moves the start of the larger fragment (a couple of minutes)
@@ -414,7 +413,6 @@ def adjust_fragment_start_frame(start_fragment_frame: int, sample_rate: int) -> 
     return start_fragment_frame
 
 
-@typeguard.typechecked
 def adjust_fragment_end_frame(
     end_fragment_frame: int, sample_rate: int, full_audio_length_frames: int
 ) -> int:
@@ -439,7 +437,6 @@ def adjust_fragment_end_frame(
     return end_fragment_frame
 
 
-@typeguard.typechecked
 def clean_transcript_df(
     df: pd.DataFrame,
     sample_rate: int,
@@ -513,11 +510,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--input_path",
+        "--input_folder",
         required=True,
         type=str,
         help="string, file path to the audio file",
     )
+
+    parser.add_argument(
+        "--input_filename",
+        required=True,
+        type=str,
+        help="string, file path to the audio file",
+    )
+
     parser.add_argument(
         "--output_path",
         required=False,
@@ -576,10 +581,10 @@ if __name__ == "__main__":
         "--transcript_model_size",
         required=False,
         type=str,
-        default="large",
+        default="tiny",
         help="""
         string, size of whisper model used for transcription and translation,
-        see: https://pypi.org/project/openai-whisper/. default: large
+        see: https://pypi.org/project/openai-whisper/. default: tiny
         """,
     )
 
@@ -591,7 +596,7 @@ if __name__ == "__main__":
     )
 
     # load audio file and set sample rate to the chosen value
-    audio = load_audio(file_path=args.input_path, target_sample_rate=args.target_sr)
+    audio = load_audio(file_path=args.input_folder, file_name=args.input_filename, target_sample_rate=args.target_sr)
 
     # get full audio length in frames
     full_audio_length_frames = len(audio)

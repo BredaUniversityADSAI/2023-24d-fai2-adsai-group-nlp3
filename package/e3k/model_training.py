@@ -49,7 +49,7 @@ def get_args() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser()
 
-    mt_logger.debug("collecting CLI args")
+    mt_logger.debug("Collecting CLI args...")
 
     parser.add_argument(
         "--cloud",
@@ -64,9 +64,23 @@ def get_args() -> argparse.Namespace:
         help="name of registered dataset used to train the model",
     )
 
-    parser.add_argument("--epochs", type=int, help="number of training epochs ")
+    parser.add_argument(
+        "--epochs", 
+        type=int, 
+        help="number of training epochs "
+    )
 
-    parser.add_argument("--learning_rate", type=float, help="optimizer's learning rate")
+    parser.add_argument(
+        "--learning_rate", 
+        type=float, 
+        help="optimizer's learning rate"
+    )
+
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        help="batch size for training the model",
+    )
 
     parser.add_argument(
         "--early_stopping_patience",
@@ -86,13 +100,13 @@ def get_args() -> argparse.Namespace:
         help="path where the label_decoder will be saved",
     )
 
-    mt_logger.info("collected CLI args")
+    mt_logger.info("Collected CLI args.")
 
-    mt_logger.debug("parsing args")
+    mt_logger.debug("Parsing args...")
 
     args = parser.parse_args()
 
-    mt_logger.debug("parsed args")
+    mt_logger.debug("Args have been parsed.")
 
     return args
 
@@ -122,10 +136,10 @@ def get_ml_client(
 
     Author - Wojciech Stachowiak
     """
-    mt_logger.debug("getting credentials")
+    mt_logger.debug("Getting credential...")
     credential = ClientSecretCredential(tenant_id, client_id, client_secret)
 
-    mt_logger.debug("building MLClient")
+    mt_logger.debug("Building MLClient...")
 
     ml_client = MLClient(
         subscription_id=subscription_id,
@@ -134,29 +148,30 @@ def get_ml_client(
         workspace_name=workspace_name,
     )
 
-    mt_logger.info("got MLClient")
+    mt_logger.info("Got MLClient!")
 
     return ml_client
 
 
 def get_versioned_datasets(args, ml_client) -> Tuple[str, str, str]:
+    mt_logger.debug("Getting datasets names...")
     with open(args.dataset_name_file) as f:
         dataset_info = json.load(f)
 
     train_name = dataset_info["train_data"]
     val_name = dataset_info["val_data"]
 
-    mt_logger.info("got datasets names")
+    mt_logger.info("Got datasets names. Getting dataset list for versioning...")
 
     dataset_list = ml_client.data.list(name=train_name)
 
-    mt_logger.debug("got dataset list for versioning")
+    mt_logger.debug("Got dataset list for versioning.")
 
     newest_version = reduce(
         lambda x, y: max(x, y), map(lambda x: x.version, dataset_list)
     )
 
-    mt_logger.debug(f"got datasets version {newest_version}")
+    mt_logger.debug(f"Got datasets version {newest_version}.")
 
     return train_name, val_name, newest_version
 
@@ -179,21 +194,21 @@ def get_data_asset_as_df(
     """
 
     # fetching dataset
-    mt_logger.debug(f"getting dataset: {dataset_name} version {dataset_version}")
+    mt_logger.debug(f"Getting dataset: {dataset_name}, with version {dataset_version}...")
     data_asset = ml_client.data.get(dataset_name, version=dataset_version)
-    mt_logger.debug("got dataset")
+    mt_logger.debug("Got dataset.")
 
     path = {"folder": data_asset.path}
 
     # loading data as mltable
-    mt_logger.debug("reading into table")
+    mt_logger.debug("Reading table...")
     table = mltable.from_parquet_files(paths=[path])
-    mt_logger.debug("table loaded")
+    mt_logger.debug("Table has been loaded.")
 
     # converting to pd.DataFrame
-    mt_logger.debug("getting dataframe")
+    mt_logger.debug("Getting DataFrame...")
     df = table.to_pandas_dataframe()
-    mt_logger.debug("got dataframe")
+    mt_logger.debug("Got the DataFrame.")
 
     return df
 
@@ -211,9 +226,9 @@ def get_label_decoder(series: pd.Series) -> Dict[int, str]:
 
     Author - Wojciech Stachowiak
     """
-    mt_logger.info("getting label decoder from training data")
+    mt_logger.info("Getting the label decoder from the training data...")
     label_decoder = {i: label for i, label in enumerate(series.unique())}
-    mt_logger.debug(f"detected {len(label_decoder)} classes")
+    mt_logger.debug(f"{len(label_decoder)} classes have been detected.")
 
     return label_decoder
 
@@ -233,14 +248,14 @@ def get_new_model(num_classes: int) -> transformers.TFRobertaForSequenceClassifi
         Max Meiners (214936)
     """
 
-    mt_logger.debug("loading model")
+    mt_logger.debug("Loading the model...")
     model_configuration = transformers.RobertaConfig.from_pretrained(
         "roberta-base", num_labels=num_classes
     )
     model = transformers.TFRobertaForSequenceClassification.from_pretrained(
         "roberta-base", config=model_configuration
     )
-    mt_logger.info("loaded model")
+    mt_logger.info("The model has been loaded!")
 
     return model
 
@@ -249,9 +264,9 @@ def train_model(
     model: transformers.TFRobertaForSequenceClassification,
     training_dataset: tf.data.Dataset,
     validation_dataset: tf.data.Dataset,
-    epochs: int = 3,
-    learning_rate: float = 1e-5,
-    early_stopping_patience: int = 3,
+    epochs: int,
+    learning_rate: float,
+    early_stopping_patience: int
 ) -> transformers.TFRobertaForSequenceClassification:
     """
     Train the model using tensorflow datasets.
@@ -275,12 +290,14 @@ def train_model(
     # mlflow.start_run()
     # mlflow.tensorflow.autolog()
 
-    mt_logger.info("compiling model")
+    mt_logger.info("Compiling the model...")
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 
     model.compile(optimizer=optimizer, loss=loss, metrics=["accuracy"])
+
+    mt_logger.info("Model has been compiled.")
 
     # Early stopping callback
     early_stopping = tf.keras.callbacks.EarlyStopping(
@@ -290,7 +307,7 @@ def train_model(
         restore_best_weights=True,
     )
 
-    mt_logger.info("training model")
+    mt_logger.info("Training the model...")
 
     history = model.fit(
         training_dataset,
@@ -320,7 +337,7 @@ def train_model(
     plt.legend(loc="lower left")
     mlflow.log_figure(fig, "model_metrics.png")
 
-    mt_logger.info("training finished")
+    mt_logger.info("Training has been completed!")
 
     # mlflow.end_run()
 
@@ -382,9 +399,9 @@ def main(args: argparse.Namespace) -> None:
         model,
         train_tf_data,
         val_tf_data,
-        args.epochs,
-        args.learning_rate,
-        args.early_stopping_patience,
+        epochs=args.epochs,
+        learning_rate=args.learning_rate,
+        early_stopping_patience=args.early_stopping_patience,
     )
 
     model.save_pretrained(args.model_output_path)

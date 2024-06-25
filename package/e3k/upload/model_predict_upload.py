@@ -1,8 +1,7 @@
-import os
-
 from azure.ai.ml import Input, MLClient, Output, command
 from azure.identity import InteractiveBrowserCredential
 from azureml.core import Workspace
+import os
 
 # Define the workspace
 subscription_id = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
@@ -41,7 +40,10 @@ predict_component = command(
             type="uri_folder",
             description="Path to the model configuration and weights file",
         ),
-        "data_path": Input(type="uri_file", description="Data to be predicted"),
+        "data_path": Input(
+            type="uri_file", 
+            description="Data to be predicted"
+        ),
         "tokenizer_model": Input(
             type="string",
             description="Model to use for tokenization",
@@ -64,16 +66,16 @@ predict_component = command(
             description="Output predictions with confidence scores",
         )
     },
-    code=os.path.abspath("./package/e3k/temp_folder"),
-    command="""
-    python model_predict.py
-    --model_path ${{inputs.model_path}}
-    --data_path ${{inputs.data_path}}
-    --tokenizer_model ${{inputs.tokenizer_model}}
-    --max_length ${{inputs.max_length}}
-    --decoder_path ${{inputs.decoder_path}}
-    --output_path ${{outputs.predictions}}
-    """,
+    code="./package/e3k/",
+    command=(
+        "python3 model_predict.py "
+        "--model_path ${{inputs.model_path}} "
+        "--data_path ${{inputs.data_path}} "
+        "--tokenizer_model ${{inputs.tokenizer_model}} "
+        "--max_length ${{inputs.max_length}} "
+        "--decoder_path ${{inputs.decoder_path}}"
+ #       "--output_path ${{outputs.predictions}}"
+    ),
     environment=environment,
     compute=compute_name,
 )

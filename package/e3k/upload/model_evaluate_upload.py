@@ -1,4 +1,4 @@
-from azure.ai.ml import Input, MLClient, Output, command
+from azure.ai.ml import Input, MLClient, Output, command, dsl
 from azure.identity import ClientSecretCredential
 
 # const values for Azure connection
@@ -82,21 +82,33 @@ evaluate_component = command(
     display_name="Model evaluation",
     description="Evaluate model using test data",
     inputs={
-        "test_data": Input(type="string", description="Data asset URI"),
+        "test_data": Input(
+            type="string",
+            description="Data asset URI"
+        ),
+
         "model_path": Input(
             type="uri_folder",
             description="Model URI",
         ),
+
         "label_decoder": Input(
             type="uri_folder",
             description="URI of label encoding dict",
         ),
-        "model_name": Input(type="string", description="Name to register the model"),
+
+        "model_name": Input(
+            type="string",
+            description="Name to register the model"
+        ),
+
         "threshold": Input(
             type="number",
-            description="Min accuracy for the model to be considered good",
-        ),
+            description="Min accuracy for the model to be considered good"
+        )
+        
     },
+    
     code="./package/e3k/",
     command=(
         "python model_evaluate.py "
@@ -157,7 +169,5 @@ pipeline_instance = test_training_pipeline(
     model_name="testModel",
     )
 
-pipeline_run = ml_client.jobs.create_or_update(
-    pipeline_instance, experiment_name="Model_evaluation"
-)
+pipeline_run = ml_client.jobs.create_or_update(pipeline_instance, experiment_name="Model_evaluation")
 """
