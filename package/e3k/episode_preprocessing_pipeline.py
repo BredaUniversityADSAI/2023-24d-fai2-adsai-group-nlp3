@@ -12,6 +12,7 @@ import webrtcvad
 import whisper
 from pydub import AudioSegment
 from tqdm import tqdm
+from typing import List, Tuple
 
 epp_logger = logging.getLogger("main.episode_preprocessing_pipeline")
 
@@ -60,7 +61,7 @@ def load_audio(file_path: str, file_name: str, target_sample_rate: int) -> np.ar
 
 def get_segments_for_vad(
     audio: np.array, sample_rate: int, segment_seconds_length: float
-) -> list[np.array]:
+) -> List[np.array]:
     """
     A function that adapts the audio file so that it is compatible with
     webrtcvad.Vad object. The sample rate must be 8kHz, 16kHz, or 32kHz, and
@@ -96,7 +97,7 @@ def get_segments_for_vad(
 
 
 def get_vad_per_segment(
-    segments: list[np.array],
+    segments: List[np.array],
     vad_aggressiveness: int,
     sample_rate: int,
     segment_frames_length: int,
@@ -162,7 +163,7 @@ def get_frame_segments_from_vad_output(
     min_fragment_length_seconds: int,
     segment_seconds_length: float,
     full_audio_length_frames: int,
-) -> list[tuple[int, int]]:
+) -> List[Tuple[int, int]]:
     """
     A function that connects the small segments (10/20/30ms) into larger (5-6 min)
     fragments based on the results from get_vad_per_segment function.
@@ -243,7 +244,7 @@ def get_frame_segments_from_vad_output(
 
 def transcribe_translate_fragments(
     audio: np.array,
-    cut_fragments_frames: list[tuple[int, int]],
+    cut_fragments_frames: List[Tuple[int, int]],
     sample_rate: int,
     use_fp16: bool = True,
     transcription_model_size: str = "base",

@@ -10,6 +10,7 @@ import pandas as pd
 import tensorflow as tf
 import transformers
 from preprocessing import preprocess_prediction_data
+from typing import Dict, List, Tuple
 
 # setting up logger
 mt_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
@@ -33,7 +34,7 @@ if len(mt_logger.handlers) == 0:
 
 def get_model(
     model_path: str,
-) -> tuple[transformers.TFRobertaForSequenceClassification, dict[int, str]]:
+) -> Tuple[transformers.TFRobertaForSequenceClassification, Dict[int, str]]:
     """
     Create or load a RoBERTa model with the specified number of output classes.
     Number of classes not needed when loading a previously trained model.
@@ -75,8 +76,8 @@ def get_model(
 
 
 def decode_labels(
-    encoded_labels: list[int], emotion_decoder: dict[int, str]
-) -> list[str]:
+    encoded_labels: List[int], emotion_decoder: Dict[int, str]
+) -> List[str]:
     """
     A function that decodes label numbers into text representation of labels
 
@@ -107,8 +108,8 @@ def predict(
     model: transformers.TFRobertaForSequenceClassification,
     token_array: np.array,
     mask_array: np.array,
-    emotion_decoder: dict[int, str],
-) -> tuple[list[str], list[float]]:
+    emotion_decoder: Dict[int, str],
+) -> Tuple[List[str], List[float]]:
     """
     A function that predicts emotions from preprocessed input using a loaded model.
     It returns text labels decoded using emotion_decoder dictionary loaded

@@ -19,7 +19,7 @@ ml_client = MLClient(
     credential=credential,
 )
 
-env = ml_client.environments.get("BlockD", version="21")
+env = ml_client.environments.get("BlockD", version="22")
 compute = ml_client.compute.get("adsai0")
 
 # define the component
@@ -56,7 +56,7 @@ train_component = command(
         "model": Output(type="uri_folder", mode="rw_mount"),
         "label_decoder": Output(type="uri_file", mode="rw_mount"),
     },
-    code="../",
+    code="./package/e3k/",
     command=(
         "python model_training.py "
         "--cloud True "

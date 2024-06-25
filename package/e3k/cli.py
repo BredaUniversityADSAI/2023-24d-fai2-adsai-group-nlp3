@@ -16,6 +16,7 @@ from config import config
 from model_training_pipeline import model_training as mt_pipe
 from tensorflow import config as tf_config
 from transformers import TFRobertaForSequenceClassification
+from typing import Dict, List, Tuple
 
 # setting up logger
 logger = logging.getLogger("main")
@@ -365,7 +366,7 @@ def episode_preprocessing(args: argparse.Namespace) -> pd.DataFrame:
 @typeguard.typechecked
 def model_training(
     args: argparse.Namespace,
-) -> tuple[TFRobertaForSequenceClassification, dict[int, str]]:
+) -> Tuple[TFRobertaForSequenceClassification, Dict[int, str]]:
     """
     A function that follows the model_training module.
     It loads and pre-processes the data for model training, creates a new model,
@@ -420,7 +421,7 @@ def model_training(
 def evaluate_model(
     args: argparse.Namespace,
     model: TFRobertaForSequenceClassification,
-    label_decoder: dict[int, str],
+    label_decoder: Dict[int, str],
 ) -> None:
     """
     A function that evaluates a trained model using a separate dataset.
@@ -454,7 +455,7 @@ def evaluate_model(
 @typeguard.typechecked
 def predict(
     args: argparse.Namespace, data: pd.DataFrame
-) -> tuple[list[str], list[float]]:
+) -> Tuple[List[str], List[float]]:
     """
     A function that returns model predictions given a model_path command line argument,
     and dataframe with column named "sentence"
@@ -486,7 +487,7 @@ def predict(
 
 @typeguard.typechecked
 def model_output_information(
-    predicted_emotions: list[str], confidence_scores: list[float]
+    predicted_emotions: List[str], confidence_scores: List[float]
 ) -> None:
     """
     A function that aggregates prediction results into a total confidence score,
@@ -554,7 +555,6 @@ def main() -> None:
                 data_path=args.train_data,
                 val_size=args.val_size,
                 epochs=args.epochs,
-                early_stopping_patience=args.early_stopping_patience,
                 test_data=args.test_data,
                 threshold=args.threshold,
                 model_name=args.model_name,

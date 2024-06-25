@@ -13,6 +13,7 @@ from azureml.core import Dataset, Datastore, Model, Workspace
 from azureml.core.authentication import ServicePrincipalAuthentication
 from preprocessing import preprocess_prediction_data
 from sklearn.metrics import accuracy_score, classification_report
+from typing import Dict, List, Tuple
 
 # setting up logger
 eval_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
@@ -98,8 +99,8 @@ def predict(
     model: transformers.TFRobertaForSequenceClassification,
     token_array: np.array,
     mask_array: np.array,
-    emotion_decoder: dict[int, str],
-) -> tuple[list[str], list[float]]:
+    emotion_decoder: Dict[int, str],
+) -> Tuple[List[str], List[float]]:
     """
     A function that predicts emotions from preprocessed input using a loaded model.
     It returns text labels decoded using emotion_decoder dictionary loaded
@@ -145,7 +146,7 @@ def predict(
 def evaluate(
     pred_labels,
     data,
-) -> tuple[list[str], list[float], float, str]:
+) -> Tuple[List[str], List[float], float, str]:
     """
     A function that evaluates trained model using a separate dataset.
     It returns predicted labels, and their probabilities, total_accuracy,
@@ -233,7 +234,7 @@ def register_model_and_encoding(
 
 def save_model(
     model: transformers.TFRobertaForSequenceClassification,
-    label_decoder: dict[int, str],
+    label_decoder: Dict[int, str],
     model_path: str,
     accuracy: float,
     threshold: float,
@@ -273,8 +274,8 @@ Util functions (only used in other functions)
 
 
 def decode_labels(
-    encoded_labels: list[int], emotion_decoder: dict[int, str]
-) -> list[str]:
+    encoded_labels: List[int], emotion_decoder: Dict[int, str]
+) -> List[str]:
     """
     A function that decodes label numbers into text representation of labels
 

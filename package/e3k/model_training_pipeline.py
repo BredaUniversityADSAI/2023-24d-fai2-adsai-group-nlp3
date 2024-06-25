@@ -32,7 +32,7 @@ splitting_component = ml_client.components.get(
     name="split_register_component", version="2024-06-18-16-14-15-3695360"
 )
 train_component = ml_client.components.get(
-    name="train_component", version="2024-06-20-14-50-42-8000239"
+    name="train_component", version="2024-06-25-08-40-02-1931108"
 )
 eval_component = ml_client.components.get(
     name="evaluation", version="2024-06-18-16-16-07-7286457"

@@ -3,11 +3,12 @@ from collections import Counter
 
 import matplotlib.pyplot as plt
 import numpy as np
+from typing import List
 
 moi_logger = logging.getLogger("main.model_output_information")
 
 
-def plot_emotion_distribution(predicted_emotions: list[str]) -> None:
+def plot_emotion_distribution(predicted_emotions: List[str]) -> None:
     """
     Plot a pie chart of the overall emotion distribution based on a list of predicted
     emotions for each sentence in an episode.
@@ -70,7 +71,7 @@ def plot_emotion_distribution(predicted_emotions: list[str]) -> None:
     moi_logger.info("Successfully plotted the emotion distribution.")
 
 
-def calculate_episode_confidence(scores: list[float]) -> float:
+def calculate_episode_confidence(scores: List[float]) -> float:
     """
     Calculate the overall confidence score for the episode by
     averaging the highest probabilities for each sentence.

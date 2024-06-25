@@ -286,10 +286,6 @@ def train_model(
         Max Meiners (214936)
     """
 
-    # Start MLflow Run
-    # mlflow.start_run()
-    # mlflow.tensorflow.autolog()
-
     mt_logger.info("Compiling the model...")
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
@@ -338,8 +334,6 @@ def train_model(
     mlflow.log_figure(fig, "model_metrics.png")
 
     mt_logger.info("Training has been completed!")
-
-    # mlflow.end_run()
 
     return model
 
