@@ -16,14 +16,14 @@ ws = Workspace(
 # Register the model
 model = Model.register(
     workspace=ws,
-    model_name="RoBERTa_model",
+    model_name="LSTM_model",
     model_path=(
-        "/Users/maxmeiners/Library/"
-        "CloudStorage/OneDrive-BUas/Github/Year 2/Block D/model"
+        "/Users/maxmeiners/Documents/GitHub/2023-24c-fai2-adsai-"
+        "group-group11/Machine learning/LSTM/lstm_model.h5"
     ),
-    description="RoBERTa model for emotion recognition",
+    description="LSTM model for emotion recognition",
     tags={"type": "emotion_recognition"},
-    model_framework="transformers",
+    model_framework="keras",
     model_framework_version="1.0",
 )
 
