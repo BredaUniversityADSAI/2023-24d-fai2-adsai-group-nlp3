@@ -11,6 +11,7 @@ from azure.identity import ClientSecretCredential
 from azureml.core import Dataset, Datastore, Workspace
 from azureml.core.authentication import ServicePrincipalAuthentication
 from sklearn.model_selection import train_test_split
+
 # import azureml
 # import fsspec
 
@@ -151,14 +152,15 @@ def get_train_val_data(
         random_state=42,
         stratify=data_df["emotion"],
     )
-
+    """
     local = args.local == "True"
     if local:
         train_set = (X_train, y_train)
         val_set = (X_val, y_val)
     else:
-        train_set = pd.DataFrame({"sentence": X_train, "emotion": y_train})
-        val_set = pd.DataFrame({"sentence": X_val, "emotion": y_val})
+    """
+    train_set = pd.DataFrame({"sentence": X_train, "emotion": y_train})
+    val_set = pd.DataFrame({"sentence": X_val, "emotion": y_val})
 
     split_logger.info("Data split")
 
@@ -232,19 +234,16 @@ def main(args: argparse.Namespace):
 
         split_logger.info("Data processed and datasets registered in Azure.")
     # Prepare dictionary to save as JSON
-    datasets_info = {
-        "train_data": "train_data",
-        "val_data": "val_data"
-    }
+    datasets_info = {"train_data": "train_data", "val_data": "val_data"}
 
     # Save dictionary to JSON file
     if args.json_path:
-        with open(args.json_path, 'w') as json_file:
+        with open(args.json_path, "w") as json_file:
             json.dump(datasets_info, json_file)
             split_logger.info(f"Dataset information saved to {args.json_path}")
-        
+
         split_logger.info("Data processed and datasets registered in Azure.")
-        
+
     split_logger.info("Main function completed")
 
 

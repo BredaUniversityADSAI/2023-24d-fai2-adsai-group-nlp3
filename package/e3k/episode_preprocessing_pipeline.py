@@ -2,6 +2,8 @@ import datetime
 import io
 import logging
 import wave
+from math import e
+from typing import List, Tuple
 
 import librosa
 import numpy as np
@@ -23,7 +25,10 @@ and when used in order, provide the video or audio to sentences pipeline.
 """
 
 
-def load_audio(file_path: str, file_name: str, target_sample_rate: int) -> np.array:
+# TODO change this to work locally
+def load_audio(
+    file_path: str = None, file_name: str = None, target_sample_rate: int = 32_000
+) -> np.array:
     """
     A function that loads audio data from video file
     or directly loads audio from input.
@@ -43,7 +48,11 @@ def load_audio(file_path: str, file_name: str, target_sample_rate: int) -> np.ar
     epp_logger.info("loading audio file")
 
     # load audio from the file
-    audio = AudioSegment.from_file(f"{file_path}/{file_name}")
+    try:
+        # audio = AudioSegment.from_file(f"{file_path}/{file_name}")
+        audio = AudioSegment.from_file(file_path)
+    except e:
+        audio = AudioSegment.from_file(file_name)
 
     # export the audio to in-memory object
     wav_file = io.BytesIO()
@@ -299,6 +308,7 @@ def transcribe_translate_fragments(
 
     return data
 
+
 def save_data(
     df: pd.DataFrame,
     output_path: str = "output.csv",
@@ -337,11 +347,12 @@ def save_data(
     elif format == "csv":
         df.to_csv(output_path, index=False)
     else:
-        epp_logger.error(f"Unsupported file format '{format}'. Please use '.csv' or '.json'.")
+        epp_logger.error(
+            f"Unsupported file format '{format}'. Please use '.csv' or '.json'."
+        )
         return
 
     epp_logger.info(f"File saved successfully to {output_path}")
-
 
 
 """
@@ -596,7 +607,11 @@ if __name__ == "__main__":
     )
 
     # load audio file and set sample rate to the chosen value
-    audio = load_audio(file_path=args.input_folder, file_name=args.input_filename, target_sample_rate=args.target_sr)
+    audio = load_audio(
+        file_path=args.input_folder,
+        file_name=args.input_filename,
+        target_sample_rate=args.target_sr,
+    )
 
     # get full audio length in frames
     full_audio_length_frames = len(audio)
