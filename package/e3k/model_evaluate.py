@@ -1,24 +1,43 @@
 import argparse
+import json
 import logging
 import os
 import pickle
 
+import config
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 import transformers
-from sklearn.metrics import accuracy_score, classification_report 
-from azureml.core import Workspace, Datastore, Dataset, Model
+from azureml.core import Dataset, Datastore, Model, Workspace
 from azureml.core.authentication import ServicePrincipalAuthentication
-
 from preprocessing import preprocess_prediction_data
+from sklearn.metrics import accuracy_score, classification_report
+from typing import Dict, List, Tuple
 
+# setting up logger
+eval_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-mt_logger = logging.getLogger("main.model_evaluation")
+if len(eval_logger.handlers) == 0:
+    eval_logger.setLevel(logging.DEBUG)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.DEBUG)
+    stream_handler.setFormatter(formatter)
+
+    eval_logger.addHandler(stream_handler)
+
+file_handler = logging.FileHandler("logs.log", mode="a")
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+eval_logger.addHandler(file_handler)
+
 
 
 # Loading data from local device
-def load_data(file_path: str) -> tuple[pd.DataFrame, dict[int, str]]:
+def load_data(file_path: str) -> pd.DataFrame:
     """
     Load the dataset from a CSV file and return
     the DataFrame and a dictionary with labels.
@@ -34,19 +53,21 @@ def load_data(file_path: str) -> tuple[pd.DataFrame, dict[int, str]]:
         Max Meiners (214936)
     """
 
-    df = pd.read_csv(file_path)[["sentence", "emotion"]].dropna()
+    df = pd.read_csv(file_path)[["sentence", "emotion"]]
+    # .dropna()
 
-    mt_logger.info(f"loaded data: {os.path.basename(file_path)}")
+    eval_logger.info(f"loaded data: {os.path.basename(file_path)}")
 
     return df
 
 
 # Loading data from Azure ML datastore
-def load_data_from_azure(workspace,
-                         datastore_name,
-                         test_data_name
-                         #, test_data_uri
-                         ): 
+def load_data_from_azure(
+    workspace,
+    datastore_name,
+    test_data_name
+    # , test_data_uri
+):
     """
     Loads data from an Azure ML datastore.
 
@@ -63,7 +84,7 @@ def load_data_from_azure(workspace,
     """
 
     # Loading the csv
-    #test_set = Dataset.Tabular.from_delimited_files(test_data_uri, validate=False)
+    # test_set = Dataset.Tabular.from_delimited_files(test_data_uri, validate=False)
     # Get the default datastore
     datastore = Datastore(workspace, name=datastore_name)
 
@@ -78,8 +99,8 @@ def predict(
     model: transformers.TFRobertaForSequenceClassification,
     token_array: np.array,
     mask_array: np.array,
-    emotion_decoder: dict[int, str],
-) -> tuple[list[str], list[float]]:
+    emotion_decoder: Dict[int, str],
+) -> Tuple[List[str], List[float]]:
     """
     A function that predicts emotions from preprocessed input using a loaded model.
     It returns text labels decoded using emotion_decoder dictionary loaded
@@ -101,7 +122,7 @@ def predict(
         Max Meiners (214936)
     """
 
-    mt_logger.info("predicting")
+    eval_logger.info("predicting")
 
     input = {
         "input_ids": token_array,
@@ -117,15 +138,15 @@ def predict(
 
     text_labels = decode_labels(predicted_classes, emotion_decoder)
 
-    mt_logger.info("got predictions")
+    eval_logger.info("got predictions")
 
     return text_labels, highest_probabilities
 
 
 def evaluate(
-    pred_labels, 
-    data, 
-) -> tuple[list[str], list[float], float, str]:
+    pred_labels,
+    data,
+) -> Tuple[List[str], List[float], float, str]:
     """
     A function that evaluates trained model using a separate dataset.
     It returns predicted labels, and their probabilities, total_accuracy,
@@ -143,25 +164,20 @@ def evaluate(
         Max Meiners (214936)
     """
 
-    mt_logger.info("evaluating trained model")
+    eval_logger.info("evaluating trained model")
 
     true_labels = data["emotion"].to_list()
 
     accuracy = accuracy_score(true_labels, pred_labels)
-    mt_logger.info(f"model accuracy: {accuracy}")
+    eval_logger.info(f"model accuracy: {accuracy}")
 
     report = classification_report(true_labels, pred_labels)
 
-    return  accuracy, report
+    return accuracy, report
 
 
 def register_model_and_encoding(
-    model_path,
-    label_decoder, 
-    accuracy, 
-    workspace, 
-    model_name, 
-    threshold=0.5
+    model_path, label_decoder, accuracy, workspace, model_name, threshold=0.5
 ):
     """
     Registers a machine learning model and its label encodings to Azure ML workspace
@@ -177,38 +193,79 @@ def register_model_and_encoding(
         threshold (float, optional): The accuracy threshold for registering the model.
         Default is 0.5.
 
-    Output: 
+    Output:
         None
 
     - Author: Kornelia Flizik
     """
-    mt_logger.info(f"Registering model if accuracy is above {threshold}.")
-    
+    eval_logger.info(f"Registering model if accuracy is above {threshold}.")
+
     # Only register model if accuracy is above threshold
     if accuracy > threshold:
-        mt_logger.info("Model accuracy is above threshold, registering model.")
+        eval_logger.info("Model accuracy is above threshold, registering model.")
 
         # Register the model
-        model = Model.register(
-            workspace = workspace, 
-            model_path = model_path, 
-            model_name = model_name, 
-            description = "RoBERTa model for emotion recognition")
+        _ = Model.register(
+            workspace=workspace,
+            model_path=model_path,
+            model_name=model_name,
+            description="RoBERTa model for emotion recognition",
+        )
 
-        mt_logger.info("Model registered")
+        eval_logger.info("Model registered")
 
         # Register label encodings
-        datastore = Datastore(workspace, name='workspaceblobstore')
-        
-        emotion_decoder = datastore.upload(src_dir=os.path.dirname(label_decoder),
-                 target_path=f'labels_encodings/{model_name}',
-                 overwrite=False,
-                 show_progress=True)
-        
-        mt_logger.info("Encodings saved")
-         
+        datastore = Datastore(workspace, name="workspaceblobstore")
+
+        _ = datastore.upload(
+            src_dir=os.path.dirname(label_decoder),
+            target_path=f"labels_encodings/{model_name}",
+            overwrite=False,
+            show_progress=True,
+        )
+
+        eval_logger.info("Encodings saved")
+
     else:
-        mt_logger.info("Model accuracy is not above threshold, not registering model.")
+        eval_logger.info(
+            "Model accuracy is not above threshold, not registering model."
+        )
+
+
+def save_model(
+    model: transformers.TFRobertaForSequenceClassification,
+    label_decoder: Dict[int, str],
+    model_path: str,
+    accuracy: float,
+    threshold: float,
+) -> None:
+    """
+    A function that saves trained model and it's emotion mapping to a file.
+
+    Input:
+        model (transformers.TFRobertaForSequenceClassification): trained model
+        label_encoder (dict[int, str]): Python dictionary mapping
+            numbers to text emotions.
+        model_path (str): Path to directory where the model will be saved.
+
+    Output: None
+
+    Author:
+        Max Meiners (214936)
+    """
+
+    if accuracy >= threshold:
+        eval_logger.info("Model accuracy is above threshold, saving model.")
+
+        dict_path = os.path.join(model_path, "emotion_dict.json")
+
+        model.save_pretrained(model_path)
+        with open(dict_path, "w") as f:
+            json.dump(label_decoder, f)
+
+        eval_logger.info("Model saved")
+    else:
+        eval_logger.info("Model accuracy is not above threshold, not saving model.")
 
 
 """
@@ -217,8 +274,8 @@ Util functions (only used in other functions)
 
 
 def decode_labels(
-    encoded_labels: list[int], emotion_decoder: dict[int, str]
-) -> list[str]:
+    encoded_labels: List[int], emotion_decoder: Dict[int, str]
+) -> List[str]:
     """
     A function that decodes label numbers into text representation of labels
 
@@ -239,9 +296,9 @@ def decode_labels(
     return decoded_labels
 
 
-def load_label_decoder(label_decoder_path:str):
+def load_label_decoder(label_decoder_path: str):
     # Load the emotion_decoder using pickle
-    with open(label_decoder_path, 'rb') as f:
+    with open(label_decoder_path, "rb") as f:
         emotion_decoder = pickle.load(f)
         return emotion_decoder
 
@@ -263,7 +320,7 @@ if __name__ == "__main__":
         default="",
         help="URI of the test data from Azure ML datastore",
     )
-    
+
     parser.add_argument(
         "--subscription_id",
         required=False,
@@ -313,68 +370,70 @@ if __name__ == "__main__":
     parser.add_argument(
         "--label_decoder",
         required=False,
-        type = str,
+        type=str,
         help="File containing label decoder dict",
+    )
+
+    parser.add_argument(
+        "--threshold",
+        required=False,
+        type=float,
+        default=0.8,
+        help="Min accuracy for the model to be considered good"
     )
 
     parser.add_argument(
         "--model_name",
         required=False,
-        type = str,
+        type=str,
         help="Name to register the model",
-    )
-
-    parser.add_argument(
-        "--results",
-        required=False,
-        help="Results of model evaluation",
     )
 
     args = parser.parse_args()
 
     cloud = str(args.cloud) == "True"
-    mt_logger.info(type(args.cloud))
+    eval_logger.info(type(args.cloud))
 
     model = transformers.TFRobertaForSequenceClassification.from_pretrained(
-        args.model_path)
-    
+        args.model_path
+    )
+
     if cloud is True:
         # Load the workspace
-        mt_logger.info("cloud path")
+        eval_logger.info("cloud path")
         TENANT_ID = "0a33589b-0036-4fe8-a829-3ed0926af886"
         CLIENT_ID = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
         CLIENT_SECRET = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
 
         svc_pr = ServicePrincipalAuthentication(
-                tenant_id=TENANT_ID,
-                service_principal_id=CLIENT_ID,
-                service_principal_password=CLIENT_SECRET
-                )
-        workspace = Workspace(subscription_id=args.subscription_id, 
-                    resource_group=args.resource_group, 
-                    workspace_name=args.workspace_name,
-                    auth = svc_pr,
-                    )
-        #change
-        data = load_data_from_azure(workspace, args.datastore_name,
-                                    args.test_data_name)
+            tenant_id=config.config["tenant_id"],
+            service_principal_id=config.config["client_id"],
+            service_principal_password=config.config["client_secret"],
+        )
+        workspace = Workspace(
+            subscription_id=config.config["subscription_id"],
+            resource_group=config.config["resource_group"],
+            workspace_name=config.config["workspace_name"],
+            auth=svc_pr,
+        )
+        # change
+        data = load_data_from_azure(workspace, args.datastore_name, args.test_data_name)
         label_decoder = load_label_decoder(args.label_decoder)
         tokens, masks = preprocess_prediction_data(data)
         emotions, probabilities = predict(model, tokens, masks, label_decoder)
         accuracy, _ = evaluate(emotions, data)
         print(f"Test accuracy: {accuracy * 100:.2f}%")
-        # Create the string in the desired format
-        output_string = f"{args.model_name}: {accuracy}"
-
-        # Save the string to a text file
-        with open(args.results, "w") as file:
-            file.write(output_string)
-
-        register_model_and_encoding(args.model_path, args.label_decoder, accuracy, 
-                                    workspace, args.model_name)
+        register_model_and_encoding(
+            args.model_path,
+            args.label_decoder,
+            accuracy,
+            workspace,
+            args.model_name,
+            args.threshold
+        )
 
     else:
-        mt_logger.info("local path")
+        eval_logger.info("local path")
         data, _ = load_data(args.test_data_path)
         tokens, masks = preprocess_prediction_data(data)
         emotions, probabilities = predict(model, tokens, masks, args.label_decoder)

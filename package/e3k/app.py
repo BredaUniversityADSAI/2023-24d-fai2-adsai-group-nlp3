@@ -14,6 +14,7 @@ import preprocessing
 import split_register_data as splitting
 from tensorflow import config as tf_config
 from transformers import TFRobertaForSequenceClassification
+from typing import Dict, List, Tuple
 
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -103,8 +104,8 @@ def episode_preprocessing(input_path,
 
 def model_training(train_data, val_data, val_size,
                    epochs, lr, early_stopping_patience,
-) -> tuple[
-    TFRobertaForSequenceClassification, tuple[list[str], list[float], float, str]
+) -> Tuple[
+    TFRobertaForSequenceClassification, Tuple[List[str], List[float], float, str]
 ]:
     """
     A function that follows the model_training module.
@@ -151,7 +152,7 @@ def model_training(train_data, val_data, val_size,
 def evaluate_model(
     test_data,
     model: TFRobertaForSequenceClassification,
-    label_decoder: dict[int, str],
+    label_decoder: Dict[int, str],
 ) -> None:
     """
     A function that evaluates a trained model using a separate dataset.
@@ -179,9 +180,9 @@ def evaluate_model(
 
 def predict(
     model: TFRobertaForSequenceClassification,
-    label_decoder: dict[int, str],
+    label_decoder: Dict[int, str],
     data,
-) -> tuple[list[str], list[float]]:
+) -> Tuple[List[str], List[float]]:
     """
     A function that returns model predictions given a model_path command line argument,
     and dataframe with column named "sentence"
@@ -211,7 +212,7 @@ def predict(
 
 
 def model_output_information(
-    predicted_emotions: list[str], confidence_scores: list[float]
+    predicted_emotions: List[str], confidence_scores: List[float]
 ) -> None:
     """
     A function that aggregates prediction results into a total confidence score,
