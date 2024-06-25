@@ -12,6 +12,7 @@ import webrtcvad
 import whisper
 from pydub import AudioSegment
 from tqdm import tqdm
+from typing import List, Tuple
 
 epp_logger = logging.getLogger("main.episode_preprocessing_pipeline")
 
