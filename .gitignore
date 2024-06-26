@@ -4,3 +4,4 @@ package/ep_1_10min.mp3
 package/tests/__pacache__/
 package/tests/logs.log
 package/e3k/__pycache__/
+*.pyc
