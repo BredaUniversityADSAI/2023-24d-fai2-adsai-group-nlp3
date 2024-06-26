@@ -30,7 +30,7 @@ from e3k.episode_preprocessing_pipeline import (
 
 @pytest.fixture
 def sample_file_path():
-    return "test_data"
+    return "tests/test_data/video_test.mov"
 
 class TestMain:
     @pytest.mark.parametrize("sample_rate", [32000])
@@ -194,12 +194,12 @@ class TestUtils:
         # Assertions
         assert result == 960
 
-    @pytest.mark.parametrize("sample_rate, segment_seconds_length", [(32000, 0.03)])
-    def test_get_target_length_frames(self, sample_rate, segment_seconds_length):
+    @pytest.mark.parametrize("sample_rate, min_fragment_len", [(32000, 300)])
+    def test_get_target_length_frames(self, sample_rate, min_fragment_len):
         # Call the function to get frames length
-        result = get_target_length_frames(segment_seconds_length, sample_rate)
+        result = get_target_length_frames(min_fragment_len, sample_rate)
         # Assertions
-        assert result == 960
+        assert result == 96_000_00
 
     @pytest.mark.parametrize("sample_rate, start_fragment_frame", [(32000, 4000)])
     def test_adjust_fragment_start_frame(self, sample_rate, start_fragment_frame):

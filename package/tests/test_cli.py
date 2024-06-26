@@ -39,7 +39,7 @@ def test_get_args(monkeypatch, cli_args):
     "cli_args",
     [(["preprocess", "--input_path", "", "--transcript_model_size", "tiny"])],
 )
-def test_episode_preprocessing(monkeypatch):
+def test_episode_preprocessing(monkeypatch, cli_args):
     # Author - Wojciech Stachowiak
 
     current_path = os.path.dirname(__file__)

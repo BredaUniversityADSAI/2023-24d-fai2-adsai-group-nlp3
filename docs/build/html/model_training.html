@@ -22,7 +22,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Model Output Information" href="moi.html" />
-    <link rel="prev" title="Episode Data Preperocessing" href="edp.html" /> 
+    <link rel="prev" title="Episode Data Preprocessing" href="edp.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -49,21 +49,60 @@
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#for-conda-users">For conda users</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#for-non-conda-users">For non-conda users</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#for-poetry-users">For poetry users</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#verify-the-installation">Verify the installation:</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#cli-usage">CLI Usage</a></li>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#api-usage">API Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#license">License</a></li>
 </ul>
 </li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Source Code</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="edp.html">Episode Data Preperocessing</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Model Training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="moi.html">Model Output Information</a></li>
+<li class="toctree-l1"><a class="reference internal" href="edp.html">Episode Data Preprocessing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.adjust_fragment_end_frame"><code class="docutils literal notranslate"><span class="pre">adjust_fragment_end_frame()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.adjust_fragment_start_frame"><code class="docutils literal notranslate"><span class="pre">adjust_fragment_start_frame()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.clean_transcript_df"><code class="docutils literal notranslate"><span class="pre">clean_transcript_df()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.epp_logger"><code class="docutils literal notranslate"><span class="pre">epp_logger</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.get_frame_segments_from_vad_output"><code class="docutils literal notranslate"><span class="pre">get_frame_segments_from_vad_output()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.get_segments_for_vad"><code class="docutils literal notranslate"><span class="pre">get_segments_for_vad()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.get_target_length_frames"><code class="docutils literal notranslate"><span class="pre">get_target_length_frames()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.get_vad_per_segment"><code class="docutils literal notranslate"><span class="pre">get_vad_per_segment()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.load_audio"><code class="docutils literal notranslate"><span class="pre">load_audio()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.save_data"><code class="docutils literal notranslate"><span class="pre">save_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.segment_number_to_frames"><code class="docutils literal notranslate"><span class="pre">segment_number_to_frames()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.transcribe_translate_fragments"><code class="docutils literal notranslate"><span class="pre">transcribe_translate_fragments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Model Training</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#model_training.get_args"><code class="docutils literal notranslate"><span class="pre">get_args()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model_training.get_label_decoder"><code class="docutils literal notranslate"><span class="pre">get_label_decoder()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model_training.get_new_model"><code class="docutils literal notranslate"><span class="pre">get_new_model()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model_training.train_model"><code class="docutils literal notranslate"><span class="pre">train_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="moi.html">Model Output Information</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="moi.html#model_output_information.calculate_episode_confidence"><code class="docutils literal notranslate"><span class="pre">calculate_episode_confidence()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="moi.html#model_output_information.plot_emotion_distribution"><code class="docutils literal notranslate"><span class="pre">plot_emotion_distribution()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="model_evaluate.html">Model Evaluation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="model_evaluate.html#model_evaluate.decode_labels"><code class="docutils literal notranslate"><span class="pre">decode_labels()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_evaluate.html#model_evaluate.evaluate"><code class="docutils literal notranslate"><span class="pre">evaluate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_evaluate.html#model_evaluate.load_data"><code class="docutils literal notranslate"><span class="pre">load_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_evaluate.html#model_evaluate.load_label_decoder"><code class="docutils literal notranslate"><span class="pre">load_label_decoder()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_evaluate.html#model_evaluate.predict"><code class="docutils literal notranslate"><span class="pre">predict()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_evaluate.html#model_evaluate.save_model"><code class="docutils literal notranslate"><span class="pre">save_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="model_predict.html">Model Prediction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="model_predict.html#model_predict.decode_labels"><code class="docutils literal notranslate"><span class="pre">decode_labels()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_predict.html#model_predict.get_model"><code class="docutils literal notranslate"><span class="pre">get_model()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_predict.html#model_predict.predict"><code class="docutils literal notranslate"><span class="pre">predict()</span></code></a></li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -92,17 +131,74 @@
              
   <section id="model-training">
 <span id="id1"></span><h1>Model Training<a class="headerlink" href="#model-training" title="Link to this heading"></a></h1>
+<p>This process is used for model training. The model used is RoBERTa model with the input number of output classes.
+See <a class="reference external" href="https://huggingface.co/docs/transformers/en/model_doc/roberta">RoBERTa model</a> for more information.</p>
+<dl class="py function" id="module-model_training">
+<dt class="sig sig-object py" id="model_training.get_args">
+<span class="sig-prename descclassname"><span class="pre">model_training.</span></span><span class="sig-name descname"><span class="pre">get_args</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Namespace</span></span></span><a class="headerlink" href="#model_training.get_args" title="Link to this definition"></a></dt>
+<dd><p>A function that instantiates argument parser and collects CLI arguments.</p>
+<p>Input: None</p>
 <dl class="simple">
-<dt>This process is used for model training. The model used is RoBERTa model with the input number of output classes.</dt><dd><p>See <a class="reference external" href="https://huggingface.co/docs/transformers/en/model_doc/roberta">RoBERTa model</a> for more information.</p>
+<dt>Output:</dt><dd><p>args (argparse.Namespace): namespace object with CLI arguments</p>
 </dd>
 </dl>
+<p>Author - Wojciech Stachowiak</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model_training.get_label_decoder">
+<span class="sig-prename descclassname"><span class="pre">model_training.</span></span><span class="sig-name descname"><span class="pre">get_label_decoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">series</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Series</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#model_training.get_label_decoder" title="Link to this definition"></a></dt>
+<dd><p>A function that creates label_decoder dictionary from pandas.Series.</p>
+<dl class="simple">
+<dt>Input:</dt><dd><p>series (pd.Series): series with labels</p>
+</dd>
+<dt>Output:</dt><dd><p>label_decoder (dict[int, str]): dictionary mapping number values
+to text representation</p>
+</dd>
+</dl>
+<p>Author - Wojciech Stachowiak</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model_training.get_new_model">
+<span class="sig-prename descclassname"><span class="pre">model_training.</span></span><span class="sig-name descname"><span class="pre">get_new_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_classes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">transformers.TFRobertaForSequenceClassification</span></span></span><a class="headerlink" href="#model_training.get_new_model" title="Link to this definition"></a></dt>
+<dd><p>Create or load a RoBERTa model with the specified number of output classes.</p>
+<dl class="simple">
+<dt>Input:</dt><dd><p>num_classes (int): Number of output classes for the model.</p>
+</dd>
+<dt>Output:</dt><dd><p>model: RoBERTa model with the specified number of output classes.</p>
+</dd>
+<dt>Author:</dt><dd><p>Max Meiners (214936)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model_training.train_model">
+<span class="sig-prename descclassname"><span class="pre">model_training.</span></span><span class="sig-name descname"><span class="pre">train_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">transformers.TFRobertaForSequenceClassification</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tensorflow.data.Dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tensorflow.data.Dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">early_stopping_patience</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">transformers.TFRobertaForSequenceClassification</span></span></span><a class="headerlink" href="#model_training.train_model" title="Link to this definition"></a></dt>
+<dd><p>Train the model using tensorflow datasets.</p>
+<dl class="simple">
+<dt>Input:</dt><dd><p>model: Model to be trained.
+training_dataset: Dataset used for training the model
+validation_dataset: Dataset used for validating the model
+epochs (int): Number of epochs to train the model. default: 3
+learning_rate (float): optimizer’s learning rate. default: 1e-5
+early_stopping_patience (int): patience parameter for EarlyStopping callback</p>
+</dd>
+<dt>Output:</dt><dd><p>model: A trained model with the specified parameters.</p>
+</dd>
+<dt>Author:</dt><dd><p>Max Meiners (214936)</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="edp.html" class="btn btn-neutral float-left" title="Episode Data Preperocessing" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="edp.html" class="btn btn-neutral float-left" title="Episode Data Preprocessing" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="moi.html" class="btn btn-neutral float-right" title="Model Output Information" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

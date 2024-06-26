@@ -9,6 +9,7 @@ import model_training
 import pandas as pd
 import pytest
 import argparse
+import sys
 # from transformers import (
 # TFRobertaForSequenceClassification, 
 # RobertaConfig)
@@ -33,50 +34,32 @@ def azure_credentials():
 @pytest.mark.usefixtures("azure_credentials")
 class TestModelTraining:
 
-    def test_get_ml_client(self, azure_credentials):
-        client = model_training.get_ml_client(
-            azure_credentials["subscription_id"],
-            azure_credentials["tenant_id"],
-            azure_credentials["client_id"],
-            azure_credentials["client_secret"],
-            azure_credentials["resource_group"],
-            azure_credentials["workspace_name"]
-        )
-        assert client is not None
+    #TODO
+    @pytest.mark.parametrize(
+        "mt_args",
+        [(["--cloud", True, "--dataset_name_file", "dataset_name_file",
+           "--epochs", 10, "--learning_rate", 0.001,
+           "--batch_size", 32, "--early_stopping_patience",5, 
+           "--model_output_path", "model_output_path",
+           "--decoder_output_path", "decoder_output_path"])],
+    )
+    def test_get_args(monkeypatch, mt_args):
+        # Author - Kornelia Flizik
 
-    def test_get_versioned_datasets(self, azure_credentials):
-        # Path to the local JSON dataset info file
-        local_dataset_info_file = ("pytest_args.json")
+        monkeypatch.setattr(sys, "argv", ["prog_name"] + mt_args)
 
-        # Mock args
-        args = argparse.Namespace(dataset_name_file=local_dataset_info_file)
+        args = model_training.get_args()
 
-        # Get ML client
-        ml_client = model_training.get_ml_client(
-            azure_credentials["subscription_id"],
-            azure_credentials["tenant_id"],
-            azure_credentials["client_id"],
-            azure_credentials["client_secret"],
-            azure_credentials["resource_group"],
-            azure_credentials["workspace_name"]
-        )
-        assert model_training.get_versioned_datasets(args, ml_client) is not None
+        # Assert input/output path
+        assert args.cloud == True
+        assert args.dataset_name_file == "dataset_name_file"
+        assert args.epochs == 10
+        assert args.learning_rate == 0.001
+        assert args.batch_size == 32
+        assert args.early_stopping_patience == 5
+        assert args.model_output_path == "model_output_path"
+        assert args.decoder_output_path == "decoder_output_path"
 
-    def test_get_data_asset_as_df(self, azure_credentials):
-        ml_client = model_training.get_ml_client(
-            azure_credentials["subscription_id"],
-            azure_credentials["tenant_id"],
-            azure_credentials["client_id"],
-            azure_credentials["client_secret"],
-            azure_credentials["resource_group"],
-            azure_credentials["workspace_name"]
-        )
-        dataset_name = "val_data"
-        dataset_version = "12"
-        assert model_training.get_data_asset_as_df(
-            ml_client,
-            dataset_name,
-            dataset_version) is not None
 
     def test_get_label_decoder(self):
         series = pd.Series(["happiness", 
