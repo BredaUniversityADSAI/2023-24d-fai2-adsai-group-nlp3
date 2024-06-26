@@ -3,6 +3,8 @@ import typeguard
 from azure.ai.ml import MLClient, dsl
 from azure.ai.ml.sweep import Choice, Uniform
 from azure.identity import ClientSecretCredential
+from azure.ai.ml.entities import JobSchedule
+from azure.ai.ml.constants import TimeZone
 
 # Const values for Azure connection
 credential = ClientSecretCredential(
@@ -111,3 +113,20 @@ if __name__ == "__main__":
     training_pipeline_run = ml_client.jobs.create_or_update(
         training_pipeline, experiment_name="test_model_training_pipeline"
     )
+
+    # Define the schedule
+    schedule = JobSchedule(
+        name="daily_training_pipeline_schedule_test",
+        description="Daily schedule for the training pipeline",
+        create_job=training_pipeline_run,
+        trigger={
+            "type": "recurrence",
+            "frequency": "day",
+            "interval": 1,
+            "start_time": "2024-06-26T19:25:00",
+            "time_zone": TimeZone.UTC
+        },
+    )
+
+    # Create or update the schedule
+    ml_client.schedules.create_or_update(schedule)
