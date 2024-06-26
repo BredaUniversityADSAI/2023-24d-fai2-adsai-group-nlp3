@@ -10,7 +10,7 @@ import typeguard
 moi_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-if len(moi_logger.handlers) == 0:
+if __name__ == "__main__":
     moi_logger.setLevel(logging.DEBUG)
 
     stream_handler = logging.StreamHandler()
@@ -91,7 +91,7 @@ def plot_emotion_distribution(predicted_emotions: List[str]) -> None:
 
 
 @typeguard.typechecked
-def calculate_episode_confidence(scores: List[float]) -> float:
+def calculate_episode_confidence(scores: np.array) -> float:
     """
     Calculate the overall confidence score for the episode by
     averaging the highest probabilities for each sentence.

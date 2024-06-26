@@ -1,12 +1,11 @@
 from setuptools import setup
 
 setup(
-    name="e3k",  # This is the name of your package
+    name="e3k",
     version="0.1.0",
     author="""
     Kornelia Flizik, Juraj Kret, Max Meiners, Panna Pfandler, Wojciech Stachowiak
     """,
-    author_email="your.email@example.com",
     description="""
     Get emotion predictions from audio and video files, train models, and more
     """,
@@ -22,7 +21,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.10",
+    python_requires=">=3.8",
     install_requires=[
         "numpy",
         "pandas >= 2.0",
@@ -35,9 +34,11 @@ setup(
         "pydub",
         "tqdm",
         "transformers",
-        "tensorflow == 2.10",
+        "tensorflow == 2.12",
         "matplotlib",
         "scikit-learn",
+        "typeguard",
+        "mlflow",
     ],
     package_data={"": ["LICENSE", "README.md"]},
     include_package_data=True,

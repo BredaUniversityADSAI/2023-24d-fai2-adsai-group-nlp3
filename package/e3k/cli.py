@@ -9,6 +9,7 @@ import model_evaluate as me
 import model_output_information as moi
 import model_predict as mp
 import model_training as mt
+import numpy as np
 import pandas as pd
 import preprocessing
 import split_register_data as splitting
@@ -64,13 +65,12 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "task",
         type=str,
-        choices=["preprocess", "train", "predict", "add"],
+        choices=["preprocess", "train", "predict"],
         help="""
         string, task that has to be performed (preprocess/train/predict/add).
         preprocess: from video/audio to sentences,
         train: get new model from existing data,
         predict: get emotions from new episode
-        add: upload selected train data to Azure
         """,
     )
     parser.add_argument(
@@ -444,16 +444,14 @@ def evaluate_model(
     # getting predictions and evaluating the model
     emotions, _ = me.predict(model, tokens, masks, label_decoder)
     accuracy, _ = me.evaluate(emotions, data)
-    print(f"Test accuracy: {accuracy * 100:.2f}%")
+    logger.info(f"Test accuracy: {accuracy * 100:.2f}%")
 
     # saving the model if the accuracy is high enough
     me.save_model(model, label_decoder, args.model_save_path, accuracy, args.threshold)
 
 
 @typeguard.typechecked
-def predict(
-    args: argparse.Namespace, data: pd.DataFrame
-) -> Tuple[List[str], List[float]]:
+def predict(args: argparse.Namespace, data: pd.DataFrame) -> Tuple[List[str], np.array]:
     """
     A function that returns model predictions given a model_path command line argument,
     and dataframe with column named "sentence"
@@ -485,7 +483,7 @@ def predict(
 
 @typeguard.typechecked
 def model_output_information(
-    predicted_emotions: List[str], confidence_scores: List[float]
+    predicted_emotions: List[str], confidence_scores: np.array
 ) -> None:
     """
     A function that aggregates prediction results into a total confidence score,

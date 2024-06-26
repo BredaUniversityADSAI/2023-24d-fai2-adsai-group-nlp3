@@ -18,7 +18,7 @@ eval_logger = logging.getLogger(
 )
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-if len(eval_logger.handlers) == 0:
+if __name__ == "__main__":
     eval_logger.setLevel(logging.DEBUG)
 
     stream_handler = logging.StreamHandler()
@@ -109,17 +109,12 @@ def predict(
 
     eval_logger.info("got predictions")
 
-    eval_logger.debug(f"probs: {highest_probabilities[0]}")
-    eval_logger.debug(f"probs2: {highest_probabilities[1]}")
-    eval_logger.debug(f"probs type: {type(highest_probabilities[0])}")
-    eval_logger.debug(f"probs whole type: {type(highest_probabilities)}")
-
     return text_labels, highest_probabilities
 
 
 @typeguard.typechecked
 def evaluate(
-    pred_labels: list[str],
+    pred_labels: List[str],
     data: pd.DataFrame,
 ) -> Tuple[float, str]:
     """

@@ -18,7 +18,7 @@ from preprocessing import preprocess_training_data
 mt_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-if len(mt_logger.handlers) == 0:
+if __name__ == "__main__":
     mt_logger.setLevel(logging.DEBUG)
 
     stream_handler = logging.StreamHandler()

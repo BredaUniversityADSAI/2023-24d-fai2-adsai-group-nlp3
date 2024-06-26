@@ -14,7 +14,7 @@ split_logger = logging.getLogger(
 )
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-if len(split_logger.handlers) == 0:
+if __name__ == "__main__":
     split_logger.setLevel(logging.DEBUG)
 
     stream_handler = logging.StreamHandler()

@@ -4,7 +4,6 @@ import os
 import pickle
 from typing import Dict, List, Tuple
 
-import joblib
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -13,23 +12,25 @@ import typeguard
 from preprocessing import preprocess_prediction_data
 
 # setting up logger
-mt_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
+pred_logger = logging.getLogger(
+    f"{'main.' if __name__ != '__main__' else ''}{__name__}"
+)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-file_handler = logging.FileHandler("logs.log", mode="a")
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
-
-mt_logger.addHandler(file_handler)
-
-if len(mt_logger.handlers) == 0:
-    mt_logger.setLevel(logging.DEBUG)
+if __name__ == "__main__":
+    pred_logger.setLevel(logging.DEBUG)
 
     stream_handler = logging.StreamHandler()
     stream_handler.setLevel(logging.DEBUG)
     stream_handler.setFormatter(formatter)
 
-    mt_logger.addHandler(stream_handler)
+    pred_logger.addHandler(stream_handler)
+
+file_handler = logging.FileHandler("logs.log", mode="a")
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+pred_logger.addHandler(file_handler)
 
 
 @typeguard.typechecked
@@ -56,9 +57,9 @@ def get_model(
     # get config and model file paths
     config_path = os.path.join(model_path, "config.json")
     weights_path = os.path.join(model_path, "tf_model.h5")
-    dict_path = os.path.join(model_path, "emotion_dict.joblib")
+    dict_path = os.path.join(model_path, "label_decoder.pkl")
 
-    mt_logger.info(f"Loading model configuration")
+    pred_logger.info(f"Loading model configuration")
 
     # load an existing model
     config = transformers.RobertaConfig.from_pretrained(config_path)
@@ -66,43 +67,38 @@ def get_model(
         "roberta-base", config=config
     )
 
-    mt_logger.info("Loading model weights")
+    pred_logger.info("Loading model weights")
     model.load_weights(weights_path)
 
-    mt_logger.info("Model loaded")
+    pred_logger.info("Model loaded")
 
     # TODO change to pickle
-    emotion_dict = joblib.load(dict_path)
+    with open(dict_path, "rb") as f:
+        emotion_dict = pickle.load(f)
 
     return model, emotion_dict
 
 
 @typeguard.typechecked
 def decode_labels(
-    encoded_labels: List[int], emotion_decoder: Dict[int, str]
+    encoded_labels: np.array, emotion_decoder: Dict[int, str]
 ) -> List[str]:
     """
     A function that decodes label numbers into text representation of labels
 
     Input:
-        encoded_labels (list[int]): List of labels represented as number.
-        emotion_decoder (dict[int, str]): Dictionary with number to text mapping loaded
-            with get_model function.
+        encoded_labels (list[int]): list of labels represented as number
+        emotion_decoder (dict[int, str]): dictionary with number to text mapping loaded
+            with get_model function
 
     Output:
-        decoded_labels (list[str]): List of labels represented as text.
+        decoded_labels (list[str]): list of labels represented as text
 
     Author:
         Max Meiners (214936)
     """
 
-    decoded_labels = []
-    for label in encoded_labels:
-        if str(label) in emotion_decoder:
-            decoded_labels.append(emotion_decoder[str(label)])
-        else:
-            mt_logger.warning(f"Class {label} not found in emotion_decoder.")
-            decoded_labels.append("unknown")
+    decoded_labels = list(map(lambda x: emotion_decoder[x.item()], encoded_labels))
 
     return decoded_labels
 
@@ -113,7 +109,7 @@ def predict(
     token_array: np.array,
     mask_array: np.array,
     emotion_decoder: Dict[int, str],
-) -> Tuple[List[str], List[float]]:
+) -> Tuple[List[str], np.array]:
     """
     A function that predicts emotions from preprocessed input using a loaded model.
     It returns text labels decoded using emotion_decoder dictionary loaded
@@ -128,14 +124,14 @@ def predict(
 
     Output:
         text_labels (list[str]): List of text emotions predicted by the model.
-        highest_probabilities (list[float]): List of model's confidence
+        highest_probabilities (np.array): array of model's confidence
             that the predicted emotion is correct.
 
     Author:
         Max Meiners (214936)
     """
 
-    mt_logger.info("Predicting")
+    pred_logger.info("Predicting")
 
     input = {
         "input_ids": token_array,
@@ -151,7 +147,7 @@ def predict(
 
     text_labels = decode_labels(predicted_classes, emotion_decoder)
 
-    mt_logger.info("Got predictions")
+    pred_logger.info("Got predictions")
 
     return text_labels, highest_probabilities
 
@@ -205,23 +201,23 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    mt_logger.info("Arguments parsed")
+    pred_logger.info("Arguments parsed")
 
     # Load the data
     data = pd.read_csv(args.data_path)
-    mt_logger.info("Data loaded")
+    pred_logger.info("Data loaded")
 
     # Call the preprocess_prediction_data function to get the preprocessed data
     tokens, masks = preprocess_prediction_data(
         data, args.tokenizer_model, args.max_length
     )
-    mt_logger.info("Data preprocessed")
+    pred_logger.info("Data preprocessed")
 
     # Load the model
     model = transformers.TFRobertaForSequenceClassification.from_pretrained(
         args.model_path
     )
-    mt_logger.info("Model loaded")
+    pred_logger.info("Model loaded")
 
     if "azureml" in args.decoder_path:
         # Folder URI + filename for Azure ML datastore
@@ -235,11 +231,13 @@ if __name__ == "__main__":
         with open(args.decoder_path, "rb") as f:
             emotion_decoder = pickle.load(f)
 
-    mt_logger.info(f"Emotion decoder loaded with keys: {list(emotion_decoder.keys())}")
+    pred_logger.info(
+        f"Emotion decoder loaded with keys: {list(emotion_decoder.keys())}"
+    )
 
     # Make predictions
     text_labels, highest_probabilities = predict(model, tokens, masks, emotion_decoder)
-    mt_logger.info("Predictions made")
+    pred_logger.info("Predictions made")
 
     predictions = pd.DataFrame(
         {"text_labels": text_labels, "highest_probabilities": highest_probabilities}

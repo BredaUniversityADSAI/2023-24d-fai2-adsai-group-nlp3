@@ -7,8 +7,24 @@ import tensorflow as tf
 import transformers
 import typeguard
 
-# TODO change logging to new one
-mt_logger = logging.getLogger("main.preprocessing")
+# setting up logger
+pre_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+if __name__ == "__main__":
+    pre_logger.setLevel(logging.DEBUG)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.DEBUG)
+    stream_handler.setFormatter(formatter)
+
+    pre_logger.addHandler(stream_handler)
+
+file_handler = logging.FileHandler("logs.log", mode="a")
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+pre_logger.addHandler(file_handler)
 
 
 # TODO author
@@ -34,8 +50,8 @@ def get_tokenizer(
 @typeguard.typechecked
 def tokenize_text_data(
     data: pd.Series,
-    tokenizer: transformers.models.roberta\
-        .tokenization_roberta_fast.RobertaTokenizerFast,
+    tokenizer: transformers.models.roberta.tokenization_roberta_fast.
+    RobertaTokenizerFast,
     max_length: int = 128,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """

@@ -14,9 +14,25 @@ import webrtcvad
 import whisper
 from pydub import AudioSegment
 from tqdm import tqdm
-from typing import List, Tuple
 
-epp_logger = logging.getLogger("main.episode_preprocessing_pipeline")
+# setting up logger
+epp_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+if __name__ == "__main__":
+    epp_logger.setLevel(logging.DEBUG)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.DEBUG)
+    stream_handler.setFormatter(formatter)
+
+    epp_logger.addHandler(stream_handler)
+
+file_handler = logging.FileHandler("logs.log", mode="a")
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+epp_logger.addHandler(file_handler)
 
 """
 Pipeline functions are main components of this pipeline.
@@ -310,7 +326,8 @@ def transcribe_translate_fragments(
 
     return data
 
-# NOT USED ? 
+
+# NOT USED ?
 @typeguard.typechecked
 def save_data(
     df: pd.DataFrame,
@@ -544,7 +561,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--input_filename",
-        required=False, # Azure required only
+        required=False,  # Azure required only
         type=str,
         help="string, filename of audio file",
     )
@@ -621,8 +638,8 @@ if __name__ == "__main__":
     if cloud is True:
         file_path = f"{args.input_file}/{args.input_filename}"
 
-    else: 
-        file_path= args.input_file
+    else:
+        file_path = args.input_file
 
     # get segment length in frames
     segment_frames_length = segment_number_to_frames(
@@ -630,7 +647,7 @@ if __name__ == "__main__":
     )
 
     # load audio file and set sample rate to the chosen value
-    audio = load_audio(file_path = file_path, target_sample_rate=args.target_sr)
+    audio = load_audio(file_path=file_path, target_sample_rate=args.target_sr)
 
     # get full audio length in frames
     full_audio_length_frames = len(audio)
