@@ -506,7 +506,7 @@ def decode_labels(
         Max Meiners (214936)
     """
 
-    decoded_labels = list(map(lambda x: emotion_decoder[x], encoded_labels))
+    decoded_labels = list(map(lambda x: emotion_decoder[int(x)], encoded_labels))
 
     return decoded_labels
 

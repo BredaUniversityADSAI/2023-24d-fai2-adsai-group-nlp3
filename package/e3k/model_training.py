@@ -8,13 +8,10 @@ from typing import Dict, Tuple
 import config
 import matplotlib.pyplot as plt
 import mlflow
-import mltable
 import pandas as pd
 import tensorflow as tf
 import transformers
 import typeguard
-from azure.ai.ml import MLClient
-from azure.identity import ClientSecretCredential
 from preprocessing import preprocess_training_data
 
 # setting up logger
@@ -103,133 +100,6 @@ def get_args() -> argparse.Namespace:
     mt_logger.debug("Args have been parsed.")
 
     return args
-
-
-@typeguard.typechecked
-def get_ml_client(
-    subscription_id: str,
-    tenant_id: str,
-    client_id: str,
-    client_secret: str,
-    resource_group: str,
-    workspace_name: str,
-) -> MLClient:
-    """
-    A function that creates an MLClient object used to interact with AzureML.
-
-    Input:
-        subscription_id (str): subscription ID from Azure
-        tenant_id (str): tenant ID from Azure
-        client_id (str): client ID from Azure
-        client_secret (str): client secret from Azure
-        resource_group (str): name of the resource group from Azure
-        workspace_name (str): name of the workspace name from Azure
-
-    Output:
-        ml_client (azure.ai.ml.MLClient): an object that allows manipulating
-        objects on Azure
-
-    Author - Wojciech Stachowiak
-    """
-    mt_logger.debug("Getting credential...")
-    credential = ClientSecretCredential(tenant_id, client_id, client_secret)
-
-    mt_logger.debug("Building MLClient...")
-
-    ml_client = MLClient(
-        subscription_id=subscription_id,
-        resource_group_name=resource_group,
-        credential=credential,
-        workspace_name=workspace_name,
-    )
-
-    mt_logger.info("Got MLClient!")
-
-    return ml_client
-
-
-@typeguard.typechecked
-def get_versioned_datasets(
-    args: argparse.Namespace, 
-    ml_client: MLClient
-    ) -> Tuple[str, str, str]:
-    """
-    A function that finds the newest versions of train and validation datasets,
-    and returns those values.
-
-    Input:
-        args (argparse.Namespace): Namespace object with CLI arguments
-        ml_client (azure.ai.ml.MLClient): Azure object used to interact with Azure
-
-    Output:
-        train_name (str): name of the train dataset
-        val_name (str): name of the validation dataset
-        newest_version (str): newest version of the dataset
-
-    Author - Wojciech Stachowiak
-    """
-    mt_logger.debug("Getting datasets names...")
-    with open(args.dataset_name_file) as f:
-        dataset_info = json.load(f)
-
-    train_name = dataset_info["train_data"]
-    val_name = dataset_info["val_data"]
-
-    mt_logger.info("Got datasets names. Getting dataset list for versioning...")
-
-    # get list of datasets with this name
-    dataset_list = ml_client.data.list(name=train_name)
-
-    mt_logger.debug("Got dataset list for versioning.")
-
-    # get highest version frm the list
-    newest_version = reduce(
-        lambda x, y: max(x, y), map(lambda x: x.version, dataset_list)
-    )
-
-    mt_logger.debug(f"Got datasets version {newest_version}.")
-
-    return train_name, val_name, newest_version
-
-
-@typeguard.typechecked
-def get_data_asset_as_df(
-    ml_client: MLClient, dataset_name: str, dataset_version: str
-) -> pd.DataFrame:
-    """
-    A function that loads Azure dataset and converts it to pandas.DataFrame.
-
-    Input:
-        ml_client (azure.ai.ml.MLClient): MLClient used to interact with AzureML
-        dataset_name (str): name of the dataset registered on Azure
-        dataset_version (str): version of the dataset
-
-    Output:
-        df (pd.DataFrame): dataframe created from the Azure dataset
-
-    Author - Wojciech Stachowiak
-    """
-
-    # fetching dataset
-    mt_logger.debug(
-        f"Getting dataset: {dataset_name}, with version {dataset_version}..."
-    )
-    data_asset = ml_client.data.get(dataset_name, version=dataset_version)
-    mt_logger.debug("Got dataset.")
-
-    path = {"folder": data_asset.path}
-
-    # loading data as mltable
-    mt_logger.debug("Reading table...")
-    table = mltable.from_parquet_files(paths=[path])
-    mt_logger.debug("Table has been loaded.")
-
-    # converting to pd.DataFrame
-    mt_logger.debug("Getting DataFrame...")
-    df = table.to_pandas_dataframe()
-    mt_logger.debug("Got the DataFrame.")
-
-    return df
 
 
 @typeguard.typechecked
@@ -359,81 +229,213 @@ def train_model(
     return model
 
 
-@typeguard.typechecked
-def main(args: argparse.Namespace) -> None:
-    """
-    An aggregate function for the model_training module.
-    Intended to be used as an Azure component only. It dumps both the trained model
-    and label decoder to files that can be passed in component declaration.
-
-    Input:
-        args (argparse.Namespace): namespace object with CLI arguments
-
-    Output: None
-        model: saved in a folder under the specified path
-        label_decoder: dumped to a file under the specified path using json.dump
-    """
-
-    # Start MLflow run
-    mlflow.start_run()
-    # mlflow.tensorflow.autolog()
-
-    # Log parameters to MLflow
-    mlflow.log_params(
-        {
-            "cloud": args.cloud,
-            "dataset_name_file": args.dataset_name_file,
-            "epochs": args.epochs,
-            "learning_rate": args.learning_rate,
-            "early_stopping_patience": args.early_stopping_patience,
-            "model_output_path": args.model_output_path,
-            "decoder_output_path": args.decoder_output_path,
-        }
-    )
-
-    ml_client = get_ml_client(
-        config.config["subscription_id"],
-        config.config["tenant_id"],
-        config.config["client_id"],
-        config.config["client_secret"],
-        config.config["resource_group"],
-        config.config["workspace_name"],
-    )
-
-    train_name, val_name, version = get_versioned_datasets(args, ml_client)
-
-    # getting datasets
-    train_data = get_data_asset_as_df(ml_client, train_name, version)
-    val_data = get_data_asset_as_df(ml_client, val_name, version)
-
-    label_decoder = get_label_decoder(train_data["emotion"])
-
-    train_tf_data, val_tf_data = preprocess_training_data(
-        train_data, val_data, label_decoder
-    )
-
-    model = get_new_model(num_classes=len(label_decoder))
-    model = train_model(
-        model,
-        train_tf_data,
-        val_tf_data,
-        epochs=args.epochs,
-        learning_rate=args.learning_rate,
-        early_stopping_patience=args.early_stopping_patience,
-    )
-
-    model.save_pretrained(args.model_output_path)
-    with open(args.decoder_output_path, "wb") as f:
-        pickle.dump(label_decoder, f)
-
-    # Log output paths to MLflow
-    mlflow.log_artifact(args.model_output_path, "model")
-    mlflow.log_artifact(args.decoder_output_path, "label_decoder")
-
-    # End MLflow run
-    mlflow.end_run()
-
-
 if __name__ == "__main__":
+    """
+    This code is meant to only run as an Azure component.
+    All functions defined below use MLClient to read and data on Azure.
+    Local use is controlled from cli.py file.
+    """
+
+    import mltable
+    from azure.ai.ml import MLClient
+    from azure.identity import ClientSecretCredential
+
+    @typeguard.typechecked
+    def get_ml_client(
+        subscription_id: str,
+        tenant_id: str,
+        client_id: str,
+        client_secret: str,
+        resource_group: str,
+        workspace_name: str,
+    ) -> MLClient:
+        """
+        A function that creates an MLClient object used to interact with AzureML.
+
+        Input:
+            subscription_id (str): subscription ID from Azure
+            tenant_id (str): tenant ID from Azure
+            client_id (str): client ID from Azure
+            client_secret (str): client secret from Azure
+            resource_group (str): name of the resource group from Azure
+            workspace_name (str): name of the workspace name from Azure
+
+        Output:
+            ml_client (azure.ai.ml.MLClient): an object that allows manipulating
+            objects on Azure
+
+        Author - Wojciech Stachowiak
+        """
+        mt_logger.debug("Getting credential...")
+        credential = ClientSecretCredential(tenant_id, client_id, client_secret)
+
+        mt_logger.debug("Building MLClient...")
+
+        ml_client = MLClient(
+            subscription_id=subscription_id,
+            resource_group_name=resource_group,
+            credential=credential,
+            workspace_name=workspace_name,
+        )
+
+        mt_logger.info("Got MLClient!")
+
+        return ml_client
+
+    @typeguard.typechecked
+    def get_versioned_datasets(
+        args: argparse.Namespace, ml_client: MLClient
+    ) -> Tuple[str, str, str]:
+        """
+        A function that finds the newest versions of train and validation datasets,
+        and returns those values.
+
+        Input:
+            args (argparse.Namespace): Namespace object with CLI arguments
+            ml_client (azure.ai.ml.MLClient): Azure object used to interact with Azure
+
+        Output:
+            train_name (str): name of the train dataset
+            val_name (str): name of the validation dataset
+            newest_version (str): newest version of the dataset
+
+        Author - Wojciech Stachowiak
+        """
+        mt_logger.debug("Getting datasets names...")
+        with open(args.dataset_name_file) as f:
+            dataset_info = json.load(f)
+
+        train_name = dataset_info["train_data"]
+        val_name = dataset_info["val_data"]
+
+        mt_logger.info("Got datasets names. Getting dataset list for versioning...")
+
+        # get list of datasets with this name
+        dataset_list = ml_client.data.list(name=train_name)
+
+        mt_logger.debug("Got dataset list for versioning.")
+
+        # get highest version frm the list
+        newest_version = reduce(
+            lambda x, y: max(x, y), map(lambda x: x.version, dataset_list)
+        )
+
+        mt_logger.debug(f"Got datasets version {newest_version}.")
+
+        return train_name, val_name, newest_version
+
+    @typeguard.typechecked
+    def get_data_asset_as_df(
+        ml_client: MLClient, dataset_name: str, dataset_version: str
+    ) -> pd.DataFrame:
+        """
+        A function that loads Azure dataset and converts it to pandas.DataFrame.
+
+        Input:
+            ml_client (azure.ai.ml.MLClient): MLClient used to interact with AzureML
+            dataset_name (str): name of the dataset registered on Azure
+            dataset_version (str): version of the dataset
+
+        Output:
+            df (pd.DataFrame): dataframe created from the Azure dataset
+
+        Author - Wojciech Stachowiak
+        """
+
+        # fetching dataset
+        mt_logger.debug(
+            f"Getting dataset: {dataset_name}, with version {dataset_version}..."
+        )
+        data_asset = ml_client.data.get(dataset_name, version=dataset_version)
+        mt_logger.debug("Got dataset.")
+
+        path = {"folder": data_asset.path}
+
+        # loading data as mltable
+        mt_logger.debug("Reading table...")
+        table = mltable.from_parquet_files(paths=[path])
+        mt_logger.debug("Table has been loaded.")
+
+        # converting to pd.DataFrame
+        mt_logger.debug("Getting DataFrame...")
+        df = table.to_pandas_dataframe()
+        mt_logger.debug("Got the DataFrame.")
+
+        return df
+
+    @typeguard.typechecked
+    def main(args: argparse.Namespace) -> None:
+        """
+        An aggregate function for the model_training module.
+        Intended to be used as an Azure component only. It dumps both the trained model
+        and label decoder to files that can be passed in component declaration.
+
+        Input:
+            args (argparse.Namespace): namespace object with CLI arguments
+
+        Output: None
+            model: saved in a folder under the specified path
+            label_decoder: dumped to a file under the specified path using json.dump
+        """
+
+        # Start MLflow run
+        mlflow.start_run()
+        # mlflow.tensorflow.autolog()
+
+        # Log parameters to MLflow
+        mlflow.log_params(
+            {
+                "cloud": args.cloud,
+                "dataset_name_file": args.dataset_name_file,
+                "epochs": args.epochs,
+                "learning_rate": args.learning_rate,
+                "early_stopping_patience": args.early_stopping_patience,
+                "model_output_path": args.model_output_path,
+                "decoder_output_path": args.decoder_output_path,
+            }
+        )
+
+        ml_client = get_ml_client(
+            config.config["subscription_id"],
+            config.config["tenant_id"],
+            config.config["client_id"],
+            config.config["client_secret"],
+            config.config["resource_group"],
+            config.config["workspace_name"],
+        )
+
+        train_name, val_name, version = get_versioned_datasets(args, ml_client)
+
+        # getting datasets
+        train_data = get_data_asset_as_df(ml_client, train_name, version)
+        val_data = get_data_asset_as_df(ml_client, val_name, version)
+
+        label_decoder = get_label_decoder(train_data["emotion"])
+
+        train_tf_data, val_tf_data = preprocess_training_data(
+            train_data, val_data, label_decoder
+        )
+
+        model = get_new_model(num_classes=len(label_decoder))
+        model = train_model(
+            model,
+            train_tf_data,
+            val_tf_data,
+            epochs=args.epochs,
+            learning_rate=args.learning_rate,
+            early_stopping_patience=args.early_stopping_patience,
+        )
+
+        model.save_pretrained(args.model_output_path)
+        with open(args.decoder_output_path, "wb") as f:
+            pickle.dump(label_decoder, f)
+
+        # Log output paths to MLflow
+        mlflow.log_artifact(args.model_output_path, "model")
+        mlflow.log_artifact(args.decoder_output_path, "label_decoder")
+
+        # End MLflow run
+        mlflow.end_run()
+
     args = get_args()
     main(args)

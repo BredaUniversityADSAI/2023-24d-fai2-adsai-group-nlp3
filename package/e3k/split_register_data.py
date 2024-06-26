@@ -7,14 +7,7 @@ from typing import Dict, Tuple
 import config
 import pandas as pd
 import typeguard
-from azure.ai.ml import MLClient
-from azure.identity import ClientSecretCredential
-from azureml.core import Dataset, Datastore, Workspace
-from azureml.core.authentication import ServicePrincipalAuthentication
 from sklearn.model_selection import train_test_split
-
-# import azureml
-# import fsspec
 
 # setting up logger
 split_logger = logging.getLogger(
@@ -45,60 +38,6 @@ workspace_name = "NLP3"
 tenant_id = "0a33589b-0036-4fe8-a829-3ed0926af886"
 client_id = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
 client_secret = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
-
-
-@typeguard.typechecked
-def connect_to_azure_ml(
-    subscription_id: str,
-    resource_group: str,
-    workspace_name: str,
-    tenant_id: str,
-    client_id: str,
-    client_secret: str,
-) -> Tuple[MLClient, Workspace]:
-    """
-    Connects to the Azure Machine Learning workspace using client secret credentials.
-
-    Args:
-    - subscription_id (str): The Azure subscription ID.
-    - resource_group (str): The name of the resource group.
-    - workspace_name (str): The name of the Azure Machine Learning workspace.
-    - tenant_id (str): The Azure AD tenant ID.
-    - client_id (str): The Azure AD client ID.
-    - client_secret (str): The Azure AD client secret.
-
-    Returns:
-    - ml_client (MLClient): The Azure Machine Learning client object.
-    - workspace (Workspace): The Azure Machine Learning workspace object.
-
-    Author - Panna Pfandler
-    """
-    split_logger.info("Connecting to Azure ML workspace.")
-
-    # Use client secret credentials
-    credential = ClientSecretCredential(tenant_id, client_id, client_secret)
-
-    # Connect to the Azure Machine Learning client
-    ml_client = MLClient(
-        subscription_id=subscription_id,
-        resource_group_name=resource_group,
-        credential=credential,
-        workspace_name=workspace_name,
-    )
-
-    # Connect to the Azure Machine Learning workspace
-    service_principal = ServicePrincipalAuthentication(
-        tenant_id=tenant_id,
-        service_principal_id=client_id,
-        service_principal_password=client_secret,
-    )
-    workspace = Workspace(
-        subscription_id, resource_group, workspace_name, auth=service_principal
-    )
-
-    split_logger.info("Connected to Azure ML workspace.")
-
-    return ml_client, workspace
 
 
 @typeguard.typechecked
@@ -173,88 +112,146 @@ def get_train_val_data(
     return train_set, val_set
 
 
-@typeguard.typechecked
-def main(args: argparse.Namespace):
-    """
-    Main function to process data either locally or from Azure,
-    and split it into training and validation sets.
-
-    Args:
-    - args (argparse.Namespace): The command-line arguments.
-
-    Author - Panna Pfandler
-    """
-    split_logger.info("Starting main function")
-    local = args.local == "True"
-
-    split_logger.info(f"Local mode: {local}")
-    split_logger.info(f"Data path: {args.data_path}")
-    split_logger.info(f"Validation size: {args.val_size}")
-
-    if local:
-        split_logger.info("Processing data locally.")
-        # Load data locally
-        data_df, _ = load_data(args.data_path)
-        train_set, val_set = get_train_val_data(data_df, args.val_size)
-    else:
-        split_logger.info("Processing data from Azure.")
-        # Access data from Azure
-        _, workspace = connect_to_azure_ml(
-            config.config["subscription_id"],
-            config.config["resource_group"],
-            config.config["workspace_name"],
-            config.config["tenant_id"],
-            config.config["client_id"],
-            config.config["client_secret"],
-        )
-        datastore = Datastore.get(workspace, datastore_name="workspaceblobstore")
-
-        # split_logger.info(f"Reading data from Azure Blob Storage URI: {uri}")
-        # Read data using pandas
-
-        data_df = pd.read_csv(
-            (
-                f"azureml://subscriptions/{subscription_id}/resourcegroups/"
-                f"{resource_group}/workspaces/{workspace_name}/datastores/"
-                f"workspaceblobstore/paths/{args.data_path}"
-            )
-        )
-
-        # Split data
-        train_set, val_set = get_train_val_data(data_df, args.val_size)
-
-        # Register datasets
-        # split_logger.info("Registering training dataset in Azure")
-        Dataset.Tabular.register_pandas_dataframe(
-            dataframe=train_set,
-            name="train_data",
-            description="training data",
-            target=datastore,
-        )
-        # split_logger.info("Registering validation dataset in Azure")
-        Dataset.Tabular.register_pandas_dataframe(
-            dataframe=val_set,
-            name="val_data",
-            description="validation data",
-            target=datastore,
-        )
-
-        split_logger.info("Data processed and datasets registered in Azure.")
-    # Prepare dictionary to save as JSON
-    datasets_info = {"train_data": "train_data", "val_data": "val_data"}
-
-    # Save dictionary to JSON file
-    if args.json_path:
-        with open(args.json_path, "w") as json_file:
-            json.dump(datasets_info, json_file)
-            split_logger.info(f"Dataset information saved to {args.json_path}")
-
-        split_logger.info("Data processed and datasets registered in Azure.")
-
-    split_logger.info("Main function completed")
-
-
 if __name__ == "__main__":
+    from azure.ai.ml import MLClient
+    from azure.identity import ClientSecretCredential
+    from azureml.core import Dataset, Datastore, Workspace
+    from azureml.core.authentication import ServicePrincipalAuthentication
+
+    @typeguard.typechecked
+    def connect_to_azure_ml(
+        subscription_id: str,
+        resource_group: str,
+        workspace_name: str,
+        tenant_id: str,
+        client_id: str,
+        client_secret: str,
+    ) -> Tuple[MLClient, Workspace]:
+        """
+        Connects to the Azure Machine Learning workspace using client
+        secret credentials.
+
+        Args:
+        - subscription_id (str): The Azure subscription ID.
+        - resource_group (str): The name of the resource group.
+        - workspace_name (str): The name of the Azure Machine Learning workspace.
+        - tenant_id (str): The Azure AD tenant ID.
+        - client_id (str): The Azure AD client ID.
+        - client_secret (str): The Azure AD client secret.
+
+        Returns:
+        - ml_client (MLClient): The Azure Machine Learning client object.
+        - workspace (Workspace): The Azure Machine Learning workspace object.
+
+        Author - Panna Pfandler
+        """
+        split_logger.info("Connecting to Azure ML workspace.")
+
+        # Use client secret credentials
+        credential = ClientSecretCredential(tenant_id, client_id, client_secret)
+
+        # Connect to the Azure Machine Learning client
+        ml_client = MLClient(
+            subscription_id=subscription_id,
+            resource_group_name=resource_group,
+            credential=credential,
+            workspace_name=workspace_name,
+        )
+
+        # Connect to the Azure Machine Learning workspace
+        service_principal = ServicePrincipalAuthentication(
+            tenant_id=tenant_id,
+            service_principal_id=client_id,
+            service_principal_password=client_secret,
+        )
+        workspace = Workspace(
+            subscription_id, resource_group, workspace_name, auth=service_principal
+        )
+
+        split_logger.info("Connected to Azure ML workspace.")
+
+        return ml_client, workspace
+
+    @typeguard.typechecked
+    def main(args: argparse.Namespace):
+        """
+        Main function to process data either locally or from Azure,
+        and split it into training and validation sets.
+
+        Args:
+        - args (argparse.Namespace): The command-line arguments.
+
+        Author - Panna Pfandler
+        """
+        split_logger.info("Starting main function")
+        local = args.local == "True"
+
+        split_logger.info(f"Local mode: {local}")
+        split_logger.info(f"Data path: {args.data_path}")
+        split_logger.info(f"Validation size: {args.val_size}")
+
+        if local:
+            split_logger.info("Processing data locally.")
+            # Load data locally
+            data_df, _ = load_data(args.data_path)
+            train_set, val_set = get_train_val_data(data_df, args.val_size)
+        else:
+            split_logger.info("Processing data from Azure.")
+            # Access data from Azure
+            _, workspace = connect_to_azure_ml(
+                config.config["subscription_id"],
+                config.config["resource_group"],
+                config.config["workspace_name"],
+                config.config["tenant_id"],
+                config.config["client_id"],
+                config.config["client_secret"],
+            )
+            datastore = Datastore.get(workspace, datastore_name="workspaceblobstore")
+
+            # split_logger.info(f"Reading data from Azure Blob Storage URI: {uri}")
+            # Read data using pandas
+
+            data_df = pd.read_csv(
+                (
+                    f"azureml://subscriptions/{subscription_id}/resourcegroups/"
+                    f"{resource_group}/workspaces/{workspace_name}/datastores/"
+                    f"workspaceblobstore/paths/{args.data_path}"
+                )
+            )
+
+            # Split data
+            train_set, val_set = get_train_val_data(data_df, args.val_size)
+
+            # Register datasets
+            # split_logger.info("Registering training dataset in Azure")
+            Dataset.Tabular.register_pandas_dataframe(
+                dataframe=train_set,
+                name="train_data",
+                description="training data",
+                target=datastore,
+            )
+            # split_logger.info("Registering validation dataset in Azure")
+            Dataset.Tabular.register_pandas_dataframe(
+                dataframe=val_set,
+                name="val_data",
+                description="validation data",
+                target=datastore,
+            )
+
+            split_logger.info("Data processed and datasets registered in Azure.")
+        # Prepare dictionary to save as JSON
+        datasets_info = {"train_data": "train_data", "val_data": "val_data"}
+
+        # Save dictionary to JSON file
+        if args.json_path:
+            with open(args.json_path, "w") as json_file:
+                json.dump(datasets_info, json_file)
+                split_logger.info(f"Dataset information saved to {args.json_path}")
+
+            split_logger.info("Data processed and datasets registered in Azure.")
+
+        split_logger.info("Main function completed")
+
     parser = argparse.ArgumentParser(description="Process data.")
     parser.add_argument(
         "--local",

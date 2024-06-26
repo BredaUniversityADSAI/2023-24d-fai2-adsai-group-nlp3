@@ -13,7 +13,9 @@ mt_logger = logging.getLogger("main.preprocessing")
 
 # TODO author
 @typeguard.typechecked
-def get_tokenizer(model_name: str = "roberta-base") -> transformers.AutoTokenizer:
+def get_tokenizer(
+    model_name: str = "roberta-base",
+) -> transformers.models.roberta.tokenization_roberta_fast.RobertaTokenizerFast:
     """
     Get the tokenizer for a specified model.
 
@@ -31,7 +33,10 @@ def get_tokenizer(model_name: str = "roberta-base") -> transformers.AutoTokenize
 # TODO author
 @typeguard.typechecked
 def tokenize_text_data(
-    data: pd.Series, tokenizer: transformers.AutoTokenizer, max_length: int = 128
+    data: pd.Series,
+    tokenizer: transformers.models.roberta\
+        .tokenization_roberta_fast.RobertaTokenizerFast,
+    max_length: int = 128,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Tokenize text data using the provided tokenizer.

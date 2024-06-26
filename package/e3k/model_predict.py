@@ -224,8 +224,3 @@ if __name__ == "__main__":
     # Make predictions
     text_labels, highest_probabilities = predict(model, tokens, masks, emotion_decoder)
     mt_logger.info("Predictions made")
-
-    # Print the predictions
-    # for label, prob in zip(text_labels, highest_probabilities):
-    #     print(f"Predicted emotion: {label} with confidence: {prob:.2f}")
-    # mt_logger.info("Results printed")

@@ -6,7 +6,24 @@ import matplotlib.pyplot as plt
 import numpy as np
 import typeguard
 
-moi_logger = logging.getLogger("main.model_output_information")
+# setting up logger
+moi_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+if len(moi_logger.handlers) == 0:
+    moi_logger.setLevel(logging.DEBUG)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.DEBUG)
+    stream_handler.setFormatter(formatter)
+
+    moi_logger.addHandler(stream_handler)
+
+file_handler = logging.FileHandler("logs.log", mode="a")
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+moi_logger.addHandler(file_handler)
 
 
 @typeguard.typechecked

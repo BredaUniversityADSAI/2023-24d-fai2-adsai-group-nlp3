@@ -105,7 +105,7 @@ def predict(
     token_array: np.array,
     mask_array: np.array,
     emotion_decoder: Dict[int, str],
-) -> Tuple[List[str], List[float]]:
+) -> Tuple[List[str], np.array]:
     """
     A function that predicts emotions from preprocessed input using a loaded model.
     It returns text labels decoded using emotion_decoder dictionary loaded
@@ -120,7 +120,7 @@ def predict(
 
     Output:
         text_labels (list[str]): list of text emotions predicted by the model
-        highest_probabilities (list[float]): list of model's confidence
+        highest_probabilities (np.array): array of model's confidence
             that the predicted emotion is correct
 
     Author:
@@ -147,6 +147,11 @@ def predict(
     text_labels = decode_labels(predicted_classes, emotion_decoder)
 
     eval_logger.info("got predictions")
+
+    eval_logger.debug(f"probs: {highest_probabilities[0]}")
+    eval_logger.debug(f"probs2: {highest_probabilities[1]}")
+    eval_logger.debug(f"probs type: {type(highest_probabilities[0])}")
+    eval_logger.debug(f"probs whole type: {type(highest_probabilities)}")
 
     return text_labels, highest_probabilities
 
@@ -291,7 +296,7 @@ Util functions (only used in other functions)
 
 @typeguard.typechecked
 def decode_labels(
-    encoded_labels: List[int], emotion_decoder: Dict[int, str]
+    encoded_labels: np.array, emotion_decoder: Dict[int, str]
 ) -> List[str]:
     """
     A function that decodes label numbers into text representation of labels
@@ -308,7 +313,7 @@ def decode_labels(
         Max Meiners (214936)
     """
 
-    decoded_labels = list(map(lambda x: emotion_decoder[x], encoded_labels))
+    decoded_labels = list(map(lambda x: emotion_decoder[x.item()], encoded_labels))
 
     return decoded_labels
 
@@ -323,6 +328,8 @@ def load_label_decoder(label_decoder_path: str) -> Dict[int, str]:
 
 
 if __name__ == "__main__":
+    import config
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
@@ -410,51 +417,38 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    cloud = str(args.cloud) == "True"
     eval_logger.info(type(args.cloud))
 
     model = transformers.TFRobertaForSequenceClassification.from_pretrained(
         args.model_path
     )
 
-    if cloud is True:
-        # Load the workspace
-        eval_logger.info("cloud path")
-        TENANT_ID = "0a33589b-0036-4fe8-a829-3ed0926af886"
-        CLIENT_ID = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
-        CLIENT_SECRET = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
+    # Load the workspace
+    eval_logger.info("cloud path")
 
-        svc_pr = ServicePrincipalAuthentication(
-            tenant_id=config.config["tenant_id"],
-            service_principal_id=config.config["client_id"],
-            service_principal_password=config.config["client_secret"],
-        )
-        workspace = Workspace(
-            subscription_id=config.config["subscription_id"],
-            resource_group=config.config["resource_group"],
-            workspace_name=config.config["workspace_name"],
-            auth=svc_pr,
-        )
-        # change
-        data = load_data_from_azure(workspace, args.datastore_name, args.test_data_name)
-        label_decoder = load_label_decoder(args.label_decoder)
-        tokens, masks = preprocess_prediction_data(data)
-        emotions, probabilities = predict(model, tokens, masks, label_decoder)
-        accuracy, _ = evaluate(emotions, data)
-        print(f"Test accuracy: {accuracy * 100:.2f}%")
-        register_model_and_encoding(
-            args.model_path,
-            args.label_decoder,
-            accuracy,
-            workspace,
-            args.model_name,
-            args.threshold,
-        )
-
-    else:
-        eval_logger.info("local path")
-        data, _ = load_data(args.test_data_path)
-        tokens, masks = preprocess_prediction_data(data)
-        emotions, probabilities = predict(model, tokens, masks, args.label_decoder)
-        accuracy, _ = evaluate(emotions, data)
-        print(f"Test accuracy: {accuracy * 100:.2f}%")
+    svc_pr = ServicePrincipalAuthentication(
+        tenant_id=config.config["tenant_id"],
+        service_principal_id=config.config["client_id"],
+        service_principal_password=config.config["client_secret"],
+    )
+    workspace = Workspace(
+        subscription_id=config.config["subscription_id"],
+        resource_group=config.config["resource_group"],
+        workspace_name=config.config["workspace_name"],
+        auth=svc_pr,
+    )
+    # change
+    data = load_data_from_azure(workspace, args.datastore_name, args.test_data_name)
+    label_decoder = load_label_decoder(args.label_decoder)
+    tokens, masks = preprocess_prediction_data(data)
+    emotions, probabilities = predict(model, tokens, masks, label_decoder)
+    accuracy, _ = evaluate(emotions, data)
+    print(f"Test accuracy: {accuracy * 100:.2f}%")
+    register_model_and_encoding(
+        args.model_path,
+        args.label_decoder,
+        accuracy,
+        workspace,
+        args.model_name,
+        args.threshold,
+    )

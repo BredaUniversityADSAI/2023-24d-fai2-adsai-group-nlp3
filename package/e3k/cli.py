@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import logging
+from typing import Dict, List, Tuple
 
 import episode_preprocessing_pipeline as epp
 import mlflow
@@ -12,11 +13,8 @@ import pandas as pd
 import preprocessing
 import split_register_data as splitting
 import typeguard
-from config import config
-from model_training_pipeline import model_training as mt_pipe
 from tensorflow import config as tf_config
 from transformers import TFRobertaForSequenceClassification
-from typing import Dict, List, Tuple
 
 # setting up logger
 logger = logging.getLogger("main")
@@ -77,7 +75,7 @@ def get_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--cloud",
-        required=True,
+        required=False,
         type=str,
         choices=["True", "False"],
         help="""
@@ -525,9 +523,6 @@ def main() -> None:
     Author - Wojciech Stachowiak
     """
 
-    # Start MLflow run
-    mlflow.start_run()
-
     # get arguments from argparser
     args = get_args()
     logger.info("got command line arguments")
@@ -535,79 +530,47 @@ def main() -> None:
     # Log parameters to MLflow
     mlflow.log_params(vars(args))
 
-    cloud = args.cloud == "True"
-    if cloud is True:
-        logger.info("the pipeline will run in the cloud")
+    logger.info("the pipeline will run locally")
 
-        ml_client = mt.get_ml_client(
-            config["subscription_id"],
-            config["tenant_id"],
-            config["client_id"],
-            config["client_secret"],
-            config["resource_group"],
-            config["workspace_name"],
+    # checking for available GPU
+    detected_gpu = len(tf_config.list_physical_devices("GPU")) > 0
+    if not detected_gpu:
+        logger.warning(
+            (
+                "No GPU detected, using CPU instead. "
+                "Preprocessing from audio/video will take significantly longer, "
+                "and training and predicting may not be a feasible task. "
+                "Consider switching to a GPU device."
+            )
         )
-
-        if args.task == "train":
-            logger.info("entered task: train")
-
-            training_pipeline = mt_pipe(
-                data_path=args.train_data,
-                val_size=args.val_size,
-                epochs=args.epochs,
-                test_data=args.test_data,
-                threshold=args.threshold,
-                model_name=args.model_name,
-            )
-
-            _ = ml_client.jobs.create_or_update(
-                training_pipeline, experiment_name="model_training_mlflow_experiment"
-            )
-
-            logger.info("the pipeline is running in the cloud now")
-
-        if args.task == "predict":
-            logger.info("entered task: predict")
-
     else:
-        logger.info("the pipeline will run locally")
+        logger.info("GPU detected")
 
-        # checking for available GPU
-        detected_gpu = len(tf_config.list_physical_devices("GPU")) > 0
-        if not detected_gpu:
-            logger.warning(
-                (
-                    "No GPU detected, using CPU instead. "
-                    "Preprocessing from audio/video will take significantly longer, "
-                    "and training and predicting may not be a feasible task. "
-                    "Consider switching to a GPU device."
-                )
-            )
-        else:
-            logger.info("GPU detected")
+    # handle episode preprocessing
+    if args.task in ["preprocess", "predict"]:
+        logger.info("entered task: preprocess")
 
-        # handle episode preprocessing
-        if args.task in ["preprocess", "predict"]:
-            logger.info("entered task: preprocess")
+        data_df = episode_preprocessing(args)
 
-            data_df = episode_preprocessing(args)
+    # handle predicting
+    if args.task == "predict":
+        logger.info("entered task: predict")
 
-        # handle predicting
-        if args.task == "predict":
-            logger.info("entered task: predict")
+        predicted_emotions, highest_probabilities = predict(args, data_df)
+        model_output_information(predicted_emotions, highest_probabilities)
 
-            predicted_emotions, highest_probabilities = predict(args, data_df)
-            model_output_information(predicted_emotions, highest_probabilities)
+    # handle training
+    if args.task == "train":
+        logger.info("entered task: train")
 
-        # handle training
-        if args.task == "train":
-            logger.info("entered task: train")
+        # Start MLflow run
+        # mlflow.start_run()
 
-            model, label_decoder = model_training(args)
-            evaluate_model(args, model, label_decoder)
+        model, label_decoder = model_training(args)
+        evaluate_model(args, model, label_decoder)
 
-    # End MLflow run
-    mlflow.end_run()
+        # End MLflow run
+        mlflow.end_run()
 
 
 if __name__ == "__main__":
