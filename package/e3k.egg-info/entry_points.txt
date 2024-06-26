@@ -1,0 +1,2 @@
+[console_scripts]
+e3k = e3k.cli:main
