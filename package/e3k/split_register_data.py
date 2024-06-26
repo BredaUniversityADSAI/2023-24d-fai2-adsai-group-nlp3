@@ -4,7 +4,6 @@ import logging
 import os
 from typing import Dict, Tuple
 
-import config
 import pandas as pd
 import typeguard
 from sklearn.model_selection import train_test_split
@@ -14,7 +13,6 @@ split_logger = logging.getLogger(
     f"{'main.' if __name__ != '__main__' else ''}{__name__}"
 )
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-
 
 if len(split_logger.handlers) == 0:
     split_logger.setLevel(logging.DEBUG)
@@ -30,14 +28,6 @@ file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 
 split_logger.addHandler(file_handler)
-
-# TODO use config file to do this
-subscription_id = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
-resource_group = "buas-y2"
-workspace_name = "NLP3"
-tenant_id = "0a33589b-0036-4fe8-a829-3ed0926af886"
-client_id = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
-client_secret = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
 
 
 @typeguard.typechecked
@@ -96,14 +86,7 @@ def get_train_val_data(
         random_state=42,
         stratify=data_df["emotion"],
     )
-    # TODO deal with this
-    """
-    local = args.local == "True"
-    if local:
-        train_set = (X_train, y_train)
-        val_set = (X_val, y_val)
-    else:
-    """
+
     train_set = pd.DataFrame({"sentence": X_train, "emotion": y_train})
     val_set = pd.DataFrame({"sentence": X_val, "emotion": y_val})
 
@@ -113,10 +96,24 @@ def get_train_val_data(
 
 
 if __name__ == "__main__":
+    import config
     from azure.ai.ml import MLClient
     from azure.identity import ClientSecretCredential
     from azureml.core import Dataset, Datastore, Workspace
     from azureml.core.authentication import ServicePrincipalAuthentication
+
+    credential = ClientSecretCredential(
+        config.config["tenant_id"],
+        config.config["client_id"],
+        config.config["client_secret"],
+    )
+
+    ml_client = MLClient(
+        subscription_id=config.config["subscription_id"],
+        resource_group_name=config.config["resource_group"],
+        workspace_name=config.config["workspace_name"],
+        credential=credential,
+    )
 
     @typeguard.typechecked
     def connect_to_azure_ml(
@@ -211,34 +208,35 @@ if __name__ == "__main__":
             # split_logger.info(f"Reading data from Azure Blob Storage URI: {uri}")
             # Read data using pandas
 
-            data_df = pd.read_csv(
-                (
-                    f"azureml://subscriptions/{subscription_id}/resourcegroups/"
-                    f"{resource_group}/workspaces/{workspace_name}/datastores/"
-                    f"workspaceblobstore/paths/{args.data_path}"
-                )
+        data_df = pd.read_csv(
+            (
+                f"azureml://subscriptions/{config.config['subscription_id']}"
+                f"/resourcegroups/{config.config['resource_group']}/workspaces/"
+                f"{config.config['workspace_name']}/datastores/"
+                f"workspaceblobstore/paths/{args.data_path}"
             )
+        )
 
-            # Split data
-            train_set, val_set = get_train_val_data(data_df, args.val_size)
+        # Split data
+        train_set, val_set = get_train_val_data(data_df, args.val_size)
 
-            # Register datasets
-            # split_logger.info("Registering training dataset in Azure")
-            Dataset.Tabular.register_pandas_dataframe(
-                dataframe=train_set,
-                name="train_data",
-                description="training data",
-                target=datastore,
-            )
-            # split_logger.info("Registering validation dataset in Azure")
-            Dataset.Tabular.register_pandas_dataframe(
-                dataframe=val_set,
-                name="val_data",
-                description="validation data",
-                target=datastore,
-            )
+        # Register datasets
+        # split_logger.info("Registering training dataset in Azure")
+        Dataset.Tabular.register_pandas_dataframe(
+            dataframe=train_set,
+            name="train_data",
+            description="training data",
+            target=datastore,
+        )
+        # split_logger.info("Registering validation dataset in Azure")
+        Dataset.Tabular.register_pandas_dataframe(
+            dataframe=val_set,
+            name="val_data",
+            description="validation data",
+            target=datastore,
+        )
 
-            split_logger.info("Data processed and datasets registered in Azure.")
+        split_logger.info("Data processed and datasets registered in Azure.")
         # Prepare dictionary to save as JSON
         datasets_info = {"train_data": "train_data", "val_data": "val_data"}
 

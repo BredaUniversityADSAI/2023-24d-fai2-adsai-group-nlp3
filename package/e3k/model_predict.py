@@ -196,6 +196,13 @@ if __name__ == "__main__":
         help="Path to the joblib file containing the emotion decoder.",
     )
 
+    parser.add_argument(
+        "--output_path",
+        required=False,
+        type=str,
+        help="Path to the output predictions.",
+    )
+
     args = parser.parse_args()
 
     mt_logger.info("Arguments parsed")
@@ -216,11 +223,26 @@ if __name__ == "__main__":
     )
     mt_logger.info("Model loaded")
 
-    # Load the emotion decoder
-    with open(args.decoder_path, "rb") as f:
-        emotion_decoder = pickle.load(f)
+    if "azureml" in args.decoder_path:
+        # Folder URI + filename for Azure ML datastore
+        decoder_path = f"{args.decoder_path}/label_decoder"
+        # Load the emotion decoder
+        with open(decoder_path, "rb") as f:
+            emotion_decoder = pickle.load(f)
+
+    else:
+        # Load the emotion decoder
+        with open(args.decoder_path, "rb") as f:
+            emotion_decoder = pickle.load(f)
+
     mt_logger.info(f"Emotion decoder loaded with keys: {list(emotion_decoder.keys())}")
 
     # Make predictions
     text_labels, highest_probabilities = predict(model, tokens, masks, emotion_decoder)
     mt_logger.info("Predictions made")
+
+    predictions = pd.DataFrame(
+        {"text_labels": text_labels, "highest_probabilities": highest_probabilities}
+    )
+
+    predictions.to_csv(args.output_path, index=False)

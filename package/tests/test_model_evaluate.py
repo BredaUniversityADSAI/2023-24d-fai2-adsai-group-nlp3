@@ -15,9 +15,8 @@ class TestModelEvaluate:
         file_path = "test_data/dataset_test.csv"
         self.assertIsNotNone(model_evaluate.load_data(file_path))
 
-
     def test_load_label_decoder(self):
-        encoder_path = "test_data/test_label_decoder"
+        encoder_path = "test_data/label_decoder"
         self.assertIsNotNone(model_evaluate.load_label_decoder(encoder_path))
 
 

@@ -41,7 +41,7 @@ predict_component = command(
             description="Path to the model configuration and weights file",
         ),
         "data_path": Input(
-            type="uri_file", 
+            type="uri_folder", 
             description="Data to be predicted"
         ),
         "tokenizer_model": Input(
