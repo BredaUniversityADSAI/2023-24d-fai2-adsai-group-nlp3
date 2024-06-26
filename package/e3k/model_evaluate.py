@@ -65,13 +65,12 @@ def load_data(file_path: str) -> pd.DataFrame:
 
 
 # Loading data from Azure ML datastore
-# TODO type annotations + typeguard
+@typeguard.typechecked
 def load_data_from_azure(
-    workspace,
-    datastore_name,
-    test_data_name
-    # , test_data_uri
-):
+    workspace: Workspace,
+    datastore_name: str,
+    test_data_name:str,
+) -> pd.DataFrame:
     """
     Loads data from an Azure ML datastore.
 
@@ -84,7 +83,8 @@ def load_data_from_azure(
     Output:
         df (pd.DataFrame): Loaded DataFrame containing the data.
 
-    -Author: Kornelia Flizik (223643)
+    Author: 
+        Kornelia Flizik (223643)
     """
 
     # Loading the csv
@@ -151,26 +151,25 @@ def predict(
     return text_labels, highest_probabilities
 
 
-# TODO type annotations + typeguard
+@typeguard.typechecked
 def evaluate(
-    pred_labels,
-    data,
-) -> Tuple[List[str], List[float], float, str]:
+    pred_labels: list[str],
+    data: pd.DataFrame,
+) -> Tuple[float, str]:
     """
     A function that evaluates trained model using a separate dataset.
-    It returns predicted labels, and their probabilities, total_accuracy,
-        and creates a report with different metrics.
+    It returns total_accuracy and creates a report with different metrics.
 
     Input:
-        model (transformers.TFRobertaForSequenceClassification): a loaded roBERTa model
-        tokenizer (transformers.RobertaTokenizer): tokenizer compatible with the model
-            architecture returned from the get_tokenizer function
-        emotion_decoder (dict[int, str]): dictionary with number to text mapping loaded
-            with get_model function
-        eval_path (str): path do evaluation dataset CSV file
+        pred_labels (list[str]): list of text emotions predicted by the model
+        data (pd.DataFrame): test dataset 
+
+    Output:
+        accuracy (float): The accuracy of the model on test data.
+        report (str): The clafication report of the model on test data.
 
     Author:
-        Max Meiners (214936)
+        Kornelia Flizik (223643)
     """
 
     eval_logger.info("evaluating trained model")
@@ -187,30 +186,36 @@ def evaluate(
     return accuracy, report
 
 
-# TODO type annotations + typeguard
+@typeguard.typechecked
 def register_model_and_encoding(
-    model_path, label_decoder, accuracy, workspace, model_name, threshold=0.5
-):
-    # TODO update docstring
+    model_path: str,
+    label_decoder: Dict[int, str], 
+    accuracy: float, 
+    workspace: Workspace, 
+    model_name: str, 
+    threshold: float,
+) -> None:
     """
     Registers a machine learning model and its label encodings to Azure ML workspace
     if the accuracy exceeds a specified threshold.
 
     Inputs:
         model_path (str): The path to the model file that needs to be registered.
-        label_encoder (str): The path to the label encoder file that needs to be
+        label_decoder (str): The path to the label encoder file that needs to be
         uploaded to the datastore.
-        accuracy (float):  The accuracy of the model.
+        accuracy (float): The accuracy of the model.
         workspace (azureml.core.Workspace): The Azure ML workspace where the model
         and label encodings will be registered.
-        threshold (float, optional): The accuracy threshold for registering the model.
-        Default is 0.5.
+        model_name (str): The name of the model used for Azure ML Models.
+        threshold (float): The accuracy threshold for registering the model.
 
     Output:
         None
 
-    - Author: Kornelia Flizik
+    - Author:
+        Kornelia Flizik (223643)
     """
+
     eval_logger.info(f"Registering model if accuracy is above {threshold}.")
 
     # Only register model if accuracy is above threshold
@@ -253,7 +258,6 @@ def save_model(
     accuracy: float,
     threshold: float,
 ) -> None:
-    # TODO update docstring
     """
     A function that saves trained model and it's emotion mapping to a file.
 
@@ -262,6 +266,8 @@ def save_model(
         label_encoder (dict[int, str]): Python dictionary mapping
             numbers to text emotions.
         model_path (str): Path to directory where the model will be saved.
+        accuracy (float):  The accuracy of the model.
+        threshold (float): The accuracy threshold for registering the model.
 
     Output: None
 
@@ -272,12 +278,11 @@ def save_model(
     if accuracy >= threshold:
         eval_logger.info("Model accuracy is above threshold, saving model.")
 
-        # TODO change to pickle
-        dict_path = os.path.join(model_path, "emotion_dict.json")
+        dict_path = os.path.join(model_path, "emotion_dict")
 
         model.save_pretrained(model_path)
-        with open(dict_path, "w") as f:
-            json.dump(label_decoder, f)
+        with open(dict_path, "wb") as f:
+            pickle.dump(label_decoder, f)
 
         eval_logger.info("Model saved")
     else:
@@ -313,9 +318,24 @@ def decode_labels(
     return decoded_labels
 
 
-# TODO docstring
 @typeguard.typechecked
 def load_label_decoder(label_decoder_path: str) -> Dict[int, str]:
+    """
+    Load a label decoder from a pickle file.
+
+    This function loads a dictionary that maps integer labels to string descriptions
+    from a specified pickle file.
+
+    Input:
+        label_decoder_path (str): The path to the pickle file containing the label decoder.
+
+    Output:
+        emotion_decoder (Dict[int, str]): A dictionary mapping integer labels to their
+            corresponding string descriptions.
+
+    Author:
+        Kornelia Flizik (223643)
+    """
     # Load the emotion_decoder using pickle
     with open(label_decoder_path, "rb") as f:
         emotion_decoder = pickle.load(f)
