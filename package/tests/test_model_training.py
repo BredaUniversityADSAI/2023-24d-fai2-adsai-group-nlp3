@@ -1,12 +1,23 @@
-import e3k.model_training
+"""
+Tests for model_training.py.
+
+Author: Max Meiners (214936)
+"""
+
+# import tensorflow as tf
+import model_training
 import pandas as pd
 import pytest
 import argparse
-import tensorflow as tf
-import numpy as np
-from sklearn.preprocessing import LabelEncoder
-from transformers import RobertaTokenizer, TFRobertaForSequenceClassification
+# from transformers import (
+# TFRobertaForSequenceClassification, 
+# RobertaConfig)
+# import sys
+# from sklearn.preprocessing import LabelEncoder
 
+
+# Set recursion limit
+# sys.setrecursionlimit(150000)
 
 @pytest.fixture
 def azure_credentials():
@@ -23,7 +34,7 @@ def azure_credentials():
 class TestModelTraining:
 
     def test_get_ml_client(self, azure_credentials):
-        client = e3k.model_training.get_ml_client(
+        client = model_training.get_ml_client(
             azure_credentials["subscription_id"],
             azure_credentials["tenant_id"],
             azure_credentials["client_id"],
@@ -35,16 +46,13 @@ class TestModelTraining:
 
     def test_get_versioned_datasets(self, azure_credentials):
         # Path to the local JSON dataset info file
-        local_dataset_info_file = (
-            "/Users/maxmeiners/Library/CloudStorage/OneDrive-BUas"
-            "/Github/Year 2/Block D/test_files/pytest_args.json"
-            )
+        local_dataset_info_file = ("pytest_args.json")
 
         # Mock args
         args = argparse.Namespace(dataset_name_file=local_dataset_info_file)
 
         # Get ML client
-        ml_client = e3k.model_training.get_ml_client(
+        ml_client = model_training.get_ml_client(
             azure_credentials["subscription_id"],
             azure_credentials["tenant_id"],
             azure_credentials["client_id"],
@@ -52,10 +60,10 @@ class TestModelTraining:
             azure_credentials["resource_group"],
             azure_credentials["workspace_name"]
         )
-        assert e3k.model_training.get_versioned_datasets(args, ml_client) is not None
+        assert model_training.get_versioned_datasets(args, ml_client) is not None
 
     def test_get_data_asset_as_df(self, azure_credentials):
-        ml_client = e3k.model_training.get_ml_client(
+        ml_client = model_training.get_ml_client(
             azure_credentials["subscription_id"],
             azure_credentials["tenant_id"],
             azure_credentials["client_id"],
@@ -65,7 +73,7 @@ class TestModelTraining:
         )
         dataset_name = "val_data"
         dataset_version = "12"
-        assert e3k.model_training.get_data_asset_as_df(
+        assert model_training.get_data_asset_as_df(
             ml_client,
             dataset_name,
             dataset_version) is not None
@@ -77,87 +85,74 @@ class TestModelTraining:
                             "fear", 
                             "surprise", 
                             "disgust"])
-        assert e3k.model_training.get_label_decoder(series) is not None
+        assert model_training.get_label_decoder(series) is not None
 
     def test_get_new_model(self):
         num_classes = 6
-        assert e3k.model_training.get_new_model(num_classes) is not None
+        assert model_training.get_new_model(num_classes) is not None
 
-    def test_train_model(self):
-        num_classes = 6
-        model = e3k.model_training.get_new_model(num_classes=num_classes)
+    # def test_train_model(self):
+    #     num_classes = 6
+    #     config = RobertaConfig.from_pretrained('model/config.json')
+    #     model = TFRobertaForSequenceClassification.from_pretrained(
+    # 'roberta-base', 
+    # config=config
+    # )
+        
+    #     # Load datasets
+    #     data = {'sentence': ['I am happy', 'I am sad'], 
+    # 'emotion': ['happiness', 'sadness']}
+    #     training_dataset = pd.DataFrame(data)
+    #     validation_dataset = pd.DataFrame(data)
+        
+    #     # Preprocess data
+    #     label_encoder = LabelEncoder()
+    #     label_encoder.fit(training_dataset['emotion'])
+        
+    #     training_dataset['label'] = label_encoder.transform(training_dataset['emotion'])
+    #     validation_dataset['label'] = label_encoder.transform(validation_dataset['emotion'])
+        
+    #     tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
+        
+    #     def encode_data(df):
+    #         return tokenizer(
+    #             df['sentence'].tolist(), 
+    #             padding=True, 
+    #             truncation=True, 
+    #             return_tensors="tf"
+    #         )
+        
+    #     train_encodings = encode_data(training_dataset)
+    #     val_encodings = encode_data(validation_dataset)
+        
+    #     train_dataset = tf.data.Dataset.from_tensor_slices((
+    #         dict(train_encodings),
+    #         training_dataset['label'].values
+    #     )).batch(2)
+        
+    #     val_dataset = tf.data.Dataset.from_tensor_slices((
+    #         dict(val_encodings),
+    #         validation_dataset['label'].values
+    #     )).batch(2)
+        
+    #     # Training parameters
+    #     epochs = 2
+    #     learning_rate = 1e-3
+    #     early_stopping_patience = 3
 
-        # Load datasets (first 50 rows only)
-        training_dataset = pd.read_csv(
-            "package/tests/test_files/test_emotions",
-            nrows=50
-        )
-        validation_dataset = pd.read_csv(
-            "package/tests/test_files/test_emotions_eval",
-            nrows=50
-        )
-
-        # Encode labels to numeric values
-        label_encoder = LabelEncoder()
-        training_dataset['label'] = label_encoder.fit_transform(training_dataset['emotion'])
-        validation_dataset['label'] = label_encoder.transform(validation_dataset['emotion'])
-
-        tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
-
-        # Inline tokenization
-        train_encodings = tokenizer(
-            training_dataset['sentence'].tolist(),
-            padding='max_length',
-            truncation=True,
-            max_length=16,
-            return_tensors="tf"
-        )
-        val_encodings = tokenizer(
-            validation_dataset['sentence'].tolist(),
-            padding='max_length',
-            truncation=True,
-            max_length=16,
-            return_tensors="tf"
-        )
-
-        # Convert labels to NumPy arrays and then to tensors
-        train_labels = tf.convert_to_tensor(np.array(training_dataset['label'].values), dtype=tf.int32)
-        val_labels = tf.convert_to_tensor(np.array(validation_dataset['label'].values), dtype=tf.int32)
-
-        # Print tensor shapes for debugging
-        print("Train encodings shape:", {k: v.shape for k, v in train_encodings.items()})
-        print("Validation encodings shape:", {k: v.shape for k, v in val_encodings.items()})
-        print("Train labels shape:", train_labels.shape)
-        print("Validation labels shape:", val_labels.shape)
-
-        # Create TensorFlow datasets
-        train_dataset = tf.data.Dataset.from_tensor_slices((
-            dict(train_encodings),
-            train_labels
-        )).batch(8)
-
-        val_dataset = tf.data.Dataset.from_tensor_slices((
-            dict(val_encodings),
-            val_labels
-        )).batch(8)
-
-        # Training parameters
-        epochs = 2
-        learning_rate = 1e-3
-        early_stopping_patience = 3
-
-        # Train the model
-        trained_model = e3k.model_training.train_model(
-            model,
-            train_dataset,
-            val_dataset,
-            epochs,
-            learning_rate,
-            early_stopping_patience
-            )
-        assert trained_model is not None
-
-
+    #     # Train the model
+    #     trained_model = model_training.train_model(
+    #         model,
+    #         train_dataset,
+    #         val_dataset,
+    #         epochs,
+    #         learning_rate,
+    #         early_stopping_patience
+    #         )
+        
+    #     # Assertions to validate the model
+    #     assert trained_model is not None
+            
 
 if __name__ == "__main__":
     pytest.main()

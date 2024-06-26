@@ -2,15 +2,15 @@ import argparse
 import logging
 import os
 import pickle
+from typing import Dict, List, Tuple
 
 import joblib
-import json
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 import transformers
+import typeguard
 from preprocessing import preprocess_prediction_data
-from typing import Dict, List, Tuple
 
 # setting up logger
 mt_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
@@ -32,6 +32,7 @@ if len(mt_logger.handlers) == 0:
     mt_logger.addHandler(stream_handler)
 
 
+@typeguard.typechecked
 def get_model(
     model_path: str,
 ) -> Tuple[transformers.TFRobertaForSequenceClassification, Dict[int, str]]:
@@ -70,11 +71,13 @@ def get_model(
 
     mt_logger.info("Model loaded")
 
+    # TODO change to pickle
     emotion_dict = joblib.load(dict_path)
 
     return model, emotion_dict
 
 
+@typeguard.typechecked
 def decode_labels(
     encoded_labels: List[int], emotion_decoder: Dict[int, str]
 ) -> List[str]:
@@ -104,6 +107,7 @@ def decode_labels(
     return decoded_labels
 
 
+@typeguard.typechecked
 def predict(
     model: transformers.TFRobertaForSequenceClassification,
     token_array: np.array,
@@ -144,11 +148,11 @@ def predict(
     probabilities = tf.nn.softmax(logits, axis=-1).numpy()
     predicted_classes = np.argmax(probabilities, axis=1)
     highest_probabilities = np.max(probabilities, axis=1)
-    
+
     text_labels = decode_labels(predicted_classes, emotion_decoder)
 
     mt_logger.info("Got predictions")
-    
+
     return text_labels, highest_probabilities
 
 

@@ -2,12 +2,14 @@ import datetime
 import io
 import logging
 import wave
+from typing import List, Tuple
 
 import librosa
 import numpy as np
 import pandas as pd
 import soundfile as sf
 import spacy
+import typeguard
 import webrtcvad
 import whisper
 from pydub import AudioSegment
@@ -19,12 +21,16 @@ epp_logger = logging.getLogger("main.episode_preprocessing_pipeline")
 """
 Pipeline functions are main components of this pipeline.
 
-They are ment to be used outside of this module,
+They are meant to be used outside of this module,
 and when used in order, provide the video or audio to sentences pipeline.
 """
 
 
-def load_audio(file_path: str, target_sample_rate: int) -> np.array:
+# TODO change this to work locally as well, maybe cloud flag? AUTHOR
+@typeguard.typechecked
+def load_audio(
+    file_path: str = None, file_name: str = None, target_sample_rate: int = 32_000
+) -> np.array:
     """
     A function that loads audio data from video file
     or directly loads audio from input.
@@ -44,7 +50,12 @@ def load_audio(file_path: str, target_sample_rate: int) -> np.array:
     epp_logger.info("loading audio file")
 
     # load audio from the file
-    audio = AudioSegment.from_file(file_path)
+    try:
+        # Azure version
+        audio = AudioSegment.from_file(f"{file_path}/{file_name}")
+    except Exception:
+        audio = AudioSegment.from_file(file_path)
+        # audio = AudioSegment.from_file(file_name)
 
     # export the audio to in-memory object
     wav_file = io.BytesIO()
@@ -59,6 +70,7 @@ def load_audio(file_path: str, target_sample_rate: int) -> np.array:
     return audio
 
 
+@typeguard.typechecked
 def get_segments_for_vad(
     audio: np.array, sample_rate: int, segment_seconds_length: float
 ) -> List[np.array]:
@@ -96,6 +108,7 @@ def get_segments_for_vad(
     return segments
 
 
+@typeguard.typechecked
 def get_vad_per_segment(
     segments: List[np.array],
     vad_aggressiveness: int,
@@ -157,6 +170,7 @@ def get_vad_per_segment(
     return segments_is_speech
 
 
+@typeguard.typechecked
 def get_frame_segments_from_vad_output(
     speech_array: np.array,
     sample_rate: int,
@@ -242,6 +256,7 @@ def get_frame_segments_from_vad_output(
     return cut_fragments_frames
 
 
+@typeguard.typechecked
 def transcribe_translate_fragments(
     audio: np.array,
     cut_fragments_frames: List[Tuple[int, int]],
@@ -262,7 +277,7 @@ def transcribe_translate_fragments(
         sample_rate (int): sample rate of the audio file
         use_fp16 (bool): Whether to use FP16 format for model prediction,
             needs to be False for CPU. Defaults to True.
-        transcription_model_type: size of whisper model used for
+        transcription_model_size (str): size of whisper model used for
             transcription and translation,
             see: https://pypi.org/project/openai-whisper/. default: "base"
         episode_value (Any): value assigned to each row for this episode,
@@ -300,6 +315,8 @@ def transcribe_translate_fragments(
 
     return data
 
+
+@typeguard.typechecked
 def save_data(
     df: pd.DataFrame,
     output_path: str,
@@ -338,20 +355,23 @@ def save_data(
     elif format == "csv":
         df.to_csv(output_path, index=False)
     else:
-        epp_logger.error(f"Unsupported file format '{format}'. Please use '.csv' or '.json'.")
+        epp_logger.error(
+            f"Unsupported file format '{format}'. Please use '.csv' or '.json'."
+        )
+        # TODO what is this?
         return
 
     epp_logger.info(f"File saved successfully to {output_path}")
 
 
-
 """
 Utils functions that are called from the above functions.
-Utils functions are not ment to be used as a standalone,
+Utils functions are not meant to be used as a standalone,
 and are an abstraction over some more complex parts of above pipeline functions.
 """
 
 
+@typeguard.typechecked
 def segment_number_to_frames(
     segment_number: int, sample_rate: int, segment_seconds_length: float
 ) -> int:
@@ -375,6 +395,7 @@ def segment_number_to_frames(
     return int(sample_rate * segment_seconds_length * segment_number)
 
 
+@typeguard.typechecked
 def get_target_length_frames(min_length_seconds: int, sample_rate: int) -> int:
     """
     A function that converts duration in seconds into number of frames
@@ -393,6 +414,7 @@ def get_target_length_frames(min_length_seconds: int, sample_rate: int) -> int:
     return min_length_seconds * sample_rate
 
 
+@typeguard.typechecked
 def adjust_fragment_start_frame(start_fragment_frame: int, sample_rate: int) -> int:
     """
     A function that moves the start of the larger fragment (a couple of minutes)
@@ -414,6 +436,7 @@ def adjust_fragment_start_frame(start_fragment_frame: int, sample_rate: int) -> 
     return start_fragment_frame
 
 
+@typeguard.typechecked
 def adjust_fragment_end_frame(
     end_fragment_frame: int, sample_rate: int, full_audio_length_frames: int
 ) -> int:
@@ -438,6 +461,7 @@ def adjust_fragment_end_frame(
     return end_fragment_frame
 
 
+@typeguard.typechecked
 def clean_transcript_df(
     df: pd.DataFrame,
     sample_rate: int,
@@ -611,7 +635,11 @@ if __name__ == "__main__":
     )
 
     # load audio file and set sample rate to the chosen value
-    audio = load_audio(file_path = file_path, target_sample_rate=args.target_sr)
+    audio = load_audio(
+        file_path=args.input_folder,
+        file_name=args.input_filename,
+        target_sample_rate=args.target_sr,
+    )
 
     # get full audio length in frames
     full_audio_length_frames = len(audio)

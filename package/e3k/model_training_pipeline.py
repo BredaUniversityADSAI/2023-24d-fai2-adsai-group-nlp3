@@ -1,18 +1,14 @@
 import config
 import typeguard
 from azure.ai.ml import MLClient, dsl
-from azure.ai.ml.sweep import Uniform, Choice
+from azure.ai.ml.sweep import Choice, Uniform
 from azure.identity import ClientSecretCredential
 
-# const values for Azure connection
-SUBSCRIPTION_ID = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
-RESOURCE_GROUP = "buas-y2"
-WORKSPACE_NAME = "NLP3"
-TENANT_ID = "0a33589b-0036-4fe8-a829-3ed0926af886"
-CLIENT_ID = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
-CLIENT_SECRET = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
-
+# Const values for Azure connection
 credential = ClientSecretCredential(
+    config.config["subscription_id"],
+    config.config["resource_group"],
+    config.config["workspace_name"],
     config.config["tenant_id"],
     config.config["client_id"],
     config.config["client_secret"],
@@ -53,6 +49,24 @@ def model_training(
     threshold: float,
     model_name: str,
 ):
+    """
+    This function creates and runs a machine learning pipeline to train a model. 
+    It includes data splitting, training with hyperparameter tuning, and model evaluation steps.
+
+    Input:
+        data_path (str): Path to the training data.
+        val_size (float): Data to be used for validation.
+        epochs (int): Number of training epochs.
+        test_data (str): Path to the test data.
+        threshold (float): Accuracy threshold for model evaluation.
+        model_name (str): Name of the model to be trained and evaluated.
+
+    Output:
+        None
+
+    Author:
+        Wojciech Stachowiak & Max Meiners
+    """
     splitting_step = splitting_component(
         data_path=data_path, local=False, val_size=val_size
     )
@@ -63,16 +77,12 @@ def model_training(
         learning_rate=Uniform(min_value=1e-5, max_value=1e-1),
         batch_size=Choice([16, 32, 64, 128]),
         early_stopping_patience=3,
-    ).sweep(
-        sampling_algorithm="bayesian",
-        primary_metric="val_loss",
-        goal="minimize"
-    )
+    ).sweep(sampling_algorithm="bayesian", primary_metric="val_loss", goal="minimize")
 
     train_step.set_limits(
         max_total_trials=3,  # Number of trials for different hyperparameter sets
         max_concurrent_trials=3,  # Number of trials to run concurrently
-        timeout=7200  # Maximum allowed time for the sweep
+        timeout=7200,  # Maximum allowed time for the sweep
     )
 
     _ = eval_component(
@@ -82,6 +92,7 @@ def model_training(
         threshold=threshold,
         model_name=model_name,
     )
+
 
 if __name__ == "__main__":
     # test pipeline on small dataset
