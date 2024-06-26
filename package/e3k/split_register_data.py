@@ -4,24 +4,23 @@ import logging
 import os
 from typing import Dict, Tuple
 
-import config
 import pandas as pd
 import typeguard
+from sklearn.model_selection import train_test_split
+
 from azure.ai.ml import MLClient
 from azure.identity import ClientSecretCredential
 from azureml.core import Dataset, Datastore, Workspace
 from azureml.core.authentication import ServicePrincipalAuthentication
-from sklearn.model_selection import train_test_split
 
-# import azureml
-# import fsspec
+import config
+
 
 # setting up logger
 split_logger = logging.getLogger(
     f"{'main.' if __name__ != '__main__' else ''}{__name__}"
 )
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-
 
 if len(split_logger.handlers) == 0:
     split_logger.setLevel(logging.DEBUG)
@@ -38,13 +37,18 @@ file_handler.setFormatter(formatter)
 
 split_logger.addHandler(file_handler)
 
-# TODO use config file to do this
-subscription_id = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
-resource_group = "buas-y2"
-workspace_name = "NLP3"
-tenant_id = "0a33589b-0036-4fe8-a829-3ed0926af886"
-client_id = "a2230f31-0fda-428d-8c5c-ec79e91a49f5"
-client_secret = "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C"
+credential = ClientSecretCredential(
+    config.config["tenant_id"],
+    config.config["client_id"],
+    config.config["client_secret"],
+)
+
+ml_client = MLClient(
+    subscription_id=config.config["subscription_id"],
+    resource_group_name=config.config["resource_group"],
+    workspace_name=config.config["workspace_name"],
+    credential=credential,
+)
 
 
 @typeguard.typechecked
@@ -214,8 +218,8 @@ def main(args: argparse.Namespace):
 
         data_df = pd.read_csv(
             (
-                f"azureml://subscriptions/{subscription_id}/resourcegroups/"
-                f"{resource_group}/workspaces/{workspace_name}/datastores/"
+                f"azureml://subscriptions/{config.config["subscription_id"]}/resourcegroups/"
+                f"{config.config["resource_group"]}/workspaces/{config.config["workspace_name"]}/datastores/"
                 f"workspaceblobstore/paths/{args.data_path}"
             )
         )
