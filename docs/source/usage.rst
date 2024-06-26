@@ -3,6 +3,10 @@
 Usage
 =====
 
+
+
+
+
 This section provides information on how to use the project both through the Command Line Interface (CLI) and the API.
 
 .. contents:: Table of Contents

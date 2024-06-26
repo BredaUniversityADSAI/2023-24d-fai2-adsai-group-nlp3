@@ -12,6 +12,7 @@ import webrtcvad
 import whisper
 from pydub import AudioSegment
 from tqdm import tqdm
+from typing import List, Tuple
 
 epp_logger = logging.getLogger("main.episode_preprocessing_pipeline")
 
@@ -23,7 +24,7 @@ and when used in order, provide the video or audio to sentences pipeline.
 """
 
 
-def load_audio(file_path: str, file_name: str, target_sample_rate: int) -> np.array:
+def load_audio(file_path: str, target_sample_rate: int) -> np.array:
     """
     A function that loads audio data from video file
     or directly loads audio from input.
@@ -43,7 +44,7 @@ def load_audio(file_path: str, file_name: str, target_sample_rate: int) -> np.ar
     epp_logger.info("loading audio file")
 
     # load audio from the file
-    audio = AudioSegment.from_file(f"{file_path}/{file_name}")
+    audio = AudioSegment.from_file(file_path)
 
     # export the audio to in-memory object
     wav_file = io.BytesIO()
@@ -301,7 +302,7 @@ def transcribe_translate_fragments(
 
 def save_data(
     df: pd.DataFrame,
-    output_path: str = "output.csv",
+    output_path: str,
 ) -> None:
     """
     A function that abstracts pd.DataFrame's saving functions with
@@ -510,17 +511,24 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--input_folder",
+        "--cloud",
+        type=bool,
+        choices=[True, False],
+        help="whether the code will execute on Azure or locally",
+    )
+
+    parser.add_argument(
+        "--input_file",
         required=True,
         type=str,
-        help="string, file path to the audio file",
+        help="string, file path or uri (Azure) to the audio file",
     )
 
     parser.add_argument(
         "--input_filename",
-        required=True,
+        required=False, # Azure required only
         type=str,
-        help="string, file path to the audio file",
+        help="string, filename of audio file",
     )
 
     parser.add_argument(
@@ -589,6 +597,13 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    cloud = str(args.cloud) == "True"
+
+    if cloud is True:
+        file_path = f"{args.input_file}/{args.input_filename}"
+
+    else: 
+        file_path= args.input_file
 
     # get segment length in frames
     segment_frames_length = segment_number_to_frames(
@@ -596,7 +611,7 @@ if __name__ == "__main__":
     )
 
     # load audio file and set sample rate to the chosen value
-    audio = load_audio(file_path=args.input_folder, file_name=args.input_filename, target_sample_rate=args.target_sr)
+    audio = load_audio(file_path = file_path, target_sample_rate=args.target_sr)
 
     # get full audio length in frames
     full_audio_length_frames = len(audio)
@@ -635,4 +650,10 @@ if __name__ == "__main__":
     )
 
     # save the data to chosen place with chosen format
-    save_data(data_df, args.output_path)
+    #save_data(data_df, args.output_path)
+
+    #output_path = args.output_path + ".csv"
+    data_df.to_csv(args.output_path, index=False)
+
+
+    epp_logger.warning(f"File saved successfully to {args.output_path}")

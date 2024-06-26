@@ -1,8 +1,9 @@
 from azure.ai.ml import MLClient, dsl, Input, Output, command
 from azure.identity import ClientSecretCredential
 from azure.ai.ml.entities import PipelineJob
+from azure.ai.ml.constants import AssetTypes
 
-# Const values for Azure connection
+# const values for Azure connection
 SUBSCRIPTION_ID = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
 RESOURCE_GROUP = "buas-y2"
 WORKSPACE_NAME = "NLP3"
@@ -21,7 +22,7 @@ ml_client = MLClient(
 )
 
 # Get the environment and compute
-env = ml_client.environments.get("BlockD", version="18")
+env = ml_client.environments.get("BlockD", version="20")
 compute = ml_client.compute.get("adsai0")
 
 # Define the preprocessing component
@@ -34,12 +35,13 @@ episode_preprocessing_component = command(
         "input_filename": Input(type="string", description="Name of the input file"),
     },
     outputs={
-        "transcription": Output(type="uri_folder", mode="rw_mount", description="Transcription output"),
+        "transcription": Output(type="uri_file", mode="upload", description="Transcription output"),
     },
     code="./package/e3k/",
     command=(
         "python3 episode_preprocessing_pipeline.py "
-        "--input_folder ${{inputs.input_folder}} "
+        "--cloud True "
+        "--input_file ${{inputs.input_folder}} "
         "--input_filename ${{inputs.input_filename}} "
         "--output_path ${{outputs.transcription}}"
     ),
@@ -58,7 +60,7 @@ predict_component = command(
             description="Path to the model configuration and weights file",
         ),
         "data_path": Input(
-            type="uri_file", 
+            type="uri_folder", 
             description="Data to be predicted"
         ),
         "tokenizer_model": Input(
@@ -85,7 +87,7 @@ predict_component = command(
     },
     code="./package/e3k/",
     command=(
-        "python3 model.predict.py "
+        "python3 model_predict.py "
         "--model_path ${{inputs.model_path}} "
         "--data_path ${{inputs.data_path}} "
         "--tokenizer_model ${{inputs.tokenizer_model}} "
@@ -114,12 +116,13 @@ def preprocess_predict_pipeline(
     model_path,
     tokenizer_model,
     max_length,
-    decoder_path
+    decoder_path,
 
     ):
     preprocess_step = episode_preprocessing_component(
         input_folder=input_folder,
         input_filename=input_filename,
+
     )
 
     predict_step = predict_component(
@@ -130,9 +133,9 @@ def preprocess_predict_pipeline(
         decoder_path=decoder_path,
      )
 
- #   return {
- #       "transcription_output": preprocess_step.outputs.transcription,
- #   }
+    return {
+        "prediction_output": predict_step.outputs.predictions,
+   }
 
 #ml_client.create_or_update(episode_preprocessing_component.component)
 
@@ -148,7 +151,7 @@ model = ml_client.models.get(
 decoder_folder_path = (
     "azureml://subscriptions/0a94de80-6d3b-49f2-b3e9-ec5818862801/"
     "resourcegroups/buas-y2/workspaces/NLP3/datastores/workspaceblobstore/"
-    f"paths/labels_encodings/{model_name}/label_decoder"
+    f"paths/labels_encodings/{model_name}"
 )
 
 model_path = model.path
@@ -157,7 +160,7 @@ model_path = model.path
 # Test prediction pipeline on a small dataset
 predict_pipeline = preprocess_predict_pipeline(
         input_folder=Input(path="azureml://subscriptions/0a94de80-6d3b-49f2-b3e9-ec5818862801/resourcegroups/buas-y2/workspaces/NLP3/datastores/workspaceblobstore/paths/test_evaluation_pipeline/"),
-        input_filename="trimmed_ER22_AFL01_MXF.mov",
+        input_filename="trimmed_video_test.mov",
         model_path=Input(path=model_path),
         tokenizer_model="roberta-base",
         max_length=128,
