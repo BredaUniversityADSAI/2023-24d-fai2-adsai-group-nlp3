@@ -112,8 +112,13 @@ def predict_and_evaluate(model, X_val, y_val, label_encoder):
 
 def main():
     # Load your data here
-    train = pd.read_csv('/Users/maxmeiners/Library/CloudStorage/OneDrive-BUas/Github/Year 2/Block D/test_files/test_emotions', nrows=500)
-    test = pd.read_csv('/Users/maxmeiners/Library/CloudStorage/OneDrive-BUas/Github/Year 2/Block D/test_files/test_emotions', skiprows=range(1, 501), nrows=500)
+    train = pd.read_csv('/Users/maxmeiners/Library/CloudStorage/OneDrive-BUas'
+                        '/Github/Year 2/Block D/test_files/test_emotions', 
+                        nrows=500)
+    test = pd.read_csv('/Users/maxmeiners/Library/CloudStorage/OneDrive-BUas/'
+                       'Github/Year 2/Block D/test_files/test_emotions', 
+                       skiprows=range(1, 501), 
+                       nrows=500)
 
     # Preprocessing steps
     train_sentences = train['sentence'].values
