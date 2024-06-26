@@ -5,7 +5,7 @@ import sys
 
 
 # Add the path to the folder containing your Python source code files
-sys.path.insert(0, "C:/Users/korne/OneDrive/Pulpit/2023-24d-fai2-adsai-group-nlp3/package/src")
+sys.path.insert(0, "C:/Users/korne/OneDrive/Pulpit/2023-24d-fai2-adsai-group-nlp3/package/e3k")
 
 
 # For the full list of built-in configuration values, see the documentation:
@@ -47,4 +47,5 @@ html_theme_options = {
 }
 
 
-autodoc_mock_imports = ["whisper", "spacy", "pydub", "matplotlib", "tensorflow", 'transformers']
+autodoc_mock_imports = ["whisper", "spacy", "pydub", "matplotlib",
+                         "tensorflow", 'transformers', 'typeguard', 'mlflow']

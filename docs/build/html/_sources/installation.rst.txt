@@ -49,10 +49,6 @@ For non-conda users having python 3.10 is necessary.
     
         pip install wheel
 
-For poetry users
------------------
-1. Reconsider your life choices.
-
 Verify the installation:
 ------------------------
 

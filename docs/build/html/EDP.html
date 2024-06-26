@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Episode Data Preperocessing &mdash; Emotions 1 documentation</title>
+  <title>Episode Data Preprocessing &mdash; Emotions 1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
 
@@ -49,21 +49,60 @@
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#for-conda-users">For conda users</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#for-non-conda-users">For non-conda users</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#for-poetry-users">For poetry users</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#verify-the-installation">Verify the installation:</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#cli-usage">CLI Usage</a></li>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#api-usage">API Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#license">License</a></li>
 </ul>
 </li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Source Code</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Episode Data Preperocessing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="model_training.html">Model Training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="moi.html">Model Output Information</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Episode Data Preprocessing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#episode_preprocessing_pipeline.adjust_fragment_end_frame"><code class="docutils literal notranslate"><span class="pre">adjust_fragment_end_frame()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#episode_preprocessing_pipeline.adjust_fragment_start_frame"><code class="docutils literal notranslate"><span class="pre">adjust_fragment_start_frame()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#episode_preprocessing_pipeline.clean_transcript_df"><code class="docutils literal notranslate"><span class="pre">clean_transcript_df()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#episode_preprocessing_pipeline.epp_logger"><code class="docutils literal notranslate"><span class="pre">epp_logger</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#episode_preprocessing_pipeline.get_frame_segments_from_vad_output"><code class="docutils literal notranslate"><span class="pre">get_frame_segments_from_vad_output()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#episode_preprocessing_pipeline.get_segments_for_vad"><code class="docutils literal notranslate"><span class="pre">get_segments_for_vad()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#episode_preprocessing_pipeline.get_target_length_frames"><code class="docutils literal notranslate"><span class="pre">get_target_length_frames()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#episode_preprocessing_pipeline.get_vad_per_segment"><code class="docutils literal notranslate"><span class="pre">get_vad_per_segment()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#episode_preprocessing_pipeline.load_audio"><code class="docutils literal notranslate"><span class="pre">load_audio()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#episode_preprocessing_pipeline.save_data"><code class="docutils literal notranslate"><span class="pre">save_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#episode_preprocessing_pipeline.segment_number_to_frames"><code class="docutils literal notranslate"><span class="pre">segment_number_to_frames()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#episode_preprocessing_pipeline.transcribe_translate_fragments"><code class="docutils literal notranslate"><span class="pre">transcribe_translate_fragments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="model_training.html">Model Training</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.get_args"><code class="docutils literal notranslate"><span class="pre">get_args()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.get_label_decoder"><code class="docutils literal notranslate"><span class="pre">get_label_decoder()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.get_new_model"><code class="docutils literal notranslate"><span class="pre">get_new_model()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.train_model"><code class="docutils literal notranslate"><span class="pre">train_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="moi.html">Model Output Information</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="moi.html#model_output_information.calculate_episode_confidence"><code class="docutils literal notranslate"><span class="pre">calculate_episode_confidence()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="moi.html#model_output_information.plot_emotion_distribution"><code class="docutils literal notranslate"><span class="pre">plot_emotion_distribution()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="model_evaluate.html">Model Evaluation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="model_evaluate.html#model_evaluate.decode_labels"><code class="docutils literal notranslate"><span class="pre">decode_labels()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_evaluate.html#model_evaluate.evaluate"><code class="docutils literal notranslate"><span class="pre">evaluate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_evaluate.html#model_evaluate.load_data"><code class="docutils literal notranslate"><span class="pre">load_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_evaluate.html#model_evaluate.load_label_decoder"><code class="docutils literal notranslate"><span class="pre">load_label_decoder()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_evaluate.html#model_evaluate.predict"><code class="docutils literal notranslate"><span class="pre">predict()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_evaluate.html#model_evaluate.save_model"><code class="docutils literal notranslate"><span class="pre">save_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="model_predict.html">Model Prediction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="model_predict.html#model_predict.decode_labels"><code class="docutils literal notranslate"><span class="pre">decode_labels()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_predict.html#model_predict.get_model"><code class="docutils literal notranslate"><span class="pre">get_model()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_predict.html#model_predict.predict"><code class="docutils literal notranslate"><span class="pre">predict()</span></code></a></li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -80,7 +119,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Episode Data Preperocessing</li>
+      <li class="breadcrumb-item active">Episode Data Preprocessing</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/edp.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -90,9 +129,270 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="episode-data-preperocessing">
-<span id="edp"></span><h1>Episode Data Preperocessing<a class="headerlink" href="#episode-data-preperocessing" title="Link to this heading"></a></h1>
-<p>This process alows user to input new data (video or audio), process that to output text data for training on new data or/and emotion classification.</p>
+  <section id="episode-data-preprocessing">
+<span id="edp"></span><h1>Episode Data Preprocessing<a class="headerlink" href="#episode-data-preprocessing" title="Link to this heading"></a></h1>
+<p>This process alows user to input new data (video or audio),
+process that to output text data for training on new data or/and emotion classification.</p>
+<dl class="py function" id="module-episode_preprocessing_pipeline">
+<dt class="sig sig-object py" id="episode_preprocessing_pipeline.adjust_fragment_end_frame">
+<span class="sig-prename descclassname"><span class="pre">episode_preprocessing_pipeline.</span></span><span class="sig-name descname"><span class="pre">adjust_fragment_end_frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">end_fragment_frame</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_audio_length_frames</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#episode_preprocessing_pipeline.adjust_fragment_end_frame" title="Link to this definition"></a></dt>
+<dd><p>A function that moves the end of the larger fragment (a couple of minutes)
+to end 0.125 seconds later if the new end does not go over
+the full audio duration. Used by get_frame_segments_from_vad_output function.</p>
+<dl>
+<dt>Input:</dt><dd><dl class="simple">
+<dt>end_fragment_frame (int): the frame number that corresponds to start of</dt><dd><p>the last used in this fragment segment with no speech detected</p>
+</dd>
+</dl>
+<p>sample_rate (int): sample rate of the audio file</p>
+</dd>
+<dt>Output:</dt><dd><p>end_fragment_frame (int): adjusted (if possible) end_fragment_frame value</p>
+</dd>
+</dl>
+<p>Author - Wojciech Stachowiak</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="episode_preprocessing_pipeline.adjust_fragment_start_frame">
+<span class="sig-prename descclassname"><span class="pre">episode_preprocessing_pipeline.</span></span><span class="sig-name descname"><span class="pre">adjust_fragment_start_frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_fragment_frame</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#episode_preprocessing_pipeline.adjust_fragment_start_frame" title="Link to this definition"></a></dt>
+<dd><p>A function that moves the start of the larger fragment (a couple of minutes)
+to start 0.125 seconds earlier if the new start does not go below 0.</p>
+<dl>
+<dt>Input:</dt><dd><dl class="simple">
+<dt>start_fragment_frame (int): the frame number that corresponds to start of</dt><dd><p>the segment with no speech detected</p>
+</dd>
+</dl>
+<p>sample_rate (int): sample rate of the audio file</p>
+</dd>
+<dt>Output:</dt><dd><p>start_fragment_frame (int): adjusted (if possible) start_fragment_frame value</p>
+</dd>
+</dl>
+<p>Author - Wojciech Stachowiak</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="episode_preprocessing_pipeline.clean_transcript_df">
+<span class="sig-prename descclassname"><span class="pre">episode_preprocessing_pipeline.</span></span><span class="sig-name descname"><span class="pre">clean_transcript_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">episode_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">datetime.date(2024,</span> <span class="pre">6,</span> <span class="pre">26)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#episode_preprocessing_pipeline.clean_transcript_df" title="Link to this definition"></a></dt>
+<dd><p>A function that cleans the output of the transcribe_translate_fragments function.
+It adds a column to identify the episode later
+(current date in YYYY-MM-DD format by default). This can be changed by specifying
+the episode_value argument in the transcribe_translate_fragments function.
+Additionally, this function renames columns, and splits transcription for an episode
+fragment into separate sentences.</p>
+<dl>
+<dt>Input:</dt><dd><dl class="simple">
+<dt>df (pd.DataFrame): a dataframe returned by</dt><dd><p>transcribe_translate_fragments function</p>
+</dd>
+</dl>
+<p>sample_rate (int): sample rate of the audio file
+episode_value (Any): value assigned to each row for this episode,</p>
+<blockquote>
+<div><p>default: current date in YYYY-MM-DD format (e.g. 2024-05-16)</p>
+</div></blockquote>
+</dd>
+<dt>Output:</dt><dd><p>df (pd.DataFrame): a cleaned dataframe with one sentence in each row</p>
+</dd>
+</dl>
+<p>Author - Wojciech Stachowiak</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="episode_preprocessing_pipeline.epp_logger">
+<span class="sig-prename descclassname"><span class="pre">episode_preprocessing_pipeline.</span></span><span class="sig-name descname"><span class="pre">epp_logger</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;Logger</span> <span class="pre">main.episode_preprocessing_pipeline</span> <span class="pre">(WARNING)&gt;</span></em><a class="headerlink" href="#episode_preprocessing_pipeline.epp_logger" title="Link to this definition"></a></dt>
+<dd><p>Pipeline functions are main components of this pipeline.</p>
+<p>They are meant to be used outside of this module,
+and when used in order, provide the video or audio to sentences pipeline.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="episode_preprocessing_pipeline.get_frame_segments_from_vad_output">
+<span class="sig-prename descclassname"><span class="pre">episode_preprocessing_pipeline.</span></span><span class="sig-name descname"><span class="pre">get_frame_segments_from_vad_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">speech_array</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_fragment_length_seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segment_seconds_length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_audio_length_frames</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#episode_preprocessing_pipeline.get_frame_segments_from_vad_output" title="Link to this definition"></a></dt>
+<dd><p>A function that connects the small segments (10/20/30ms) into larger (5-6 min)
+fragments based on the results from get_vad_per_segment function.
+It combines small segments until a specified threshold is reached,
+and the start and end in frames is saved. The function returns
+(start, end) pairs in a list.</p>
+<dl>
+<dt>Input:</dt><dd><dl class="simple">
+<dt>speech_array (np.array): np.array with bool values obtained from</dt><dd><p>get_vad_per_segment function</p>
+</dd>
+</dl>
+<p>sample_rate (int): sample rate of the audio file
+min_fragment_length_seconds (int): min amount of seconds per fragment</p>
+<blockquote>
+<div><p>generated from 10/20/30ms segments</p>
+</div></blockquote>
+<p>segment_seconds_length (float): length of one segment in seconds
+full_audio_length_frames (int): the total number of frames in</p>
+<blockquote>
+<div><p>the entire audio file</p>
+</div></blockquote>
+</dd>
+<dt>Output:</dt><dd><dl class="simple">
+<dt>cut_fragments_frames (list[tuple[int, int]]): list of</dt><dd><p>(start, end) frame number pairs</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>Author - Wojciech Stachowiak</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="episode_preprocessing_pipeline.get_segments_for_vad">
+<span class="sig-prename descclassname"><span class="pre">episode_preprocessing_pipeline.</span></span><span class="sig-name descname"><span class="pre">get_segments_for_vad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">audio</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segment_seconds_length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">array</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#episode_preprocessing_pipeline.get_segments_for_vad" title="Link to this definition"></a></dt>
+<dd><p>A function that adapts the audio file so that it is compatible with
+webrtcvad.Vad object. The sample rate must be 8kHz, 16kHz, or 32kHz, and
+the segment length must be 10ms, 20ms, or 30ms. It returns a list of
+audio segments of the chosen length.</p>
+<dl class="simple">
+<dt>Input:</dt><dd><p>audio (np.array): audio file obtained from load_audio function
+sample_rate (int): sample rate of the audio file
+segment_seconds_length (float): segment length in seconds</p>
+</dd>
+<dt>Output:</dt><dd><p>segments (list[np.array]): list of cutouts from the audio file</p>
+</dd>
+</dl>
+<p>Author - Wojciech Stachowiak</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="episode_preprocessing_pipeline.get_target_length_frames">
+<span class="sig-prename descclassname"><span class="pre">episode_preprocessing_pipeline.</span></span><span class="sig-name descname"><span class="pre">get_target_length_frames</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">min_length_seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#episode_preprocessing_pipeline.get_target_length_frames" title="Link to this definition"></a></dt>
+<dd><p>A function that converts duration in seconds into number of frames
+representing this duration given the audio sample rate.</p>
+<dl class="simple">
+<dt>Input:</dt><dd><p>min_length_seconds (int): number of seconds
+sample_rate (int): sample rate of the audio file</p>
+</dd>
+<dt>Output:</dt><dd><p>target_length_frames (int): the number of frames that correspond
+to the number of seconds</p>
+</dd>
+</dl>
+<p>Author - Wojciech Stachowiak</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="episode_preprocessing_pipeline.get_vad_per_segment">
+<span class="sig-prename descclassname"><span class="pre">episode_preprocessing_pipeline.</span></span><span class="sig-name descname"><span class="pre">get_vad_per_segment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">segments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">array</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vad_aggressiveness</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segment_frames_length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">array</span></span></span><a class="headerlink" href="#episode_preprocessing_pipeline.get_vad_per_segment" title="Link to this definition"></a></dt>
+<dd><p>A function that decides whether an audio file preciously cut to segments using
+get_segments_for_vad function contains speech or not based on voice
+activation detection. VAD aggressiveness, is adjustable (int values from 0 to 3),
+and on top of that, audio sample rate and segment length in frames is required.</p>
+<dl>
+<dt>Input:</dt><dd><dl class="simple">
+<dt>segments (list[np.array]): list with cut audio obtained from</dt><dd><p>get_segments_for_vad function</p>
+</dd>
+<dt>vad_aggressiveness (int): how aggressive should the function be</dt><dd><p>when filtering out non-speech</p>
+</dd>
+</dl>
+<p>sample_rate (int): sample rate of the audio file
+segment_frames_length: segment length measured by number of frames</p>
+</dd>
+<dt>Output:</dt><dd><dl class="simple">
+<dt>segments_is_speech (np.array): array with bool values representing</dt><dd><p>detected speech for a given segment. True means that the segment
+contains speech</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>Author - Wojciech Stachowiak</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="episode_preprocessing_pipeline.load_audio">
+<span class="sig-prename descclassname"><span class="pre">episode_preprocessing_pipeline.</span></span><span class="sig-name descname"><span class="pre">load_audio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_sample_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">array</span></span></span><a class="headerlink" href="#episode_preprocessing_pipeline.load_audio" title="Link to this definition"></a></dt>
+<dd><p>A function that loads audio data from video file
+or directly loads audio from input.
+Used by providing the path to the episode and desired sample rate.
+The function assumes the audio is multi-channel and
+automatically converts it to mono, but can also handle mono input.</p>
+<dl class="simple">
+<dt>Input:</dt><dd><p>file_path (str): file path to the video or audio
+target_sample_rate (int): the sample rate the audio file will be converted to</p>
+</dd>
+<dt>Output:</dt><dd><dl class="simple">
+<dt>audio (np.array): mono audio file with specified sample rate</dt><dd><p>represented as np.array</p>
+</dd>
+</dl>
+</dd>
+<dt>Author:</dt><dd><p>Kornelia Flizik (223643)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="episode_preprocessing_pipeline.save_data">
+<span class="sig-prename descclassname"><span class="pre">episode_preprocessing_pipeline.</span></span><span class="sig-name descname"><span class="pre">save_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#episode_preprocessing_pipeline.save_data" title="Link to this definition"></a></dt>
+<dd><p>A function that abstracts pd.DataFrame’s saving functions with
+an option to choose json or csv format. If output path is not provided,
+the default path is “output.csv” in the current directory.</p>
+<dl>
+<dt>Input:</dt><dd><p>df (pd.DataFrame): dataframe to save
+output_path (str): file path to the saved file,</p>
+<blockquote>
+<div><p>default: “output.csv”</p>
+</div></blockquote>
+</dd>
+</dl>
+<p>Output: None</p>
+<p>Author - Wojciech Stachowiak</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="episode_preprocessing_pipeline.segment_number_to_frames">
+<span class="sig-prename descclassname"><span class="pre">episode_preprocessing_pipeline.</span></span><span class="sig-name descname"><span class="pre">segment_number_to_frames</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">segment_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segment_seconds_length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#episode_preprocessing_pipeline.segment_number_to_frames" title="Link to this definition"></a></dt>
+<dd><p>A function that converts segment number to the number of
+frames from the start of the audio file using segment number,
+audio sample rate, and segment length in seconds</p>
+<dl>
+<dt>Input:</dt><dd><dl class="simple">
+<dt>segment_number (int): number of the segment from the np.array</dt><dd><p>obtained from get_vad_per_segment function</p>
+</dd>
+</dl>
+<p>sample_rate (int): sample rate of the audio file
+segment_seconds_length (float): length of the audio segment in seconds</p>
+</dd>
+<dt>Output:</dt><dd><p>frames (int): the number of frames from the start of the audio
+file that corresponds to the segment number</p>
+</dd>
+</dl>
+<p>Author - Wojciech Stachowiak</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="episode_preprocessing_pipeline.transcribe_translate_fragments">
+<span class="sig-prename descclassname"><span class="pre">episode_preprocessing_pipeline.</span></span><span class="sig-name descname"><span class="pre">transcribe_translate_fragments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">audio</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cut_fragments_frames</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_fp16</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transcription_model_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'base'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">episode_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">datetime.date(2024,</span> <span class="pre">6,</span> <span class="pre">26)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#episode_preprocessing_pipeline.transcribe_translate_fragments" title="Link to this definition"></a></dt>
+<dd><p>A function that transcribes and translates the audio fragments using openai-whisper
+model, and returns a pandas.DataFrame with English sentences
+(one sentence per row). The size of the model can be adjusted.</p>
+<dl>
+<dt>Input:</dt><dd><p>audio (np.array): full audio file loaded with load_audio function
+cut_audio_frames (list[tuple[int, int]]): list of</p>
+<blockquote>
+<div><p>(start, end) frame number pairs</p>
+</div></blockquote>
+<p>sample_rate (int): sample rate of the audio file
+use_fp16 (bool): Whether to use FP16 format for model prediction,</p>
+<blockquote>
+<div><p>needs to be False for CPU. Defaults to True.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>transcription_model_size (str): size of whisper model used for</dt><dd><p>transcription and translation,
+see: <a class="reference external" href="https://pypi.org/project/openai-whisper/">https://pypi.org/project/openai-whisper/</a>. default: “base”</p>
+</dd>
+<dt>episode_value (Any): value assigned to each row for this episode,</dt><dd><p>default: current date in YYYY-MM-DD format (e.g. 2024-05-16)</p>
+</dd>
+</dl>
+</dd>
+<dt>Output:</dt><dd><dl class="simple">
+<dt>data (pd.DataFrame): dataframe with english sentences assigned to</dt><dd><p>the episode value and segment number</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>Author - Wojciech Stachowiak</p>
+</dd></dl>
+
 </section>
 
 

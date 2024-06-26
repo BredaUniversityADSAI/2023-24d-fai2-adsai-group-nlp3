@@ -23,10 +23,16 @@ Bla bla bla
    edp
    model_training
    moi
+   model_evaluate
+   model_predict
+
+License
+-------
+This project is licensed under the terms of the MIT license.
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
 * :ref:`modindex`
-* :ref:`search
+* :ref:`search`

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Model Prediction &mdash; Emotions 1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=29a6c3e3"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Model Output Information" href="moi.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Emotions
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#for-conda-users">For conda users</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#for-non-conda-users">For non-conda users</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#verify-the-installation">Verify the installation:</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#cli-usage">CLI Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#api-usage">API Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#license">License</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Source Code</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="edp.html">Episode Data Preprocessing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.adjust_fragment_end_frame"><code class="docutils literal notranslate"><span class="pre">adjust_fragment_end_frame()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.adjust_fragment_start_frame"><code class="docutils literal notranslate"><span class="pre">adjust_fragment_start_frame()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.clean_transcript_df"><code class="docutils literal notranslate"><span class="pre">clean_transcript_df()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.epp_logger"><code class="docutils literal notranslate"><span class="pre">epp_logger</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.get_frame_segments_from_vad_output"><code class="docutils literal notranslate"><span class="pre">get_frame_segments_from_vad_output()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.get_segments_for_vad"><code class="docutils literal notranslate"><span class="pre">get_segments_for_vad()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.get_target_length_frames"><code class="docutils literal notranslate"><span class="pre">get_target_length_frames()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.get_vad_per_segment"><code class="docutils literal notranslate"><span class="pre">get_vad_per_segment()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.load_audio"><code class="docutils literal notranslate"><span class="pre">load_audio()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.save_data"><code class="docutils literal notranslate"><span class="pre">save_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.segment_number_to_frames"><code class="docutils literal notranslate"><span class="pre">segment_number_to_frames()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.transcribe_translate_fragments"><code class="docutils literal notranslate"><span class="pre">transcribe_translate_fragments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="model_training.html">Model Training</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.get_args"><code class="docutils literal notranslate"><span class="pre">get_args()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.get_label_decoder"><code class="docutils literal notranslate"><span class="pre">get_label_decoder()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.get_new_model"><code class="docutils literal notranslate"><span class="pre">get_new_model()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_training.html#model_training.train_model"><code class="docutils literal notranslate"><span class="pre">train_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="moi.html">Model Output Information</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="moi.html#model_output_information.calculate_episode_confidence"><code class="docutils literal notranslate"><span class="pre">calculate_episode_confidence()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="moi.html#model_output_information.plot_emotion_distribution"><code class="docutils literal notranslate"><span class="pre">plot_emotion_distribution()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Model Prediction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#model_predict.decode_labels"><code class="docutils literal notranslate"><span class="pre">decode_labels()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model_predict.get_model"><code class="docutils literal notranslate"><span class="pre">get_model()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model_predict.predict"><code class="docutils literal notranslate"><span class="pre">predict()</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Emotions</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Model Prediction</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/model_predict.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="model-prediction">
+<span id="model-predict"></span><h1>Model Prediction<a class="headerlink" href="#model-prediction" title="Link to this heading"></a></h1>
+<p>This script is used to predict label using model.</p>
+<dl class="py function" id="module-model_predict">
+<dt class="sig sig-object py" id="model_predict.decode_labels">
+<span class="sig-prename descclassname"><span class="pre">model_predict.</span></span><span class="sig-name descname"><span class="pre">decode_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">encoded_labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emotion_decoder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#model_predict.decode_labels" title="Link to this definition"></a></dt>
+<dd><p>A function that decodes label numbers into text representation of labels</p>
+<dl>
+<dt>Input:</dt><dd><p>encoded_labels (list[int]): List of labels represented as number.
+emotion_decoder (dict[int, str]): Dictionary with number to text mapping loaded</p>
+<blockquote>
+<div><p>with get_model function.</p>
+</div></blockquote>
+</dd>
+<dt>Output:</dt><dd><p>decoded_labels (list[str]): List of labels represented as text.</p>
+</dd>
+<dt>Author:</dt><dd><p>Max Meiners (214936)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model_predict.get_model">
+<span class="sig-prename descclassname"><span class="pre">model_predict.</span></span><span class="sig-name descname"><span class="pre">get_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">transformers.TFRobertaForSequenceClassification</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#model_predict.get_model" title="Link to this definition"></a></dt>
+<dd><p>Create or load a RoBERTa model with the specified number of output classes.
+Number of classes not needed when loading a previously trained model.</p>
+<dl>
+<dt>Input:</dt><dd><p>model_path (str): Path to the model directory.</p>
+</dd>
+<dt>Output:</dt><dd><p>model: RoBERTa model with the specified number of output classes.
+emotion_dict (dict[int, str]): Python dictionary that maps integers to text</p>
+<blockquote>
+<div><p>emotions for the model, only returned when loading a trained model,
+otherwise the value is None.</p>
+</div></blockquote>
+</dd>
+<dt>Author:</dt><dd><p>Max Meiners (214936)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="model_predict.predict">
+<span class="sig-prename descclassname"><span class="pre">model_predict.</span></span><span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">transformers.TFRobertaForSequenceClassification</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">token_array</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_array</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emotion_decoder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#model_predict.predict" title="Link to this definition"></a></dt>
+<dd><p>A function that predicts emotions from preprocessed input using a loaded model.
+It returns text labels decoded using emotion_decoder dictionary loaded
+with the model.</p>
+<dl>
+<dt>Input:</dt><dd><p>model (transformers.TFRobertaForSequenceClassification): a loaded RoBERTa model.
+token_array (np.array): A token array returned by tokenize_text_data function.
+mask_array (np.array): A mask array returned by tokenize_text_data function.
+emotion_decoder (dict[int, str]): Dictionary with number to text mapping loaded</p>
+<blockquote>
+<div><p>with get_model function.</p>
+</div></blockquote>
+</dd>
+<dt>Output:</dt><dd><p>text_labels (list[str]): List of text emotions predicted by the model.
+highest_probabilities (list[float]): List of model’s confidence</p>
+<blockquote>
+<div><p>that the predicted emotion is correct.</p>
+</div></blockquote>
+</dd>
+<dt>Author:</dt><dd><p>Max Meiners (214936)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="moi.html" class="btn btn-neutral float-left" title="Model Output Information" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Juraj Kret, Max Meiners, Panna Pfandler, Kornelia Flizik, Wojciech Stachowiak.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
