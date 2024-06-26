@@ -148,14 +148,17 @@ def get_ml_client(
     return ml_client
 
 
-# TODO type annotations + typeguard
-def get_versioned_datasets(args, ml_client) -> Tuple[str, str, str]:
+@typeguard.typechecked
+def get_versioned_datasets(
+    args: argparse.Namespace, 
+    ml_client: MLClient
+    ) -> Tuple[str, str, str]:
     """
     A function that finds the newest versions of train and validation datasets,
     and returns those values.
 
     Input:
-        args (argparse.Namespace): namespace object with CLI arguments
+        args (argparse.Namespace): Namespace object with CLI arguments
         ml_client (azure.ai.ml.MLClient): Azure object used to interact with Azure
 
     Output:
@@ -252,12 +255,10 @@ def get_label_decoder(series: pd.Series) -> Dict[int, str]:
 
 @typeguard.typechecked
 def get_new_model(num_classes: int) -> transformers.TFRobertaForSequenceClassification:
-    # TODO update docstring
     """
     Create or load a RoBERTa model with the specified number of output classes.
 
     Input:
-        model_path (str): Path to the model directory.
         num_classes (int): Number of output classes for the model.
 
     Output:
@@ -300,7 +301,7 @@ def train_model(
         early_stopping_patience (int): patience parameter for EarlyStopping callback
 
     Output:
-        model: trained model
+        model: A trained model with the specified parameters.
 
     Author:
         Max Meiners (214936)
