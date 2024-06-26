@@ -9,3 +9,5 @@ package/tests/__pycache__/test_model_training.cpython-311.pyc
 package/tests/logs.log
 package/e3k/__pycache__/
 *.pyc
+package/e3k/logs.log
+package/e3k/models/LSTM_model/lstm_model.h5

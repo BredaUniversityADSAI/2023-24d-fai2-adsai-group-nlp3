@@ -1,15 +1,16 @@
 import logging
+import config
+import os
 
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-from tensorflow.keras.layers import (LSTM, Bidirectional, Dense, Embedding,
-                                     GlobalMaxPool1D)
-from tensorflow.keras.models import Sequential
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.preprocessing.text import Tokenizer
+from azure.ai.ml import MLClient
+from azure.identity import ClientSecretCredential
 
 # setting up logger
 pre_lstm_logger = logging.getLogger(
@@ -32,6 +33,56 @@ file_handler.setFormatter(formatter)
 
 pre_lstm_logger.addHandler(file_handler)
 
+# Azure ML Workspace and Model details
+MODEL_NAME = "LSTM_model"
+SAVE_PATH = ("/Users/maxmeiners/Library/CloudStorage/OneDrive-BUas"
+             "/Github/Year 2/Block D/model/updated_lstm_model.h5")
+
+# Function to load Azure ML workspace
+def load_workspace():
+    print("Loading Azure ML workspace...")
+    credential = ClientSecretCredential(
+        tenant_id=config.config["tenant_id"],
+        client_id=config.config["client_id"],
+        client_secret=config.config["client_secret"]
+    )
+    workspace = MLClient(
+        subscription_id=config.config["subscription_id"],
+        resource_group_name=config.config["resource_group"],
+        workspace_name=config.config["workspace_name"],
+        credential=credential
+    )
+    print("Workspace loaded successfully.")
+    return workspace
+
+# Function to load the model from Azure ML
+def load_model_from_azure(workspace):
+    print(f"Fetching model '{MODEL_NAME}' from Azure ML workspace...")
+    
+    # Fetch the latest version of the model
+    model_list = workspace.models.list(name=MODEL_NAME)
+    latest_model = max(model_list, key=lambda m: m.version)
+    
+    print(f"Model '{MODEL_NAME}' version '{latest_model.version}' fetched successfully.")
+    
+    # Download the model locally
+    download_path = 'models'
+    _ = workspace.models.download(name=MODEL_NAME, version=latest_model.version, download_path=download_path)
+    
+    # Locate the actual model file in the download directory
+    for root, dirs, files in os.walk(download_path):
+        for file in files:
+            if file.endswith('.h5'):
+                model_file_path = os.path.join(root, file)
+                break
+    
+    print(f"Model downloaded successfully at '{model_file_path}'.")
+    
+    # Load the model (assuming it's a TensorFlow/Keras model)
+    print("Loading the model...")
+    loaded_model = tf.keras.models.load_model(model_file_path)
+    print("Model loaded successfully.")
+    return loaded_model
 
 def preprocess_labels(train_labels):
     label_encoder = LabelEncoder()
@@ -39,10 +90,10 @@ def preprocess_labels(train_labels):
     train_labels_one_hot = tf.keras.utils.to_categorical(train_labels_encoded)
     return train_labels_encoded, train_labels_one_hot, label_encoder
 
-
-def tokenize_sentences(
-    train_sentences, test_sentences, num_words=10000000, max_length=None
-):
+def tokenize_sentences(train_sentences, 
+                       test_sentences, 
+                       num_words=10000000, 
+                       max_length=None):
     tokenizer = Tokenizer(oov_token="<OOV>", num_words=num_words)
     tokenizer.fit_on_texts(train_sentences)
     tokenizer.fit_on_texts(test_sentences)
@@ -57,7 +108,6 @@ def tokenize_sentences(
 
     return train_padded, test_padded, tokenizer, max_length
 
-
 def split_dataset(train_padded, train_labels_one_hot, test_size=0.2, random_state=42):
     return train_test_split(
         train_padded,
@@ -66,50 +116,9 @@ def split_dataset(train_padded, train_labels_one_hot, test_size=0.2, random_stat
         random_state=random_state,
     )
 
-
-def build_model(vocab_size, max_length, num_emotions, embedding_dim=64):
-    model = Sequential(
-        [
-            Embedding(input_dim=vocab_size, output_dim=400, input_length=max_length),
-            Bidirectional(LSTM(516, return_sequences=True)),
-            Dense(256, activation="relu"),
-            GlobalMaxPool1D(),
-            Dense(128, activation="relu"),
-            Dense(64, activation="relu"),
-            Dense(num_emotions, activation="softmax"),
-        ]
-    )
-
-    model.build(input_shape=(None, max_length))
-    model.summary()
-    return model
-
-
-def compile_model(model):
-    def f1_score(y_true, y_pred):
-        true_positives = tf.keras.backend.sum(
-            tf.keras.backend.round(tf.keras.backend.clip(y_true * y_pred, 0, 1))
-        )
-        possible_positives = tf.keras.backend.sum(
-            tf.keras.backend.round(tf.keras.backend.clip(y_true, 0, 1))
-        )
-        predicted_positives = tf.keras.backend.sum(
-            tf.keras.backend.round(tf.keras.backend.clip(y_pred, 0, 1))
-        )
-
-        precision = true_positives / (predicted_positives + tf.keras.backend.epsilon())
-        recall = true_positives / (possible_positives + tf.keras.backend.epsilon())
-
-        f1_val = (
-            2 * (precision * recall) / (precision + recall + tf.keras.backend.epsilon())
-        )
-        return f1_val
-
-    model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=[f1_score])
-    return model
-
-
 def train_model(model, X_train, y_train, X_val, y_val, epochs=100, batch_size=128):
+    model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
+    
     history = model.fit(
         X_train,
         y_train,
@@ -121,23 +130,24 @@ def train_model(model, X_train, y_train, X_val, y_val, epochs=100, batch_size=12
     )
     return history
 
-
 def predict_and_evaluate(model, X_val, y_val, label_encoder):
+    print("Evaluating the model on validation data...")
+    results = model.evaluate(X_val, y_val, verbose=0)
+    accuracy = results[1]
+    print(f'Accuracy: {accuracy}')
+    
     y_pred = model.predict(X_val)
     predicted_class_indices = np.argmax(y_pred, axis=1)
-    _ = np.argmax(y_val, axis=1)
     predicted_emotions = label_encoder.inverse_transform(predicted_class_indices)
-
     return predicted_emotions
 
-
-# def save_predictions(test, predicted_emotions, output_filename):
-#     test['emotion'] = predicted_emotions
-#     test = test.drop(columns=['sentence'])
-#     test.to_csv(output_filename, index=False)
-
-
 def main():
+    # Load the workspace
+    workspace = load_workspace()
+
+    # Load the model from Azure ML
+    loaded_model = load_model_from_azure(workspace)
+
     # Load your data here
     train = pd.read_csv(
         "/Users/maxmeiners/Library/CloudStorage/OneDrive-BUas"
@@ -157,25 +167,15 @@ def main():
     test_sentences = test["sentence"].values
 
     _, train_labels_one_hot, label_encoder = preprocess_labels(train_labels)
-    train_padded, _, tokenizer, max_length = tokenize_sentences(
-        train_sentences, test_sentences
-    )
+    train_padded, _, tokenizer, max_length = tokenize_sentences(train_sentences, test_sentences)
     X_train, X_val, y_train, y_val = split_dataset(train_padded, train_labels_one_hot)
 
-    unique_emotions = train["emotion"].unique()
-    num_emotions = len(unique_emotions)
-    vocab_size = len(tokenizer.word_index) + 1
+    # Train the model
+    train_model(loaded_model, X_train, y_train, X_val, y_val)
 
-    # Model creation and training
-    model = build_model(vocab_size, max_length, num_emotions)
-    model = compile_model(model)
-    _ = train_model(model, X_train, y_train, X_val, y_val)
-
-    # Prediction and evaluation
-    _ = predict_and_evaluate(model, X_val, y_val, label_encoder)
-
-    # # Save predictions
-    # save_predictions(test, predicted_emotions, 'rnn_model_max_4_moredata.csv')
+    # Predict and evaluate
+    _ = predict_and_evaluate(loaded_model, X_val, y_val, label_encoder)
 
 
-main()
+if __name__ == "__main__":
+    main()
