@@ -8,6 +8,14 @@ This project focuses on the development and deployment of a production-ready Nat
 
 To install the project, follow these steps:
 
+### Using Dockerfile
+
+1. Download the Dockerfile from the project’s GitHub repository (located in the environment folder).
+2. Navigate to the directory containing the Dockerfile.
+3. Build and run the Docker image: 
+ ```bash
+docker build -t my_project_image docker run -it –rm my_project_image
+ ```
 ### For Conda Users
 
 1. Download the `env.yaml` file from this project’s GitHub repository.
@@ -27,7 +35,7 @@ To install the project, follow these steps:
 
 ### For Non-Conda Users
 
-For non-conda users, having Python 3.10 is necessary.
+For non-conda users, having Python 3.8 is necessary.
 
 1. Download the `requirements.txt` file from this project’s GitHub repository.
 2. Navigate to the downloaded file.
@@ -50,11 +58,15 @@ e3k --version
 
 ## Usage 
 
-Our Command Line Interface (CLI) tool is designed to detect emotion from audio/video inputs. Below you'll find detailed instructions on how to use this tool, including all available options and commands.
+This section provides information on how to use the project both through the Command Line Interface (CLI) and the API.
 
-### Command Line Arguments
-#### General Arguments
-The tool accepts several command line arguments that define the behavior of the program:
+### CLI Usage
+
+The Command Line Interface (CLI) allows you to interact with the project from the terminal.
+
+1. Installation: First, ensure the project is installed. Check installation page.
+
+1. General Arguments: The tool accepts several command line arguments that define the behavior of the program:
 
 - **task**: Specifies the specific operation to be performed by the CLI tool. This is a mandatory parameter, and users must choose from the following valid options:
 
@@ -121,6 +133,15 @@ The tool accepts several command line arguments that define the behavior of the 
 
 - token_max_length: Max number of tokens created by preprocessing a sentence. Defaults to 128.
 
+### API Usage
 
+The API allows you to interact with the project programmatically.
+
+1. Importing the Module
+
+First, import the necessary module(s) in your Python script:
+ ```bash
+from your_project_name import your_module
+ ```
 ## License
 This project is licensed under the terms of the MIT license.
