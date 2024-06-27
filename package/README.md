@@ -1,6 +1,6 @@
 # Natural Language Processing / TV Show Emotion Classifier
 
-## Description / Project Overview 
+## Project Overview 
 
 This project focuses on the development and deployment of a production-ready Natural Language Processing (NLP) model for classifying emotions in TV shows. The aim is to provide Banijay Benelux with insights into viewer engagement and preferences within their TV series, particularly focusing on the popular show Expiditie Robinson.
 
