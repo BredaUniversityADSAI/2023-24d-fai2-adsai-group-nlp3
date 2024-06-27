@@ -26,7 +26,7 @@ and when used in order, provide the video or audio to sentences pipeline.
 """
 
 
-# TODO change this to work locally as well, maybe cloud flag? AUTHOR
+# TODO change this to work locally as well, maybe cloud flag?
 @typeguard.typechecked
 def load_audio(
     file_path: str = None, file_name: str = None, target_sample_rate: int = 32_000
@@ -45,6 +45,8 @@ def load_audio(
     Output:
         audio (np.array): mono audio file with specified sample rate
             represented as np.array
+    
+    Author - Juraj Kret (221439)
     """
 
     epp_logger.info("loading audio file")
