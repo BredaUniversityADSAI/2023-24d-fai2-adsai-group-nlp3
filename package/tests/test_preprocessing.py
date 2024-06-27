@@ -1,11 +1,3 @@
-"""
-Test suite for the preprocessing module.
-
-Author: Juraj Kret, 221439
-Date: 25th of June, 2024
-"""
-
-
 import pytest
 import pandas as pd
 import numpy as np
@@ -20,6 +12,7 @@ from e3k.preprocessing import (
     preprocess_prediction_data_no_tokenizer,
 )
 
+
 class TestPreprocessing:
     
     # Test the get_tokenizer function
@@ -27,6 +20,8 @@ class TestPreprocessing:
         """
         Test if the get_tokenizer function returns a valid tokenizer
         for the specified model name.
+
+        Author: Juraj Kret, 221439
         """
         tokenizer = get_tokenizer("roberta-base")
         assert isinstance(tokenizer, (PreTrainedTokenizer, PreTrainedTokenizerFast))
@@ -36,6 +31,8 @@ class TestPreprocessing:
         """
         Test if the tokenize_text_data function correctly tokenizes
         the input text data using the specified tokenizer.
+
+        Author: Juraj Kret, 221439
         """
         data = pd.Series(["This is a test sentence.", "Another test sentence."])
         tokenizer = get_tokenizer("roberta-base")
@@ -48,6 +45,8 @@ class TestPreprocessing:
         """
         Test if the encode_labels function correctly encodes
         the input labels using the provided label decoder.
+
+        Author: Juraj Kret, 221439
         """
         labels = pd.Series(["happy", "sad", "angry"])
         label_decoder = {0: "happy", 1: "sad", 2: "angry"}
@@ -59,6 +58,8 @@ class TestPreprocessing:
         """
         Test if the create_tf_dataset function correctly creates
         a TensorFlow dataset from the tokenized data and labels.
+
+        Author: Juraj Kret, 221439
         """
         tokens = np.random.randint(0, 100, (3, 128))
         masks = np.ones((3, 128))
@@ -71,6 +72,8 @@ class TestPreprocessing:
         """
         Test if the preprocess_training_data function correctly preprocesses
         the training and validation data and returns TensorFlow datasets.
+
+        Author: Juraj Kret, 221439
         """
         train_data = pd.DataFrame({
             "sentence": ["This is a train sentence.", "Another train sentence."],
@@ -81,7 +84,9 @@ class TestPreprocessing:
             "emotion": ["happy", "sad"]
         })
         label_decoder = {0: "happy", 1: "sad"}
-        train_dataset, val_dataset = preprocess_training_data(train_data, val_data, label_decoder)
+        train_dataset, val_dataset = preprocess_training_data(train_data,
+                                                            val_data,
+                                                            label_decoder)
         assert len(list(train_dataset)) > 0
         assert len(list(val_dataset)) > 0
 
@@ -90,8 +95,11 @@ class TestPreprocessing:
         """
         Test if the preprocess_prediction_data function correctly preprocesses
         the input data for prediction, including tokenization.
+
+        Author: Juraj Kret, 221439
         """
-        data = pd.DataFrame({"sentence": ["This is a test sentence.", "Another test sentence."]})
+        data = pd.DataFrame({"sentence": ["This is a test sentence.",
+                                           "Another test sentence."]})
         tokens, masks = preprocess_prediction_data(data)
         assert tokens.shape == (2, 128)
         assert masks.shape == (2, 128)
@@ -101,8 +109,11 @@ class TestPreprocessing:
         """
         Test if the preprocess_prediction_data_no_tokenizer function correctly
         preprocesses the input data for prediction when a tokenizer is provided.
+
+        Author: Juraj Kret, 221439
         """
-        data = pd.DataFrame({"sentence": ["This is a test sentence.", "Another test sentence."]})
+        data = pd.DataFrame({"sentence": ["This is a test sentence.",
+                                           "Another test sentence."]})
         tokenizer = get_tokenizer("roberta-base")
         tokens, masks = preprocess_prediction_data_no_tokenizer(data, tokenizer)
         assert tokens.shape == (2, 128)

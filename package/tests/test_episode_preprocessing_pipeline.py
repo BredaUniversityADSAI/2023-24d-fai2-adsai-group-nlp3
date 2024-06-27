@@ -1,9 +1,3 @@
-"""
-Tests for episode_preprocessing_pipeline.py
-
-Author: Kornelia Flizik, 223643
-"""     
-
 import pytest
 import numpy as np
 import pandas as pd
@@ -28,6 +22,7 @@ from e3k.episode_preprocessing_pipeline import (
     clean_transcript_df
 )
 
+# Fixture to provide sample data
 @pytest.fixture
 def sample_file_path():
     return "tests/test_data/video_test.mov"
@@ -35,6 +30,16 @@ def sample_file_path():
 class TestMain:
     @pytest.mark.parametrize("sample_rate", [32000])
     def test_load_audio(self, sample_file_path, sample_rate):
+        """
+        Test the `load_audio` function to ensure it correctly loads audio data.
+        Asserts:
+            The loaded audio should be a numpy array.
+            The loaded audio should be mono (1-dimensional).
+            The loaded audio data should be non-empty.
+
+        Author: Kornelia Flizik
+        """
+
         # Call the function to load audio
         audio = load_audio(sample_file_path, sample_rate)
         
@@ -49,6 +54,19 @@ class TestMain:
     @pytest.mark.parametrize("sample_rate, segment_seconds_length", [(32000, 0.03)])
     def test_get_segments_for_vad(self, sample_file_path,
                                   sample_rate, segment_seconds_length):
+        
+        """
+        Test the `get_segments_for_vad` function to ensure it correctly
+        segments audio data.
+        Asserts:
+            The segments should be a list.
+            Each segment should be a numpy array.
+            Segments should be generated (non-empty list).
+            Each segment should have the correct length.
+
+        Author: Kornelia Flizik
+        """
+
         # Call the function to load audio
         audio = load_audio(sample_file_path, sample_rate)
         # Call the function to get segments
@@ -69,6 +87,18 @@ class TestMain:
                              [(32000, 0, 0.03)])
     def test_get_vad_per_segment(self, sample_file_path, sample_rate,
                                  vad_aggressiveness, segment_seconds_length):
+        
+        """
+        Test the `get_vad_per_segment` function to ensure it correctly
+        applies VAD to segments.
+        Asserts:
+            The VAD output should be a numpy array.
+            The VAD output should be of boolean type.
+            The length of the VAD output should match the number of segments.
+
+        Author: Kornelia Flizik
+        """
+
         # Call the function to load audio
         audio = load_audio(sample_file_path, sample_rate)
         # Call the function to get segments
@@ -94,6 +124,18 @@ class TestMain:
                                                 vad_aggressiveness,
                                                 segment_seconds_length, 
                                                 min_fragment_len):
+        
+        """
+        Test the `get_frame_segments_from_vad_output` function to ensure it correctly
+        processes VAD output into frame segments.
+        Asserts:
+            The result should be a list.
+            Each element of the list should be a tuple.
+            Each tuple should have a length of 2.
+
+        Author: Kornelia Flizik
+        """
+
         # Call the function to load audio
         audio = load_audio(sample_file_path, sample_rate)
         # Call the function to get segments
@@ -132,6 +174,18 @@ class TestMain:
                                                     min_fragment_len, use_fp16,
                                                     transcript_model_size, 
                                                     output_path):
+        
+        """
+        Test the `transcribe_translate_fragments_and_save` function to ensure it
+        correctly processes audio and saves the transcription.
+        Asserts:
+            The result should be a DataFrame.
+            The DataFrame should have the expected columns.
+            The output file should exist after saving.
+
+        Author: Kornelia Flizik
+        """
+
         # Call the function to load audio
         audio = load_audio(sample_file_path, sample_rate)
         # Call the function to get segments
@@ -183,11 +237,18 @@ class TestMain:
         # Clean up the test output files
         #  os.remove(output_path)
 
-class TestUtils:
     @pytest.mark.parametrize("segment_number, sample_rate, segment_seconds_length",
                               [(1, 32000, 0.03)])
     def test_segment_number_to_frames(self, segment_number, sample_rate,
                                       segment_seconds_length):
+        """
+        Test the `segment_number_to_frames` function to ensure it correctly
+        converts segment number to frames.
+        Asserts: The result should match the expected frame count.
+
+        Author: Kornelia Flizik
+        """
+
         # Call the function to segment number to frames
         result = segment_number_to_frames(segment_number, sample_rate,
                                           segment_seconds_length)
@@ -196,6 +257,14 @@ class TestUtils:
 
     @pytest.mark.parametrize("sample_rate, min_fragment_len", [(32000, 300)])
     def test_get_target_length_frames(self, sample_rate, min_fragment_len):
+        """
+        Test the `get_target_length_frames` function to ensure it correctly
+        computes target length in frames.
+        Asserts: The result should match the expected target length in frames.
+
+        Author: Kornelia Flizik
+        """
+
         # Call the function to get frames length
         result = get_target_length_frames(min_fragment_len, sample_rate)
         # Assertions
@@ -203,7 +272,14 @@ class TestUtils:
 
     @pytest.mark.parametrize("sample_rate, start_fragment_frame", [(32000, 4000)])
     def test_adjust_fragment_start_frame(self, sample_rate, start_fragment_frame):
-        # Test 
+        """
+        Test the `adjust_fragment_start_frame` function to ensure it correctly
+        adjusts the start frame of a fragment.
+        Asserts: The result should match the expected adjusted start frame.
+
+        Author: Kornelia Flizik
+        """
+ 
         result = adjust_fragment_start_frame(start_fragment_frame, sample_rate)
         # Assertions
         assert result == 0
@@ -212,6 +288,14 @@ class TestUtils:
                              full_audio_length_frames", [(32000, 32000, 64000)])
     def test_adjust_fragment_end_frame(self, sample_rate, end_fragment_frame,
                                        full_audio_length_frames):
+        """
+        Test the `adjust_fragment_end_frame` function to ensure it correctly
+        adjusts the end frame of a fragment.
+        Asserts: The result should match the expected adjusted end frame.
+
+        Author: Kornelia Flizik
+        """
+
         result = adjust_fragment_end_frame(end_fragment_frame, sample_rate,
                                            full_audio_length_frames)
         # Assertions
@@ -223,6 +307,16 @@ class TestUtils:
                                   "start": [312, 485, 645], 
                                   "end": [484, 644, 823], 
                                   "text": ["hello", "darkness", "my old friend"]})
+        """
+        Test the `clean_transcript_df` function to ensure it correctly cleans
+        the transcript DataFrame.
+        Asserts:
+            The cleaned DataFrame should have the expected columns.
+            The number of columns should match the expected number.
+            All expected columns should be present in the cleaned DataFrame.
+
+        Author: Kornelia Flizik
+        """
 
         result = clean_transcript_df(df=sample_df, sample_rate=sample_rate)
 

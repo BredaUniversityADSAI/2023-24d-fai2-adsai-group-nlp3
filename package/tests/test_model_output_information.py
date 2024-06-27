@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 from unittest.mock import patch
 from model_output_information import plot_emotion_distribution, calculate_episode_confidence
 
+
 # To handle the logger's file handlers during tests to avoid creating files
 logging.getLogger().handlers = []
 
@@ -49,6 +50,7 @@ def test_calculate_episode_confidence_single_value():
     scores = [0.8]
     result = calculate_episode_confidence(scores)
     assert result == 0.8
+
 
 if __name__ == "__main__":
     pytest.main()
