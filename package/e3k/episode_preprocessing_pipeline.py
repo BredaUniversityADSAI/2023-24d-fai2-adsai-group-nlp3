@@ -351,7 +351,7 @@ def save_data(
     # Check if there is no data to save
     if df.empty:
         epp_logger.warning("No data to save.")
-        return
+        return 0
 
     epp_logger.info("saving to file")
 
@@ -370,7 +370,7 @@ def save_data(
         epp_logger.error(
             f"Unsupported file format '{format}'. Please use '.csv' or '.json'."
         )
-        return
+        return 0
 
     epp_logger.info(f"File saved successfully to {output_path}")
 

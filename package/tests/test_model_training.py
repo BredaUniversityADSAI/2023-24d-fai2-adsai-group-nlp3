@@ -20,38 +20,31 @@ import sys
 # Set recursion limit
 # sys.setrecursionlimit(150000)
 
-@pytest.fixture
-def azure_credentials():
-    return {
-        "subscription_id": "0a94de80-6d3b-49f2-b3e9-ec5818862801",
-        "tenant_id": "0a33589b-0036-4fe8-a829-3ed0926af886",
-        "client_id": "a2230f31-0fda-428d-8c5c-ec79e91a49f5",
-        "client_secret": "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C",
-        "resource_group": "buas-y2",
-        "workspace_name": "NLP3"
-    }
-
-@pytest.mark.usefixtures("azure_credentials")
 class TestModelTraining:
+    
 
-    #TODO
     @pytest.mark.parametrize(
         "mt_args",
-        [(["--cloud", True, "--dataset_name_file", "dataset_name_file",
-           "--epochs", 10, "--learning_rate", 0.001,
-           "--batch_size", 32, "--early_stopping_patience",5, 
-           "--model_output_path", "model_output_path",
-           "--decoder_output_path", "decoder_output_path"])],
+        [
+            [
+                "--cloud", "True",
+                "--dataset_name_file", "dataset_name_file",
+                "--epochs", "10",
+                "--learning_rate", "0.001",
+                "--batch_size", "32",
+                "--early_stopping_patience", "5", 
+                "--model_output_path", "model_output_path",
+                "--decoder_output_path", "decoder_output_path"
+            ]
+        ],
     )
-    def test_get_args(monkeypatch, mt_args):
+    def test_get_args(self, monkeypatch, mt_args):
         # Author - Kornelia Flizik
-
-        monkeypatch.setattr(sys, "argv", ["prog_name"] + mt_args)
+        monkeypatch.setattr(sys, "argv", ["model_training"] + mt_args)
 
         args = model_training.get_args()
 
-        # Assert input/output path
-        assert args.cloud == True
+        assert args.cloud == True  # Assuming you want to check for True (not the boolean value)
         assert args.dataset_name_file == "dataset_name_file"
         assert args.epochs == 10
         assert args.learning_rate == 0.001

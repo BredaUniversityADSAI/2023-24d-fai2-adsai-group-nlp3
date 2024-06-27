@@ -47,7 +47,7 @@ def plot_emotion_distribution(predicted_emotions: List[str]) -> None:
     emotion_counts = Counter(predicted_emotions)
     if not emotion_counts:
         moi_logger.warning("No emotions to plot, the input list is empty.")
-        return
+        return 0
 
     # Identify the most dominant emotion
     dominant_emotion, _ = emotion_counts.most_common(1)[0]

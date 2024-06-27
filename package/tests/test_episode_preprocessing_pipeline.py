@@ -183,7 +183,6 @@ class TestMain:
         # Clean up the test output files
         #  os.remove(output_path)
 
-class TestUtils:
     @pytest.mark.parametrize("segment_number, sample_rate, segment_seconds_length",
                               [(1, 32000, 0.03)])
     def test_segment_number_to_frames(self, segment_number, sample_rate,
