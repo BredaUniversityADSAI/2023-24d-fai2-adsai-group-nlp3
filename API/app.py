@@ -1,15 +1,16 @@
 import os
 import pickle
 import shutil
+import pandas as pd
 from typing import Dict, List, Tuple
 
-import episode_preprocessing_pipeline as epp
-import model_evaluate as me
-import model_output_information as moi
-import model_training as mt
-import pandas as pd
-import preprocessing
-import split_register_data as splitting
+import package.e3k.episode_preprocessing_pipeline as epp
+import package.e3k.model_evaluate as me
+import package.e3k.model_output_information as moi
+import package.e3k.model_training as mt
+import package.e3k.preprocessing as preprocessing
+import package.e3k.split_register_data as splitting
+
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import FileResponse
 from transformers import TFRobertaForSequenceClassification
@@ -224,11 +225,6 @@ def model_output_information(
 
 app = FastAPI()
 
-# Global variables to store the trained model and label decoder
-global_model = None
-global_label_decoder = None
-
-
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
@@ -243,7 +239,22 @@ def train_endpoint(
     model_name: str,
     train_data: UploadFile = File(...),
 ):
-    # global global_model, global_label_decoder
+    """
+    Endpoint to train a sequence classification model.
+
+    Args:
+        val_size (float): Size of validation data split.
+        epochs (int): Number of training epochs.
+        lr (float): Learning rate for training.
+        early_stopping_patience (int): Patience for early stopping.
+        model_name (str): Name to save the trained model.
+        train_data (UploadFile): Uploaded training data file.
+
+    Returns:
+        dict: A message indicating the success of model training.
+
+    Author: Kornelia Flizik
+    """
 
     input_path = f"temp_{train_data.filename}"
     with open(input_path, "wb") as f:
@@ -277,10 +288,18 @@ def train_endpoint(
 
 @app.post("/evaluate")
 def evaluate_endpoint(model_name: str, test_data: UploadFile = File(...)):
-    # if global_model is None or global_label_decoder is None:
-    #        return {
-    # "error": "Model and label_decoder must be trained before evaluation."
-    # }
+    """
+    Endpoint to evaluate a trained model using test data.
+
+    Args:
+        model_name (str): Name of the trained model to evaluate.
+        test_data (UploadFile): Uploaded test data file.
+
+    Returns:
+        dict: Evaluation results including metrics.
+
+    Author: Kornelia Flizik
+    """
 
     MODEL_DIR = f"models/{model_name}"
 
@@ -316,6 +335,26 @@ def predict_emotions(
     transcript_model_size: str = "large",
     audio_file: UploadFile = File(...),
 ):
+    """
+    Endpoint to predict emotions from audio data.
+
+    Args:
+        model_name (str): Name of the trained model for prediction.
+        target_sr (int): Target sample rate for audio data.
+        segment_length (float): Length of audio segments in seconds.
+        min_fragment_len (int): Minimum fragment length for audio segmentation.
+        vad_aggressiveness (int): VAD (Voice Activity Detection) aggressiveness level.
+        use_fp16 (bool): Flag indicating whether to use FP16 precision.
+        transcript_model_size (str): Size of the transcription model.
+        audio_file (UploadFile): Uploaded audio file to predict emotions from.
+
+    Returns:
+        dict: Predicted emotions, probabilities, and episode confidence along
+        with a link to the generated pie chart.
+
+    Author: Kornelia Flizik
+    """
+
     # Save uploaded file to a temporary location
     input_path = f"temp_{audio_file.filename}"
     with open(input_path, "wb") as buffer:
@@ -365,6 +404,14 @@ def predict_emotions(
 
 @app.get("/pie-chart")
 def get_pie_chart():
+    """
+    Endpoint to retrieve the generated pie chart image.
+
+    Returns:
+        FileResponse: Response with the pie chart image file.
+
+    Author: Kornelia Flizik
+    """
     pie_chart_path = "emotion_distribution.png"
     return FileResponse(
         pie_chart_path, media_type="image/png", filename="pie_chart.png"
