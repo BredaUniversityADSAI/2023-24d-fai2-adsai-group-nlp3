@@ -1,8 +1,9 @@
-from azure.identity import ClientSecretCredential
-from azure.ai.ml import MLClient, Input, Output, command
-from azure.ai.ml.dsl import pipeline
-from azure.ai.ml.constants import AssetTypes
 import os
+
+from azure.ai.ml import Input, MLClient, Output, command
+from azure.ai.ml.constants import AssetTypes
+from azure.ai.ml.dsl import pipeline
+from azure.identity import ClientSecretCredential
 
 print("Starting the pipeline setup...")
 
@@ -18,25 +19,20 @@ print("Credentials and workspace details defined.")
 
 # Authenticate and create an MLClient
 credential = ClientSecretCredential(
-    tenant_id=tenant_id,
-    client_id=client_id,
-    client_secret=client_secret
-    )
+    tenant_id=tenant_id, client_id=client_id, client_secret=client_secret
+)
 
 ml_client = MLClient(
     credential=credential,
     subscription_id=subscription_id,
     resource_group_name=resource_group,
-    workspace_name=workspace_name
-    )
+    workspace_name=workspace_name,
+)
 
 # Retrieve the model from the workspace
 model_name = "RoBERTa_model"
 model_version = "1"
-model = ml_client.models.get(
-    name=model_name, 
-    version=model_version
-    )
+model = ml_client.models.get(name=model_name, version=model_version)
 model_path = model.path
 
 # Define paths for inputs and outputs
@@ -67,11 +63,9 @@ job_inputs = {
     "decoder_path": Input(type=AssetTypes.URI_FILE, path=decoder_folder_path),
     "tokenizer_model": Input(type="string", default="roberta-base"),
     "max_length": Input(type="integer", default=128),
-    }
+}
 
-job_outputs = {
-    "predictions": Output(type="uri_file")
-    }
+job_outputs = {"predictions": Output(type="uri_file")}
 
 # Define the command component
 predict_component = command(
@@ -82,19 +76,18 @@ predict_component = command(
     outputs=job_outputs,
     code=os.path.abspath("./"),
     command=(
-        'python model_predict.py '
-        '--model_path ${{inputs.model_path}} '
-        '--data_path ${{inputs.data_path}} '
-        '--tokenizer_model ${{inputs.tokenizer_model}} '
-        '--max_length ${{inputs.max_length}} '
-        '--decoder_path ${{inputs.decoder_path}}'
-        ),
+        "python model_predict.py "
+        "--model_path ${{inputs.model_path}} "
+        "--data_path ${{inputs.data_path}} "
+        "--tokenizer_model ${{inputs.tokenizer_model}} "
+        "--max_length ${{inputs.max_length}} "
+        "--decoder_path ${{inputs.decoder_path}}"
+    ),
     environment=f"{environment_name}:{environment_version}",
     compute=compute_name,
-    environment_variables={
-        "AZUREML_COMPUTE_USE_COMMON_RUNTIME": "true"
-        }
-    )
+    environment_variables={"AZUREML_COMPUTE_USE_COMMON_RUNTIME": "true"},
+)
+
 
 # Define the pipeline
 @pipeline(description="Pipeline to run model prediction")
@@ -104,11 +97,10 @@ def predict_pipeline(tokenizer_model="roberta-base", max_length=128):
         data_path=job_inputs["data_path"],
         tokenizer_model=tokenizer_model,
         max_length=max_length,
-        decoder_path=job_inputs["decoder_path"]
-        )
-    return {
-        "predictions": predict_step.outputs.predictions
-        }
+        decoder_path=job_inputs["decoder_path"],
+    )
+    return {"predictions": predict_step.outputs.predictions}
+
 
 # Create an instance of the pipeline job
 try:
@@ -121,8 +113,7 @@ except Exception as e:
 # Create and submit the pipeline job directly
 try:
     submitted_job = ml_client.jobs.create_or_update(
-        job=pipeline_job_instance,
-        experiment_name="predict_experiment"
+        job=pipeline_job_instance, experiment_name="predict_experiment"
     )
     print(f"Pipeline job {submitted_job.name} is submitted.")
 except Exception as e:

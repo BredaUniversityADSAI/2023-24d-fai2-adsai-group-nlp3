@@ -14,9 +14,25 @@ import webrtcvad
 import whisper
 from pydub import AudioSegment
 from tqdm import tqdm
-from typing import List, Tuple
 
-epp_logger = logging.getLogger("main.episode_preprocessing_pipeline")
+# setting up logger
+epp_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+if __name__ == "__main__":
+    epp_logger.setLevel(logging.DEBUG)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.DEBUG)
+    stream_handler.setFormatter(formatter)
+
+    epp_logger.addHandler(stream_handler)
+
+file_handler = logging.FileHandler("logs.log", mode="a")
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+epp_logger.addHandler(file_handler)
 
 """
 Pipeline functions are main components of this pipeline.
@@ -26,11 +42,8 @@ and when used in order, provide the video or audio to sentences pipeline.
 """
 
 
-# TODO change this to work locally as well, maybe cloud flag?
 @typeguard.typechecked
-def load_audio(
-    file_path: str = None, file_name: str = None, target_sample_rate: int = 32_000
-) -> np.array:
+def load_audio(file_path: str, target_sample_rate: int) -> np.array:
     """
     A function that loads audio data from video file
     or directly loads audio from input.
@@ -45,19 +58,15 @@ def load_audio(
     Output:
         audio (np.array): mono audio file with specified sample rate
             represented as np.array
-    
-    Author - Juraj Kret (221439)
+
+    Author:
+        Kornelia Flizik (223643)
     """
 
     epp_logger.info("loading audio file")
 
     # load audio from the file
-    try:
-        # Azure version
-        audio = AudioSegment.from_file(f"{file_path}/{file_name}")
-    except Exception:
-        audio = AudioSegment.from_file(file_path)
-        # audio = AudioSegment.from_file(file_name)
+    audio = AudioSegment.from_file(file_path)
 
     # export the audio to in-memory object
     wav_file = io.BytesIO()
@@ -318,6 +327,7 @@ def transcribe_translate_fragments(
     return data
 
 
+# NOT USED ?
 @typeguard.typechecked
 def save_data(
     df: pd.DataFrame,
@@ -341,7 +351,7 @@ def save_data(
     # Check if there is no data to save
     if df.empty:
         epp_logger.warning("No data to save.")
-        return
+        return 0
 
     epp_logger.info("saving to file")
 
@@ -360,8 +370,7 @@ def save_data(
         epp_logger.error(
             f"Unsupported file format '{format}'. Please use '.csv' or '.json'."
         )
-        # TODO what is this?
-        return
+        return 0
 
     epp_logger.info(f"File saved successfully to {output_path}")
 
@@ -552,7 +561,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--input_filename",
-        required=False, # Azure required only
+        required=False,  # Azure required only
         type=str,
         help="string, filename of audio file",
     )
@@ -625,11 +634,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
     cloud = str(args.cloud) == "True"
 
+    # create file path
     if cloud is True:
         file_path = f"{args.input_file}/{args.input_filename}"
 
-    else: 
-        file_path= args.input_file
+    else:
+        file_path = args.input_file
 
     # get segment length in frames
     segment_frames_length = segment_number_to_frames(
@@ -637,11 +647,7 @@ if __name__ == "__main__":
     )
 
     # load audio file and set sample rate to the chosen value
-    audio = load_audio(
-        file_path=args.input_folder,
-        file_name=args.input_filename,
-        target_sample_rate=args.target_sr,
-    )
+    audio = load_audio(file_path=file_path, target_sample_rate=args.target_sr)
 
     # get full audio length in frames
     full_audio_length_frames = len(audio)
@@ -679,11 +685,10 @@ if __name__ == "__main__":
         transcription_model_size=args.transcript_model_size,
     )
 
-    # save the data to chosen place with chosen format
-    #save_data(data_df, args.output_path)
-
-    #output_path = args.output_path + ".csv"
+    # Warning when data frame is empty
+    if data_df.empty:
+        epp_logger.warning("No data to save.")
+    # save the data to chosen place
     data_df.to_csv(args.output_path, index=False)
 
-
-    epp_logger.warning(f"File saved successfully to {args.output_path}")
+    epp_logger.info(f"File saved successfully to {args.output_path}")

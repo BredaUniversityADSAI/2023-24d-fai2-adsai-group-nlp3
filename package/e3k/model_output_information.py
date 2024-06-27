@@ -6,7 +6,24 @@ import matplotlib.pyplot as plt
 import numpy as np
 import typeguard
 
-moi_logger = logging.getLogger("main.model_output_information")
+# setting up logger
+moi_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+if __name__ == "__main__":
+    moi_logger.setLevel(logging.DEBUG)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.DEBUG)
+    stream_handler.setFormatter(formatter)
+
+    moi_logger.addHandler(stream_handler)
+
+file_handler = logging.FileHandler("logs.log", mode="a")
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+
+moi_logger.addHandler(file_handler)
 
 
 @typeguard.typechecked
@@ -30,7 +47,7 @@ def plot_emotion_distribution(predicted_emotions: List[str]) -> None:
     emotion_counts = Counter(predicted_emotions)
     if not emotion_counts:
         moi_logger.warning("No emotions to plot, the input list is empty.")
-        return
+        return 0
 
     # Identify the most dominant emotion
     dominant_emotion, _ = emotion_counts.most_common(1)[0]
@@ -74,7 +91,7 @@ def plot_emotion_distribution(predicted_emotions: List[str]) -> None:
 
 
 @typeguard.typechecked
-def calculate_episode_confidence(scores: List[float]) -> float:
+def calculate_episode_confidence(scores: np.array) -> float:
     """
     Calculate the overall confidence score for the episode by
     averaging the highest probabilities for each sentence.

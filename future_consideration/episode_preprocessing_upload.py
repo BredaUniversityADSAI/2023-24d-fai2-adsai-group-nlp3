@@ -1,7 +1,5 @@
-from azure.ai.ml import MLClient, dsl, Input, Output, command
+from azure.ai.ml import Input, MLClient, Output, command, dsl
 from azure.identity import ClientSecretCredential
-from azure.ai.ml.entities import PipelineJob
-from azure.ai.ml.constants import AssetTypes
 
 # const values for Azure connection
 SUBSCRIPTION_ID = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
@@ -31,11 +29,15 @@ episode_preprocessing_component = command(
     display_name="Episode Preprocessing",
     description="Preprocess episode for prediction",
     inputs={
-        "input_folder": Input(type="uri_folder", description="Input folder containing files"),
+        "input_folder": Input(
+            type="uri_folder", description="Input folder containing files"
+        ),
         "input_filename": Input(type="string", description="Name of the input file"),
     },
     outputs={
-        "transcription": Output(type="uri_file", mode="upload", description="Transcription output"),
+        "transcription": Output(
+            type="uri_file", mode="upload", description="Transcription output"
+        ),
     },
     code="./package/e3k/",
     command=(
@@ -59,10 +61,7 @@ predict_component = command(
             type="uri_folder",
             description="Path to the model configuration and weights file",
         ),
-        "data_path": Input(
-            type="uri_folder", 
-            description="Data to be predicted"
-        ),
+        "data_path": Input(type="uri_folder", description="Data to be predicted"),
         "tokenizer_model": Input(
             type="string",
             description="Model to use for tokenization",
@@ -100,29 +99,26 @@ predict_component = command(
 )
 
 # Create or update the prediction component
-#ml_client.create_or_update(predict_component.component)
-
+# ml_client.create_or_update(predict_component.component)
 
 
 # Define a pipeline that uses this component
 @dsl.pipeline(
     name="ep&predict-pipeline",
     description="Pipeline to preprocess episodes&predict",
-    default_compute=ml_client.compute.get("adsai0").name
+    default_compute=ml_client.compute.get("adsai0").name,
 )
 def preprocess_predict_pipeline(
-    input_folder: Input, 
+    input_folder: Input,
     input_filename: str,
     model_path,
     tokenizer_model,
     max_length,
     decoder_path,
-
-    ):
+):
     preprocess_step = episode_preprocessing_component(
         input_folder=input_folder,
         input_filename=input_filename,
-
     )
 
     predict_step = predict_component(
@@ -131,22 +127,20 @@ def preprocess_predict_pipeline(
         tokenizer_model=tokenizer_model,
         max_length=max_length,
         decoder_path=decoder_path,
-     )
+    )
 
     return {
         "prediction_output": predict_step.outputs.predictions,
-   }
+    }
 
-#ml_client.create_or_update(episode_preprocessing_component.component)
+
+# ml_client.create_or_update(episode_preprocessing_component.component)
 
 
 # Retrieve the model from the workspace
 model_name = "training_test_model"
 model_version = "1"
-model = ml_client.models.get(
-    name=model_name, 
-    version=model_version
-)
+model = ml_client.models.get(name=model_name, version=model_version)
 
 decoder_folder_path = (
     "azureml://subscriptions/0a94de80-6d3b-49f2-b3e9-ec5818862801/"
@@ -159,16 +153,21 @@ model_path = model.path
 
 # Test prediction pipeline on a small dataset
 predict_pipeline = preprocess_predict_pipeline(
-        input_folder=Input(path="azureml://subscriptions/0a94de80-6d3b-49f2-b3e9-ec5818862801/resourcegroups/buas-y2/workspaces/NLP3/datastores/workspaceblobstore/paths/test_evaluation_pipeline/"),
-        input_filename="trimmed_video_test.mov",
-        model_path=Input(path=model_path),
-        tokenizer_model="roberta-base",
-        max_length=128,
-        decoder_path= Input(path=decoder_folder_path),
-    )
+    input_folder=Input(
+        path=(
+            "azureml://subscriptions/0a94de80-6d3b-49f2-b3e9-ec5818862801/"
+            "resourcegroups/buas-y2/workspaces/NLP3/datastores"
+            "/workspaceblobstore/paths/test_evaluation_pipeline/"
+        )
+    ),
+    input_filename="trimmed_video_test.mov",
+    model_path=Input(path=model_path),
+    tokenizer_model="roberta-base",
+    max_length=128,
+    decoder_path=Input(path=decoder_folder_path),
+)
 
 # Submit the pipeline job
 pipeline_job = ml_client.jobs.create_or_update(predict_pipeline, experiment_name="EPP")
 
 print(f"Pipeline run initiated: {pipeline_job.name}")
-

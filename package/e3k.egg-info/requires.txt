@@ -1,0 +1,16 @@
+numpy
+pandas>=2.0
+librosa
+soundfile
+spacy
+webrtcvad
+whisper
+openai-whisper
+pydub
+tqdm
+transformers
+tensorflow==2.12
+matplotlib
+scikit-learn
+typeguard
+mlflow

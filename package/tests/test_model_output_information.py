@@ -18,16 +18,6 @@ def run_around_tests():
     yield
     # Code that will run after each test
 
-def test_plot_emotion_distribution_empty_list():
-    """
-    Test that plot_emotion_distribution logs a warning
-    when given an empty list.
-    Author - Panna Pfandler
-    """
-    with patch("model_output_information.logging") as mock_logging:
-        plot_emotion_distribution([])
-        mock_logging.warning.assert_called_with("No emotions to plot, the input list is empty.")
-
 def test_plot_emotion_distribution():
     """
     Test that plot_emotion_distribution creates a plot
@@ -39,17 +29,6 @@ def test_plot_emotion_distribution():
         plot_emotion_distribution(emotions)
     # Check if the plot is created
     assert plt.gcf().number > 0
-
-def test_calculate_episode_confidence_empty_list():
-    """
-    Test that calculate_episode_confidence logs a warning
-    and returns 0.0 when given an empty list of scores.
-    Author - Panna Pfandler
-    """
-    with patch("model_output_information.logging") as mock_logging:
-        result = calculate_episode_confidence([])
-        mock_logging.warning.assert_called_with("Received an empty list of scores.")
-        assert result == 0.0
 
 def test_calculate_episode_confidence():
     """

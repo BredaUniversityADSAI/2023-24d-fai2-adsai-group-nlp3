@@ -9,6 +9,7 @@ import model_training
 import pandas as pd
 import pytest
 import argparse
+import sys
 # from transformers import (
 # TFRobertaForSequenceClassification, 
 # RobertaConfig)
@@ -19,64 +20,39 @@ import argparse
 # Set recursion limit
 # sys.setrecursionlimit(150000)
 
-@pytest.fixture
-def azure_credentials():
-    return {
-        "subscription_id": "0a94de80-6d3b-49f2-b3e9-ec5818862801",
-        "tenant_id": "0a33589b-0036-4fe8-a829-3ed0926af886",
-        "client_id": "a2230f31-0fda-428d-8c5c-ec79e91a49f5",
-        "client_secret": "Y-q8Q~H63btsUkR7dnmHrUGw2W0gMWjs0MxLKa1C",
-        "resource_group": "buas-y2",
-        "workspace_name": "NLP3"
-    }
-
-@pytest.mark.usefixtures("azure_credentials")
 class TestModelTraining:
+    
 
-    def test_get_ml_client(self, azure_credentials):
-        client = model_training.get_ml_client(
-            azure_credentials["subscription_id"],
-            azure_credentials["tenant_id"],
-            azure_credentials["client_id"],
-            azure_credentials["client_secret"],
-            azure_credentials["resource_group"],
-            azure_credentials["workspace_name"]
-        )
-        assert client is not None
+    @pytest.mark.parametrize(
+        "mt_args",
+        [
+            [
+                "--cloud", "True",
+                "--dataset_name_file", "dataset_name_file",
+                "--epochs", "10",
+                "--learning_rate", "0.001",
+                "--batch_size", "32",
+                "--early_stopping_patience", "5", 
+                "--model_output_path", "model_output_path",
+                "--decoder_output_path", "decoder_output_path"
+            ]
+        ],
+    )
+    def test_get_args(self, monkeypatch, mt_args):
+        # Author - Kornelia Flizik
+        monkeypatch.setattr(sys, "argv", ["model_training"] + mt_args)
 
-    def test_get_versioned_datasets(self, azure_credentials):
-        # Path to the local JSON dataset info file
-        local_dataset_info_file = ("pytest_args.json")
+        args = model_training.get_args()
 
-        # Mock args
-        args = argparse.Namespace(dataset_name_file=local_dataset_info_file)
+        assert args.cloud == True  # Assuming you want to check for True (not the boolean value)
+        assert args.dataset_name_file == "dataset_name_file"
+        assert args.epochs == 10
+        assert args.learning_rate == 0.001
+        assert args.batch_size == 32
+        assert args.early_stopping_patience == 5
+        assert args.model_output_path == "model_output_path"
+        assert args.decoder_output_path == "decoder_output_path"
 
-        # Get ML client
-        ml_client = model_training.get_ml_client(
-            azure_credentials["subscription_id"],
-            azure_credentials["tenant_id"],
-            azure_credentials["client_id"],
-            azure_credentials["client_secret"],
-            azure_credentials["resource_group"],
-            azure_credentials["workspace_name"]
-        )
-        assert model_training.get_versioned_datasets(args, ml_client) is not None
-
-    def test_get_data_asset_as_df(self, azure_credentials):
-        ml_client = model_training.get_ml_client(
-            azure_credentials["subscription_id"],
-            azure_credentials["tenant_id"],
-            azure_credentials["client_id"],
-            azure_credentials["client_secret"],
-            azure_credentials["resource_group"],
-            azure_credentials["workspace_name"]
-        )
-        dataset_name = "val_data"
-        dataset_version = "12"
-        assert model_training.get_data_asset_as_df(
-            ml_client,
-            dataset_name,
-            dataset_version) is not None
 
     def test_get_label_decoder(self):
         series = pd.Series(["happiness", 

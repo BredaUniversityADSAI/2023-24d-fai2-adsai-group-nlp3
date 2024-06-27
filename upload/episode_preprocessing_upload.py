@@ -28,12 +28,10 @@ episode_preprocessing_component = command(
     display_name="Episode Preprocessing",
     description="Preprocess episode for prediction",
     inputs={
-        "episode_file": Input(
-            type="uri_file", description="episdode file"),
+        "episode_file": Input(type="uri_file", description="episdode file"),
     },
     outputs={
-        "transcription": Output(
-            type="uri_folder", mode="rw_mount"),
+        "transcription": Output(type="uri_folder", mode="rw_mount"),
     },
     code="./package/e3k",
     command=(
@@ -47,7 +45,7 @@ episode_preprocessing_component = command(
 )
 
 # register the component
-#ml_client.create_or_update(episode_preprocessing_component.component)
+# ml_client.create_or_update(episode_preprocessing_component.component)
 
 
 @dsl.pipeline(
@@ -56,14 +54,19 @@ episode_preprocessing_component = command(
     compute="adsai0",
 )
 def test_ep_pipeline(
-    episode_file, 
+    episode_file,
 ) -> None:
-    ep_step = episode_preprocessing_component(
+    _ = episode_preprocessing_component(
         episode_file=episode_file,
-        )
+    )
+
 
 episode = Input(
-    path="azureml://subscriptions/0a94de80-6d3b-49f2-b3e9-ec5818862801/resourcegroups/buas-y2/workspaces/NLP3/datastores/workspaceblobstore/paths/test_evaluation_pipeline/trimmed_ER22_AFL01_MXF.mov"
+    path=(
+        "azureml://subscriptions/0a94de80-6d3b-49f2-b3e9-ec5818862801/"
+        "resourcegroups/buas-y2/workspaces/NLP3/datastores/workspaceblobstore/"
+        "paths/test_evaluation_pipeline/trimmed_ER22_AFL01_MXF.mov"
+    )
 )
 
 pipeline_instance = test_ep_pipeline(episode_file=episode)

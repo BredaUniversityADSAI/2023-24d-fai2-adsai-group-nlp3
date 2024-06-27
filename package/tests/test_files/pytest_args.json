@@ -1,0 +1,4 @@
+{
+    "train_data": "max_train",
+    "val_data": "max_val"
+}
