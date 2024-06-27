@@ -1,14 +1,16 @@
+from datetime import datetime, timedelta
+
 import config
 import typeguard
 from azure.ai.ml import MLClient, dsl
+from azure.ai.ml.constants import TimeZone
+from azure.ai.ml.entities import (JobSchedule, RecurrencePattern,
+                                  RecurrenceTrigger)
 from azure.ai.ml.sweep import Choice, Uniform
 from azure.identity import ClientSecretCredential
 
 # Const values for Azure connection
 credential = ClientSecretCredential(
-    config.config["subscription_id"],
-    config.config["resource_group"],
-    config.config["workspace_name"],
     config.config["tenant_id"],
     config.config["client_id"],
     config.config["client_secret"],
@@ -101,8 +103,6 @@ if __name__ == "__main__":
         data_path="dataset_panna/dataset_panna.csv",
         val_size=0.2,
         epochs=2,
-        learning_rate=1e-3,
-        early_stopping_patience=3,
         test_data="dataset_wojciech/test_azure_data.csv",
         threshold=0.0,
         model_name="training_test_model",
@@ -111,3 +111,26 @@ if __name__ == "__main__":
     training_pipeline_run = ml_client.jobs.create_or_update(
         training_pipeline, experiment_name="test_model_training_pipeline"
     )
+
+    # Define the schedule for the pipeline
+    schedule_name = "model_training_pipeline_schedule"
+
+    # Setting the start time for 2 minutes from now
+    schedule_start_time = datetime.utcnow() + timedelta(minutes=2)
+
+    recurrence_trigger = RecurrenceTrigger(
+        frequency="day",
+        interval=1,
+        schedule=RecurrencePattern(hours=10, minutes=[0, 30]),
+        start_time=schedule_start_time,
+        time_zone=TimeZone.UTC,
+    )
+
+    job_schedule = JobSchedule(
+        name=schedule_name,
+        trigger=recurrence_trigger,
+        create_job=training_pipeline,
+    )
+
+    # Create or update the schedule
+    ml_client.schedules.begin_create_or_update(job_schedule)
