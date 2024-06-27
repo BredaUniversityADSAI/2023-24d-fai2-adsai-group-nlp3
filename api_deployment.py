@@ -7,7 +7,6 @@ from azure.mgmt.containerinstance.models import (Container, ContainerGroup,
                                                  ResourceRequests,
                                                  ResourceRequirements)
 
-
 # Replace with your own values
 SUBSCRIPTION_ID = "0a94de80-6d3b-49f2-b3e9-ec5818862801"
 RESOURCE_GROUP = "buas-y2"
