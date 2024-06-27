@@ -3,19 +3,21 @@ import pickle
 import shutil
 from typing import Dict, List, Tuple
 
-import episode_preprocessing_pipeline as epp
-import model_evaluate as me
-import model_output_information as moi
-# import model_predict as mp
-import model_training as mt
+from ..package.e3k import (
+    # model_predict as mp,
+    episode_preprocessing_pipeline as epp,
+    model_evaluate as me,
+    model_output_information as moi,
+    model_training as mt,
+    preprocessing,
+    split_register_data as splitting
+)
+
 # from model_training_pipeline import model_training as mt_pipe
 import pandas as pd
-import preprocessing
-import split_register_data as splitting
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import FileResponse
 from transformers import TFRobertaForSequenceClassification
-
 
 def episode_preprocessing(
     input_path,
