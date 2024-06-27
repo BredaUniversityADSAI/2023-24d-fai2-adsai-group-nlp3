@@ -40,6 +40,15 @@ SAVE_PATH = ("/Users/maxmeiners/Library/CloudStorage/OneDrive-BUas"
 
 # Function to load Azure ML workspace
 def load_workspace():
+    """
+    Load Azure ML workspace using credentials from the config file.
+
+    Returns:
+        workspace (MLClient): Azure ML workspace object.
+
+    Author:
+        Max Meiners (214936)
+    """
     print("Loading Azure ML workspace...")
     credential = ClientSecretCredential(
         tenant_id=config.config["tenant_id"],
@@ -57,6 +66,18 @@ def load_workspace():
 
 # Function to load the model from Azure ML
 def load_model_from_azure(workspace):
+    """
+    Fetch and load the latest version of a model from Azure ML workspace.
+
+    Input:
+        workspace (MLClient): Azure ML workspace object.
+
+    Returns:
+        loaded_model (tf.keras.Model): A loaded LSTM model.
+
+    Author:
+        Max Meiners (214936)
+    """
     print(f"Fetching model '{MODEL_NAME}' from Azure ML workspace...")
     
     # Fetch the latest version of the model
@@ -67,7 +88,11 @@ def load_model_from_azure(workspace):
     
     # Download the model locally
     download_path = 'models'
-    _ = workspace.models.download(name=MODEL_NAME, version=latest_model.version, download_path=download_path)
+    _ = workspace.models.download(
+        name=MODEL_NAME, 
+        version=latest_model.version, 
+        download_path=download_path
+        )
     
     # Locate the actual model file in the download directory
     for root, dirs, files in os.walk(download_path):
@@ -85,6 +110,20 @@ def load_model_from_azure(workspace):
     return loaded_model
 
 def preprocess_labels(train_labels):
+    """
+    Preprocess labels by encoding and one-hot encoding.
+
+    Input:
+        train_labels (array-like): Array of training labels.
+
+    Returns:
+        train_labels_encoded (np.ndarray): Encoded labels.
+        train_labels_one_hot (np.ndarray): One-hot encoded labels.
+        label_encoder (LabelEncoder): Fitted label encoder.
+
+    Author:
+        Max Meiners (214936)
+    """
     label_encoder = LabelEncoder()
     train_labels_encoded = label_encoder.fit_transform(train_labels)
     train_labels_one_hot = tf.keras.utils.to_categorical(train_labels_encoded)
@@ -94,6 +133,25 @@ def tokenize_sentences(train_sentences,
                        test_sentences, 
                        num_words=10000000, 
                        max_length=None):
+    """
+    Tokenize and pad sequences for training and testing sentences.
+
+    Inout:
+        train_sentences (array-like): Array of training sentences.
+        test_sentences (array-like): Array of testing sentences.
+        num_words (int, optional): Maximum number of words to keep, 
+        based on word frequency. Defaults to 10000000.
+        max_length (int, optional): Maximum length of sequences. Defaults to None.
+
+    Returns:
+        train_padded (np.ndarray): Padded training sequences.
+        test_padded (np.ndarray): Padded testing sequences.
+        tokenizer (Tokenizer): Fitted tokenizer.
+        max_length (int): Maximum length of sequences.
+
+    Author:
+        Max Meiners (214936)
+    """
     tokenizer = Tokenizer(oov_token="<OOV>", num_words=num_words)
     tokenizer.fit_on_texts(train_sentences)
     tokenizer.fit_on_texts(test_sentences)
@@ -109,6 +167,25 @@ def tokenize_sentences(train_sentences,
     return train_padded, test_padded, tokenizer, max_length
 
 def split_dataset(train_padded, train_labels_one_hot, test_size=0.2, random_state=42):
+    """
+    Split dataset into training and validation sets.
+
+    Input:
+        train_padded (np.ndarray): Padded training sequences.
+        train_labels_one_hot (np.ndarray): One-hot encoded training labels.
+        test_size (float, optional): Proportion of the dataset to include 
+        in the validation split. Defaults to 0.2.
+        random_state (int, optional): Random state for shuffling. Defaults to 42.
+
+    Returns:
+        X_train (np.ndarray): Training data.
+        X_val (np.ndarray): Validation data.
+        y_train (np.ndarray): Training labels.
+        y_val (np.ndarray): Validation labels.
+
+    Author:
+        Max Meiners (214936)
+    """
     return train_test_split(
         train_padded,
         train_labels_one_hot,
@@ -117,7 +194,27 @@ def split_dataset(train_padded, train_labels_one_hot, test_size=0.2, random_stat
     )
 
 def train_model(model, X_train, y_train, X_val, y_val, epochs=100, batch_size=128):
-    model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
+    """
+    Train the model with given training and validation data.
+
+    Input:
+        model (tf.keras.Model): The model to train.
+        X_train (np.ndarray): Training data.
+        y_train (np.ndarray): Training labels.
+        X_val (np.ndarray): Validation data.
+        y_val (np.ndarray): Validation labels.
+        epochs (int, optional): Number of epochs to train. Defaults to 100.
+        batch_size (int, optional): Batch size for training. Defaults to 128.
+
+    Returns:
+        history (tf.keras.callbacks.History): Training history.
+
+    Author:
+        Max Meiners (214936)
+    """
+    model.compile(optimizer="adam", 
+                  loss="categorical_crossentropy", 
+                  metrics=["accuracy"])
     
     history = model.fit(
         X_train,
@@ -131,6 +228,21 @@ def train_model(model, X_train, y_train, X_val, y_val, epochs=100, batch_size=12
     return history
 
 def predict_and_evaluate(model, X_val, y_val, label_encoder):
+    """
+    Evaluate the model and predict on validation data.
+
+    Input:
+        model (tf.keras.Model): The trained model.
+        X_val (np.ndarray): Validation data.
+        y_val (np.ndarray): Validation labels.
+        label_encoder (LabelEncoder): Fitted label encoder.
+
+    Returns:
+        predicted_emotions (np.ndarray): Predicted emotions for validation data.
+
+    Author:
+        Max Meiners (214936)
+    """
     print("Evaluating the model on validation data...")
     results = model.evaluate(X_val, y_val, verbose=0)
     accuracy = results[1]
@@ -167,7 +279,7 @@ def main():
     test_sentences = test["sentence"].values
 
     _, train_labels_one_hot, label_encoder = preprocess_labels(train_labels)
-    train_padded, _, tokenizer, max_length = tokenize_sentences(train_sentences, test_sentences)
+    train_padded, _, _, _ = tokenize_sentences(train_sentences, test_sentences)
     X_train, X_val, y_train, y_val = split_dataset(train_padded, train_labels_one_hot)
 
     # Train the model
