@@ -14,7 +14,7 @@ sys.path.insert(0, "C:/Users/korne/OneDrive/Pulpit/2023-24d-fai2-adsai-group-nlp
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Emotions'
+project = 'E3K'
 copyright = '2024, Juraj Kret, Max Meiners, Panna Pfandler, Kornelia Flizik, Wojciech Stachowiak'
 author = 'Juraj Kret, Max Meiners, Panna Pfandler, Kornelia Flizik, Wojciech Stachowiak'
 release = '1'

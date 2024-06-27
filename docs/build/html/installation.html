@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Installation &mdash; Emotions 1 documentation</title>
+  <title>Installation &mdash; E3K 1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
 
@@ -22,7 +22,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Usage" href="usage.html" />
-    <link rel="prev" title="Welcome to Emotions’s documentation!" href="index.html" /> 
+    <link rel="prev" title="Welcome to E3K’s documentation!" href="index.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -34,7 +34,7 @@
           
           
           <a href="index.html" class="icon icon-home">
-            Emotions
+            E3K
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -47,6 +47,7 @@
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#using-dockerfile">Using Dockerfile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#for-conda-users">For conda users</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#for-non-conda-users">For non-conda users</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#verify-the-installation">Verify the installation:</a></li>
@@ -55,7 +56,19 @@
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#cli-usage">CLI Usage</a></li>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#api-usage">API Usage</a></li>
-<li class="toctree-l2"><a class="reference internal" href="usage.html#license">License</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api.html#base-url">Base URL</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#endpoints">Endpoints</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api.html#train-model">Train Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#evaluate-model">Evaluate Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#predict-labels">Predict Labels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#display-output">Display Output</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#notes">Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#running-the-api">Running the API</a></li>
 </ul>
 </li>
 </ul>
@@ -65,7 +78,6 @@
 <li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.adjust_fragment_end_frame"><code class="docutils literal notranslate"><span class="pre">adjust_fragment_end_frame()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.adjust_fragment_start_frame"><code class="docutils literal notranslate"><span class="pre">adjust_fragment_start_frame()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.clean_transcript_df"><code class="docutils literal notranslate"><span class="pre">clean_transcript_df()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.epp_logger"><code class="docutils literal notranslate"><span class="pre">epp_logger</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.get_frame_segments_from_vad_output"><code class="docutils literal notranslate"><span class="pre">get_frame_segments_from_vad_output()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.get_segments_for_vad"><code class="docutils literal notranslate"><span class="pre">get_segments_for_vad()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.get_target_length_frames"><code class="docutils literal notranslate"><span class="pre">get_target_length_frames()</span></code></a></li>
@@ -88,6 +100,15 @@
 <li class="toctree-l2"><a class="reference internal" href="moi.html#model_output_information.plot_emotion_distribution"><code class="docutils literal notranslate"><span class="pre">plot_emotion_distribution()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="model_evaluate.html">Model Evaluation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="model_evaluate.html#model_evaluate.decode_labels"><code class="docutils literal notranslate"><span class="pre">decode_labels()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_evaluate.html#model_evaluate.evaluate"><code class="docutils literal notranslate"><span class="pre">evaluate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_evaluate.html#model_evaluate.load_data"><code class="docutils literal notranslate"><span class="pre">load_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_evaluate.html#model_evaluate.load_label_decoder"><code class="docutils literal notranslate"><span class="pre">load_label_decoder()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_evaluate.html#model_evaluate.predict"><code class="docutils literal notranslate"><span class="pre">predict()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_evaluate.html#model_evaluate.save_model"><code class="docutils literal notranslate"><span class="pre">save_model()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="model_predict.html">Model Prediction</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="model_predict.html#model_predict.decode_labels"><code class="docutils literal notranslate"><span class="pre">decode_labels()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="model_predict.html#model_predict.get_model"><code class="docutils literal notranslate"><span class="pre">get_model()</span></code></a></li>
@@ -102,7 +123,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">Emotions</a>
+          <a href="index.html">E3K</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -123,13 +144,27 @@
   <section id="installation">
 <span id="id1"></span><h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
 <p>To install e3k, follow these steps:</p>
+<section id="using-dockerfile">
+<h2>Using Dockerfile<a class="headerlink" href="#using-dockerfile" title="Link to this heading"></a></h2>
+<ol class="arabic">
+<li><p>Download the Dockerfile from the project’s GitHub repository (located in the environment folder).</p></li>
+<li><p>Navigate to the directory containing the Dockerfile.</p></li>
+<li><p>Build and run the Docker image:
+.. code-block:: shell</p>
+<blockquote>
+<div><p>docker build -t my_project_image
+docker run -it –rm my_project_image</p>
+</div></blockquote>
+</li>
+</ol>
+</section>
 <section id="for-conda-users">
 <h2>For conda users<a class="headerlink" href="#for-conda-users" title="Link to this heading"></a></h2>
 <ol class="arabic">
-<li><p>Download the <cite>env.yaml</cite> file from this project’s Github repository.</p></li>
+<li><p>Download the <cite>environment.yaml</cite> file from this project’s Github repository (environment folder).</p></li>
 <li><p>Navigate to the dowloaded file.</p></li>
-<li><p>Create the environment using the <cite>env.yaml</cite> file:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>env.yaml
+<li><p>Create the environment using the <cite>environment.yaml</cite> file:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>environment.yaml
 </pre></div>
 </div>
 </li>
@@ -147,9 +182,9 @@
 </section>
 <section id="for-non-conda-users">
 <h2>For non-conda users<a class="headerlink" href="#for-non-conda-users" title="Link to this heading"></a></h2>
-<p>For non-conda users having python 3.10 is necessary.</p>
+<p>For non-conda users having python 3.8 is necessary.</p>
 <ol class="arabic">
-<li><p>Download the <cite>requirements.txt</cite> file from this project’s Github repository.</p></li>
+<li><p>Download the <cite>requirements.txt</cite> file from this project’s Github repository (environment folder).</p></li>
 <li><p>Navigate to the dowloaded file.</p></li>
 <li><p>Install the required packages using pip:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
@@ -177,7 +212,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to Emotions’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to E3K’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="usage.html" class="btn btn-neutral float-right" title="Usage" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

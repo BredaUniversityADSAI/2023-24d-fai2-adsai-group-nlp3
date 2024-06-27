@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; Emotions 1 documentation</title>
+  <title>Index &mdash; E3K 1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
 
@@ -31,7 +31,7 @@
           
           
           <a href="index.html" class="icon icon-home">
-            Emotions
+            E3K
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -44,6 +44,7 @@
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#using-dockerfile">Using Dockerfile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#for-conda-users">For conda users</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#for-non-conda-users">For non-conda users</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#verify-the-installation">Verify the installation:</a></li>
@@ -54,6 +55,19 @@
 <li class="toctree-l2"><a class="reference internal" href="usage.html#api-usage">API Usage</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api.html#base-url">Base URL</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#endpoints">Endpoints</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api.html#train-model">Train Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#evaluate-model">Evaluate Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#predict-labels">Predict Labels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#display-output">Display Output</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#notes">Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#running-the-api">Running the API</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Source Code</span></p>
 <ul>
@@ -61,7 +75,6 @@
 <li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.adjust_fragment_end_frame"><code class="docutils literal notranslate"><span class="pre">adjust_fragment_end_frame()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.adjust_fragment_start_frame"><code class="docutils literal notranslate"><span class="pre">adjust_fragment_start_frame()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.clean_transcript_df"><code class="docutils literal notranslate"><span class="pre">clean_transcript_df()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.epp_logger"><code class="docutils literal notranslate"><span class="pre">epp_logger</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.get_frame_segments_from_vad_output"><code class="docutils literal notranslate"><span class="pre">get_frame_segments_from_vad_output()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.get_segments_for_vad"><code class="docutils literal notranslate"><span class="pre">get_segments_for_vad()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.get_target_length_frames"><code class="docutils literal notranslate"><span class="pre">get_target_length_frames()</span></code></a></li>
@@ -107,7 +120,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">Emotions</a>
+          <a href="index.html">E3K</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -188,8 +201,6 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="edp.html#episode_preprocessing_pipeline.epp_logger">epp_logger (in module episode_preprocessing_pipeline)</a>
-</li>
       <li><a href="model_evaluate.html#model_evaluate.evaluate">evaluate() (in module model_evaluate)</a>
 </li>
   </ul></td>

@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Model Evaluation &mdash; Emotions 1 documentation</title>
+  <title>Model Evaluation &mdash; E3K 1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
 
@@ -34,7 +34,7 @@
           
           
           <a href="index.html" class="icon icon-home">
-            Emotions
+            E3K
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -55,7 +55,6 @@
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#cli-usage">CLI Usage</a></li>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#api-usage">API Usage</a></li>
-<li class="toctree-l2"><a class="reference internal" href="usage.html#license">License</a></li>
 </ul>
 </li>
 </ul>
@@ -65,7 +64,6 @@
 <li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.adjust_fragment_end_frame"><code class="docutils literal notranslate"><span class="pre">adjust_fragment_end_frame()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.adjust_fragment_start_frame"><code class="docutils literal notranslate"><span class="pre">adjust_fragment_start_frame()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.clean_transcript_df"><code class="docutils literal notranslate"><span class="pre">clean_transcript_df()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.epp_logger"><code class="docutils literal notranslate"><span class="pre">epp_logger</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.get_frame_segments_from_vad_output"><code class="docutils literal notranslate"><span class="pre">get_frame_segments_from_vad_output()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.get_segments_for_vad"><code class="docutils literal notranslate"><span class="pre">get_segments_for_vad()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="edp.html#episode_preprocessing_pipeline.get_target_length_frames"><code class="docutils literal notranslate"><span class="pre">get_target_length_frames()</span></code></a></li>
@@ -111,7 +109,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">Emotions</a>
+          <a href="index.html">E3K</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -150,7 +148,7 @@ with get_model function</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="model_evaluate.evaluate">
-<span class="sig-prename descclassname"><span class="pre">model_evaluate.</span></span><span class="sig-name descname"><span class="pre">evaluate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pred_labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#model_evaluate.evaluate" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">model_evaluate.</span></span><span class="sig-name descname"><span class="pre">evaluate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pred_labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#model_evaluate.evaluate" title="Link to this definition"></a></dt>
 <dd><p>A function that evaluates trained model using a separate dataset.
 It returns total_accuracy and creates a report with different metrics.</p>
 <dl class="simple">
@@ -191,10 +189,8 @@ from a specified pickle file.</p>
 <dt>Input:</dt><dd><p>label_decoder_path (str): The path to the pickle file containing
 the label decoder.</p>
 </dd>
-<dt>Output:</dt><dd><dl class="simple">
-<dt>emotion_decoder (Dict[int, str]): A dictionary mapping integer labels to their</dt><dd><p>corresponding string descriptions.</p>
-</dd>
-</dl>
+<dt>Output:</dt><dd><p>emotion_decoder (Dict[int, str]): A dictionary mapping integer labels to their
+corresponding string descriptions.</p>
 </dd>
 <dt>Author:</dt><dd><p>Kornelia Flizik (223643)</p>
 </dd>

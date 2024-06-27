@@ -77,12 +77,12 @@ def predict(
         token_array (np.array): a token array returned by tokenize_text_data function
         mask_array (np.array): a mask array returned by tokenize_text_data function
         emotion_decoder (dict[int, str]): dictionary with number to text mapping loaded
-            with get_model function
+        with get_model function
 
     Output:
         text_labels (list[str]): list of text emotions predicted by the model
         highest_probabilities (np.array): array of model's confidence
-            that the predicted emotion is correct
+        that the predicted emotion is correct
 
     Author:
         Max Meiners (214936)
@@ -161,7 +161,7 @@ def save_model(
     Input:
         model (transformers.TFRobertaForSequenceClassification): trained model
         label_encoder (dict[int, str]): Python dictionary mapping
-            numbers to text emotions.
+        numbers to text emotions.
         model_path (str): Path to directory where the model will be saved.
         accuracy (float):  The accuracy of the model.
         threshold (float): The accuracy threshold for registering the model.
@@ -201,7 +201,7 @@ def decode_labels(
     Input:
         encoded_labels (list[int]): list of labels represented as number
         emotion_decoder (dict[int, str]): dictionary with number to text mapping loaded
-            with get_model function
+        with get_model function
 
     Output:
         decoded_labels (list[str]): list of labels represented as text
@@ -229,7 +229,7 @@ def load_label_decoder(label_decoder_path: str) -> Dict[int, str]:
 
     Output:
         emotion_decoder (Dict[int, str]): A dictionary mapping integer labels to their
-            corresponding string descriptions.
+        corresponding string descriptions.
 
     Author:
         Kornelia Flizik (223643)

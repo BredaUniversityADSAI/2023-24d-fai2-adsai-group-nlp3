@@ -4,12 +4,12 @@ import shutil
 import pandas as pd
 from typing import Dict, List, Tuple
 
-import package.e3k.episode_preprocessing_pipeline as epp
-import package.e3k.model_evaluate as me
-import package.e3k.model_output_information as moi
-import package.e3k.model_training as mt
-import package.e3k.preprocessing as preprocessing
-import package.e3k.split_register_data as splitting
+import episode_preprocessing_pipeline as epp
+import model_evaluate as me
+import model_output_information as moi
+import model_training as mt
+import preprocessing as preprocessing
+import split_register_data as splitting
 
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import FileResponse

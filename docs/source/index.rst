@@ -3,11 +3,13 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Emotions's documentation!
+Welcome to E3K's documentation!
 ====================================
 
-Bla bla bla 
-Bla bla bla 
+This project focuses on the development and deployment of a production-ready
+Natural Language Processing (NLP) model for classifying emotions in TV shows.
+The aim is to provide Banijay Benelux with insights into viewer engagement and
+preferences within their TV series.
 
 .. toctree::
    :maxdepth: 2
@@ -15,6 +17,7 @@ Bla bla bla
 
    installation
    usage
+   api
 
 .. toctree::
    :maxdepth: 2
