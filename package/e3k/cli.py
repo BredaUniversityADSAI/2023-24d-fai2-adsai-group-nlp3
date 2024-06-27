@@ -14,6 +14,7 @@ import pandas as pd
 import preprocessing
 import split_register_data as splitting
 import typeguard
+from matplotlib.figure import Figure
 from tensorflow import config as tf_config
 from transformers import TFRobertaForSequenceClassification
 
@@ -484,7 +485,7 @@ def predict(args: argparse.Namespace, data: pd.DataFrame) -> Tuple[List[str], np
 @typeguard.typechecked
 def model_output_information(
     predicted_emotions: List[str], confidence_scores: np.array
-) -> None:
+) -> Figure:
     """
     A function that aggregates prediction results into a total confidence score,
     and a pie chart with predicted emotions distribution.
@@ -499,8 +500,10 @@ def model_output_information(
 
     Author - Wojciech Stachowiak
     """
-    moi.plot_emotion_distribution(predicted_emotions)
+    figure = moi.plot_emotion_distribution(predicted_emotions)
     moi.calculate_episode_confidence(confidence_scores)
+
+    return figure
 
 
 @typeguard.typechecked
@@ -555,7 +558,9 @@ def main() -> None:
         logger.info("entered task: predict")
 
         predicted_emotions, highest_probabilities = predict(args, data_df)
-        model_output_information(predicted_emotions, highest_probabilities)
+        figure = model_output_information(predicted_emotions, highest_probabilities)
+
+        figure.show()
 
     # handle training
     if args.task == "train":

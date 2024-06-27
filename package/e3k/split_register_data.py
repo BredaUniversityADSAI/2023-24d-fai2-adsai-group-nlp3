@@ -61,7 +61,7 @@ def load_data(file_path: str) -> Tuple[pd.DataFrame, Dict[int, str]]:
 @typeguard.typechecked
 def get_train_val_data(
     data_df: pd.DataFrame, val_size: float = 0.2
-) -> Tuple[Tuple[pd.DataFrame, pd.Series], Tuple[pd.DataFrame, pd.Series]]:
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Split the data into training and validation sets.
 
