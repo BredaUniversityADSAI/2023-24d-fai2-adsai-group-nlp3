@@ -29,7 +29,18 @@ jobs:
           python setup.py sdist bdist_wheel
           cd ..
 
-      - name: Upload package to PyPI
+      - name: Upload package to PyPI using username/password
+        if: ${{ secrets.PYPI_USERNAME && secrets.PYPI_PASSWORD }}
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          cd package
+          python -m twine upload dist/*
+          cd ..
+
+      - name: Upload package to PyPI using token
+        if: ${{ secrets.PYPI_TOKEN }}
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
