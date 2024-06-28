@@ -21,5 +21,6 @@ pydub
 tqdm
 matplotlib
 transformers==4.31.0
+tensorflow==2.12
 joblib
 typeguard
