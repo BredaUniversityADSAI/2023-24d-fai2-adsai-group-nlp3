@@ -1,7 +1,7 @@
 import os 
 import tensorflow as tf
-from package.e3k.preprocessing import get_tokenizer, tokenize_text_data, preprocess_prediction_data_no_tokenizer
-from package.e3k.model_predict import decode_labels, get_model, predict, predict_scoring
+from preprocessing_deployment import get_tokenizer, tokenize_text_data, preprocess_prediction_data_no_tokenizer
+from model_predict_deployment import decode_labels, get_model, predict, predict_scoring
 import json
 import transformers
 import joblib

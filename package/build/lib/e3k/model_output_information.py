@@ -5,6 +5,7 @@ from typing import List
 import matplotlib.pyplot as plt
 import numpy as np
 import typeguard
+from matplotlib.figure import Figure
 
 # setting up logger
 moi_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")
@@ -27,7 +28,7 @@ moi_logger.addHandler(file_handler)
 
 
 @typeguard.typechecked
-def plot_emotion_distribution(predicted_emotions: List[str]) -> None:
+def plot_emotion_distribution(predicted_emotions: List[str]) -> Figure:
     """
     Plot a pie chart of the overall emotion distribution based on a list of predicted
     emotions for each sentence in an episode.
@@ -85,9 +86,11 @@ def plot_emotion_distribution(predicted_emotions: List[str]) -> None:
 
     plt.axis("equal")  # Ensures the pie chart is a circle.
     plt.title("Overall Emotion Distribution in the Episode")
-    plt.show()
+    figure = plt.gcf()
 
     moi_logger.info("Successfully plotted the emotion distribution.")
+
+    return figure
 
 
 @typeguard.typechecked
