@@ -5,14 +5,14 @@ import pickle
 from functools import reduce
 from typing import Dict, Tuple
 
-import e3k.config as config
+import config
 import matplotlib.pyplot as plt
 import mlflow
 import pandas as pd
 import tensorflow as tf
 import transformers
 import typeguard
-from e3k.preprocessing import preprocess_training_data
+from preprocessing import preprocess_training_data
 
 # setting up logger
 mt_logger = logging.getLogger(f"{'main.' if __name__ != '__main__' else ''}{__name__}")

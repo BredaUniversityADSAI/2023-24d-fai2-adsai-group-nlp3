@@ -3,16 +3,16 @@ import datetime
 import logging
 from typing import Dict, List, Tuple
 
-import e3k.episode_preprocessing_pipeline as epp
+import episode_preprocessing_pipeline as epp
 import mlflow
-import e3k.model_evaluate as me
-import e3k.model_output_information as moi
-import e3k.model_predict as mp
-import e3k.model_training as mt
+import model_evaluate as me
+import model_output_information as moi
+import model_predict as mp
+import model_training as mt
 import numpy as np
 import pandas as pd
-from e3k import preprocessing
-from e3k import split_register_data as splitting
+import preprocessing
+import split_register_data as splitting
 import typeguard
 from matplotlib.figure import Figure
 from tensorflow import config as tf_config

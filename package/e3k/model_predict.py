@@ -9,7 +9,7 @@ import pandas as pd
 import tensorflow as tf
 import transformers
 import typeguard
-from e3k.preprocessing import preprocess_prediction_data
+from preprocessing import preprocess_prediction_data
 
 # setting up logger
 pred_logger = logging.getLogger(
