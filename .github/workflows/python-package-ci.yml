@@ -16,13 +16,24 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8'
+          python-version: '3.8'  # Use a compatible Python version
 
-      - name: Install dependencies
+      - name: Check Python version
+        run: python --version
+
+      - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
           pip install setuptools wheel twine
-          pip install configparser  # Install configparser explicitly
+
+      - name: Install project dependencies
+        run: |
+          pip install -r environment/requirements.txt
+
+      - name: Patch configparser issue
+        run: |
+          # Find and replace SafeConfigParser with ConfigParser in versioneer.py
+          find /opt/hostedtoolcache/Python/3.8.15/x64/lib/python3.8/site-packages -name "versioneer.py" -exec sed -i 's/SafeConfigParser/ConfigParser/g' {} +
 
       - name: Build package
         run: |
@@ -62,6 +73,9 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
+
+      - name: Check Python version
+        run: python --version
 
       - name: Install dependencies
         run: |
