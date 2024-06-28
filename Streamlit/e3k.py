@@ -1,17 +1,20 @@
 import streamlit as st
 import base64
-from streamlit_extras.stylable_container import stylable_container
-from azure_utils import get_azure_workspace, get_model, list_models
-from preprocessing import preprocess_prediction_data, preprocess_training_data
+import requests
 
-
-# Inject custom CSS for background color
+# Inject custom CSS for background color and button styles
 st.markdown(
     """
 <style>
     .stApp {
         background-color: lightblue;
-        padding: 20px; /* Optional: add some padding for better spacing */
+        padding: 20px;
+    }
+    .stButton>button {
+        background-color: #5495D6;
+        color: white;
+        border-radius: 20px;
+        padding: 10px;
     }
 </style>
     """,
@@ -19,7 +22,7 @@ st.markdown(
 )
 
 # Load the logo image (JPG)
-logo_image_path = "/Users/pannapfandler/Documents/GitHub/2023-24d-fai2-adsai-group-nlp3/Streamlit/images/Screenshot_2024-06-20_at_17.49.24-removebg-preview.png"
+logo_image_path = "images/Screenshot_2024-06-20_at_17.49.24-removebg-preview.png"
 
 # Read and encode the image in base64
 def get_image_base64(image_path):
@@ -60,60 +63,69 @@ def home_page():
     welcome_text = """
         <div style="color: black;">
             Welcome to the Emotion Detection Platform! 
-            Please select an option below to get started.
+            This platform is designed to provide valuable insights into viewer engagement and 
+            preferences for TV series by predicting the distribution of emotions in the shows, 
+            enabling you to make data-driven decisions. Begin by training your model using text 
+            input data and choosing your own hyperparameters. Once your model is ready, you can 
+            apply it to analyze audio and video files and see predictions at the sentence level.
         </div>
     """
     st.markdown(welcome_text, unsafe_allow_html=True)
-    col1, col2 = st.columns(2)
-
-    # Styles for text and button in the first column
-    col1_css = """
-        button {
-            background-color: #5495D6;
-            color: white;
-            border-radius: 20px;
-            padding: 10px;
-        }
-        p {
-            color: #c0fdfb;
-            font-size: 16px;
-            margin-bottom: 10px;
-        }
-    """
-
-    # Styles for text and button in the second column
-    col2_css = """
-        button {
-            background-color: #5495D6;
-            color: white;
-            border-radius: 20px;
-            padding: 10px;
-        }
-        p {
-            color: #c0fdfb;
-            font-size: 16px;
-            margin-bottom: 10px;
-        }
-    """
+    col1, _ = st.columns(2)
 
     with col1:
-        with stylable_container(key="edp_button", css_styles=col1_css):
-            st.markdown("<p></p>", unsafe_allow_html=True)
-            if st.button("Go to Emotion Data Preprocessing"):
-                navigate_to("EDP")
-
-    with col2:
-        with stylable_container(key="model_training_button", css_styles=col2_css):
-            st.markdown("<p></p>", unsafe_allow_html=True)
-            if st.button("Go to Model Training"):
-                navigate_to("Model Training")
-
+        if st.button("Go to Model Training"):
+            st.session_state.training_successful = False  # Reset success state when navigating to training
+            navigate_to("Model Training")
 
 # Define the Model Training page
 def model_training_page():
     st.markdown(f"<h2 style='font-size: {header_font_size};'>Model Training</h2>", unsafe_allow_html=True)
     st.write("This is the Model Training page.")
+    
+    val_size = st.number_input("Validation Size", min_value=0.0, max_value=1.0, value=0.2)
+    epochs = st.number_input("Epochs", min_value=1, max_value=1000, value=10)
+    lr = st.number_input("Learning Rate", min_value=0.0001, max_value=1.0, value=0.001, format="%.4f")
+    early_stopping_patience = st.number_input("Early Stopping Patience", min_value=1, max_value=100, value=10)
+    model_name = st.text_input("Model Name", value="RoBERTa_model")
+    uploaded_file = st.file_uploader("Choose training data file", type=["csv", "json"])  # Assume CSV or JSON for training data
+    
+    if "training_successful" not in st.session_state:
+        st.session_state.training_successful = False  # Initialize the training_successful state
+    
+    if st.button("Start Training"):
+        result = train_model(val_size, epochs, lr, early_stopping_patience, model_name, uploaded_file)
+        if isinstance(result, dict) and result.get("message") == "Model trained successfully":
+            st.session_state.training_successful = True  # Set flag to True if training was successful
+            st.session_state.model_name = model_name  # Store model name in session state
+            st.success("Model training completed successfully!")
+        else:
+            st.error(f"Failed to train model: {result}")
+
+    if st.session_state.training_successful:
+        if st.button("Go to Emotion Detection Predictor"):
+            navigate_to("EDP")
+
     add_home_button()
+
+def train_model(val_size, epochs, lr, early_stopping_patience, model_name, uploaded_file):
+    try:
+        # Specify the FastAPI server URL for the training endpoint
+        fastapi_url = f"http://194.171.191.226:3999/train/{val_size}/{epochs}/{lr}/{early_stopping_patience}"
+        
+        files = {'train_data': (uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type)}
+        params = {'model_name': model_name}
+        
+        response = requests.post(fastapi_url, files=files, params=params)
+        
+        if response.status_code == 200:
+            training_result = response.json()
+            return training_result
+        
+        return f"Failed to start training. Status code: {response.status_code}, detail: {response.text}"
+    
+    except Exception as e:
+        return f"An error occurred: {e}"
 
 # Define the EDP (Emotion Detection Predictor) page
 def edp_page():
@@ -125,16 +137,21 @@ def edp_page():
         st.markdown(f"<h3 style='font-size: {subheader_font_size};'>Upload your audio or video file</h3>", unsafe_allow_html=True)
         uploaded_file = st.file_uploader("Choose a file", type=["mp3", "mov"])
         
-        if "ws" not in st.session_state:
-            st.session_state.ws = get_azure_workspace()
+        # Input fields for query parameters
+        target_sr = st.number_input("Target Sample Rate", value=32000)
+        segment_length = st.number_input("Segment Length", value=0.03)
+        min_fragment_len = st.number_input("Minimum Fragment Length", value=300)
+        vad_aggressiveness = st.number_input("VAD Aggressiveness", value=0)
+        use_fp16 = st.checkbox("Use FP16", value=True)
+        transcript_model_size = st.selectbox("Transcript Model Size", options=["tiny", "base", "small", "medium", "large"], index=0)
         
-        model_names = list_models(st.session_state.ws)
-        selected_model = st.selectbox("Choose a model", model_names)
+        # Use the model name from session state
+        selected_model = st.session_state.get("model_name", "RoBERTa_model")
         
-        if uploaded_file and selected_model:
+        if uploaded_file and st.button("Predict"):
             st.write("File uploaded successfully.")
-            # Preprocess and predict using Azure model
-            result = process_and_predict(uploaded_file, selected_model)
+            # Preprocess and predict using FastAPI
+            result = process_and_predict(uploaded_file, selected_model, target_sr, segment_length, min_fragment_len, vad_aggressiveness, use_fp16, transcript_model_size)
             st.write(result)
     
     with col2:
@@ -143,24 +160,33 @@ def edp_page():
     
     add_home_button()
 
-def process_and_predict(uploaded_file, selected_model):
+def process_and_predict(uploaded_file, selected_model, target_sr, segment_length, min_fragment_len, vad_aggressiveness, use_fp16, transcript_model_size):
     try:
-        # Authenticate and connect to the workspace
-        ws = st.session_state.ws
+        # Specify the FastAPI server URL for the predict endpoint
+        fastapi_url = "http://194.171.191.226:3999/predict"
         
-        # Load the model
-        model = get_model(ws, selected_model)
+        # Upload the file to FastAPI
+        files = {'audio_file': (uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type)}
         
-        # Preprocess the file (dummy preprocessing step)
-        # Add actual preprocessing logic here
-        preprocessed_data = uploaded_file.read()  # Placeholder for actual preprocessing
+        # Prepare query parameters
+        params = {
+            'model_name': selected_model,
+            'target_sr': target_sr,
+            'segment_length': segment_length,
+            'min_fragment_len': min_fragment_len,
+            'vad_aggressiveness': vad_aggressiveness,
+            'use_fp16': use_fp16,
+            'transcript_model_size': transcript_model_size
+        }
         
-        # Predict using the model
-        # Replace with actual prediction logic
-        # Example: using a web service or local model
-        prediction = "dummy prediction result"
+        # Send the POST request to FastAPI
+        response = requests.post(fastapi_url, files=files, params=params)
         
-        return prediction
+        if response.status_code == 200:
+            prediction = response.json()
+            return prediction
+        
+        return f"Failed to get prediction. Status code: {response.status_code}, detail: {response.text}"
     
     except Exception as e:
         return f"An error occurred: {e}"
