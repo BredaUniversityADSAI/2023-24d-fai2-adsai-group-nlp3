@@ -25,14 +25,18 @@ jobs:
 
       - name: Build package
         run: |
+          cd package
           python setup.py sdist bdist_wheel
+          cd ..
 
       - name: Upload package to PyPI
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
         run: |
+          cd package
           python -m twine upload dist/*
+          cd ..
 
   monitor-performance:
     runs-on: ubuntu-latest
@@ -53,4 +57,4 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run performance monitoring script
-        run: python monitor_performance.py
+        run: python package/monitor_performance.py
