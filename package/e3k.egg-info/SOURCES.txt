@@ -3,6 +3,7 @@ MANIFEST.in
 README.md
 setup.py
 e3k/__init__.py
+e3k/app.py
 e3k/cli.py
 e3k/config.py
 e3k/episode_preprocessing_pipeline.py
@@ -11,7 +12,6 @@ e3k/model_output_information.py
 e3k/model_predict.py
 e3k/model_training.py
 e3k/preprocessing.py
-e3k/preprocessing_lstm.py
 e3k/split_register_data.py
 e3k.egg-info/PKG-INFO
 e3k.egg-info/SOURCES.txt
@@ -23,5 +23,7 @@ tests/test_cli.py
 tests/test_episode_preprocessing_pipeline.py
 tests/test_model_evaluate.py
 tests/test_model_output_information.py
+tests/test_model_predict.py
 tests/test_model_training.py
 tests/test_preprocessing.py
+tests/test_split_register_data.py
