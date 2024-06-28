@@ -24,5 +24,5 @@ jobs:
       # Build the Docker image
       - name: Build Docker image
         run: |
-          docker build . -t jamwojt/cv3-container:${{ github.sha }}
+          docker build -f cli_dockerfile/Dockerfile . -t jamwojt/cv3-container:${{ github.sha }}
           docker push jamwojt/cv3-container:${{ github.sha }}
