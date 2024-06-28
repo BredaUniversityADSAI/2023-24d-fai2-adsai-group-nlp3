@@ -1,0 +1,25 @@
+project_name/
+    ├── docs/
+    ├── environment
+    ├── package/
+    │   └── build/  
+    │   └── dist/ 
+    │   └── e3k/
+    │   |   ├── __init__.py
+    │   |   ├── cli.py
+    │   |   ├── app.py
+    │   |   ├──episode_preprocessing_pipeline.py
+    │   |   ├── split_register_data.py
+    │   |   ├── preprocessing.py
+    │   |   ├── model_output_information.py
+    │   |   ├── model_training.py
+    │   |   ├── model_evaluate.py
+    │   |   ├── model_predict.py
+    │   |   ├── config.py
+    │   └── tests/
+    ├── .flake8
+    ├── .gitignore
+    ├── .pre-commit-config.yaml
+    ├── LICENSE
+    ├── README.md
+    └── pyproject.toml
