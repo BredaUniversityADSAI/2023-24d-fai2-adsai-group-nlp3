@@ -14,7 +14,8 @@ To install the project, follow these steps:
 2. Navigate to the directory containing the Dockerfile.
 3. Build and run the Docker image: 
  ```bash
-docker build -t my_project_image docker run -it –rm my_project_image
+docker pull jamwojt/cli:1
+docker run -it --rm jamwojt/cli:1
  ```
 ### For Conda Users
 
@@ -132,16 +133,34 @@ The Command Line Interface (CLI) allows you to interact with the project from th
 - tokenizer_model: Tokenizer model used to preprocess data. Defaults to roberta-base.
 
 - token_max_length: Max number of tokens created by preprocessing a sentence. Defaults to 128.
+  
+## Example Commands
 
-### API Usage
+Preprocess an audio or video file
+```bash
+cli --task Preprocess --cloud False --input_path /path/to/input/file --output_path /path/to/output/file --save True --target_sr 16000 --segment_length 0.02 --min_fragment_len 300 --vad_aggressiveness 1 --use_fp16 False --transcript_model_size large
+```
 
-The API allows you to interact with the project programmatically.
+Train a new emotion detection model
+```bash
+cli --task Train --cloud True --train_data /path/to/train/data --val_data /path/to/val/data --val_size 0.2 --batch_size 64 --max_length 128 --epochs 10 --learning_rate 3e-5 --early_stopping_patience 5 --model_save_path /path/to/save/model --threshold 0.85 --test_data /path/to/test/data --model_name my_emotion_model
+```
 
-1. Importing the Module
+Predict emotions from processed data
+```bash
+cli --task Predict --cloud False --model_path /path/to/model/file --label_decoder_path /path/to/label/decoder --tokenizer_model bert-base-uncased --token_max_length 128
+```
 
-First, import the necessary module(s) in your Python script:
- ```bash
-from your_project_name import your_module
- ```
+Add processed data to a database
+```bash
+cli --task Add --cloud True --input_path /path/to/processed/data
+```
+
+## API Usage
+
+To run API file locally relocate the file API/ app.py to package/e3k folder. To see the documentation of the API refer to /docs url.
+
+You can access the API using IP: http://57.153.92.125:8001.
+
 ## License
 This project is licensed under the terms of the MIT license.
