@@ -57,7 +57,7 @@ def load_audio(file_path: str, target_sample_rate: int) -> np.array:
 
     Output:
         audio (np.array): mono audio file with specified sample rate
-            represented as np.array
+        represented as np.array
 
     Author:
         Kornelia Flizik (223643)
@@ -134,9 +134,9 @@ def get_vad_per_segment(
 
     Input:
         segments (list[np.array]): list with cut audio obtained from
-            get_segments_for_vad function
+        get_segments_for_vad function
         vad_aggressiveness (int): how aggressive should the function be
-            when filtering out non-speech
+        when filtering out non-speech
         sample_rate (int): sample rate of the audio file
         segment_frames_length: segment length measured by number of frames
 
@@ -198,17 +198,17 @@ def get_frame_segments_from_vad_output(
 
     Input:
         speech_array (np.array): np.array with bool values obtained from
-            get_vad_per_segment function
+        get_vad_per_segment function
         sample_rate (int): sample rate of the audio file
         min_fragment_length_seconds (int): min amount of seconds per fragment
-            generated from 10/20/30ms segments
+        generated from 10/20/30ms segments
         segment_seconds_length (float): length of one segment in seconds
         full_audio_length_frames (int): the total number of frames in
-            the entire audio file
+        the entire audio file
 
     Output:
         cut_fragments_frames (list[tuple[int, int]]): list of
-            (start, end) frame number pairs
+        (start, end) frame number pairs
 
     Author - Wojciech Stachowiak
     """
@@ -284,19 +284,19 @@ def transcribe_translate_fragments(
     Input:
         audio (np.array): full audio file loaded with load_audio function
         cut_audio_frames (list[tuple[int, int]]): list of
-            (start, end) frame number pairs
+        (start, end) frame number pairs
         sample_rate (int): sample rate of the audio file
         use_fp16 (bool): Whether to use FP16 format for model prediction,
-            needs to be False for CPU. Defaults to True.
+        needs to be False for CPU. Defaults to True.
         transcription_model_size (str): size of whisper model used for
-            transcription and translation,
-            see: https://pypi.org/project/openai-whisper/. default: "base"
+        transcription and translation,
+        see: https://pypi.org/project/openai-whisper/. default: "base"
         episode_value (Any): value assigned to each row for this episode,
-            default: current date in YYYY-MM-DD format (e.g. 2024-05-16)
+        default: current date in YYYY-MM-DD format (e.g. 2024-05-16)
 
     Output:
         data (pd.DataFrame): dataframe with english sentences assigned to
-            the episode value and segment number
+        the episode value and segment number
 
     Author - Wojciech Stachowiak
     """
@@ -340,8 +340,7 @@ def save_data(
 
     Input:
         df (pd.DataFrame): dataframe to save
-        output_path (str): file path to the saved file,
-            default: "output.csv"
+        output_path (str): file path to the saved file, default: "output.csv"
 
     Output: None
 
@@ -393,7 +392,7 @@ def segment_number_to_frames(
 
     Input:
         segment_number (int): number of the segment from the np.array
-            obtained from get_vad_per_segment function
+        obtained from get_vad_per_segment function
         sample_rate (int): sample rate of the audio file
         segment_seconds_length (float): length of the audio segment in seconds
 
@@ -433,7 +432,7 @@ def adjust_fragment_start_frame(start_fragment_frame: int, sample_rate: int) -> 
 
     Input:
         start_fragment_frame (int): the frame number that corresponds to start of
-            the segment with no speech detected
+        the segment with no speech detected
         sample_rate (int): sample rate of the audio file
 
     Output:
@@ -458,7 +457,7 @@ def adjust_fragment_end_frame(
 
     Input:
         end_fragment_frame (int): the frame number that corresponds to start of
-            the last used in this fragment segment with no speech detected
+        the last used in this fragment segment with no speech detected
         sample_rate (int): sample rate of the audio file
 
     Output:
@@ -483,15 +482,15 @@ def clean_transcript_df(
     It adds a column to identify the episode later
     (current date in YYYY-MM-DD format by default). This can be changed by specifying
     the episode_value argument in the transcribe_translate_fragments function.
-    Additionally, this function renames columns, and splits transcription for an episode
-    fragment into separate sentences.
+    Additionally, this function renames columns, and splits transcription for an 
+    episode fragment into separate sentences.
 
     Input:
         df (pd.DataFrame): a dataframe returned by
-            transcribe_translate_fragments function
+        transcribe_translate_fragments function
         sample_rate (int): sample rate of the audio file
         episode_value (Any): value assigned to each row for this episode,
-            default: current date in YYYY-MM-DD format (e.g. 2024-05-16)
+        default: current date in YYYY-MM-DD format (e.g. 2024-05-16)
 
     Output:
         df (pd.DataFrame): a cleaned dataframe with one sentence in each row
