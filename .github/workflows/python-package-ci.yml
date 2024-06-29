@@ -33,7 +33,7 @@ jobs:
       - name: Patch configparser issue
         run: |
           # Find and replace SafeConfigParser with ConfigParser in versioneer.py
-          find /opt/hostedtoolcache/Python/3.8.15/x64/lib/python3.8/site-packages -name "versioneer.py" -exec sed -i 's/SafeConfigParser/ConfigParser/g' {} +
+          find $(python -c 'import site; print(site.getsitepackages()[0])') -name "versioneer.py" -exec sed -i 's/SafeConfigParser/ConfigParser/g' {} +
 
       - name: Build package
         run: |
